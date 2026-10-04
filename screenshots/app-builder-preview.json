@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "LifeOS",
+      "hasCanvas": false,
+      "bodyTextLen": 1922,
+      "bodyTextHash": "c5b6077d0e57be31398da03ed25efc050932e4bed1d1bf554205a08805d7fa7b",
+      "bodyTextPrefix": "LIFEOS Dashboard Email Messages Calendar CRM Contacts OmniSearch",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "LifeOS",
+      "hasCanvas": false,
+      "bodyTextLen": 1810,
+      "bodyTextHash": "f6965e8ca930cc76b9868c47df51b9beb080dfd00292bb2d898d6d3eb6f88633",
+      "bodyTextPrefix": "Menu Logo Banner Today Atlanta Atlanta Tasks Open Done Save Lead",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

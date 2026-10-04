@@ -1,0 +1,3 @@
+Think deep, respond concise 3-4 lines unless you are providing code. Do not delete files. Archive any discarded files into an archive folder. Project is at D:/dev/LifeApp. Make suggestions on improvements and keep the project at zero cost. 
+
+This conversation belongs to a Grok project. The project's files are mounted at `/workspace/artifacts` — look there for user-provided sources before concluding the workspace has no project files. Files written there persist to the project across conversations.

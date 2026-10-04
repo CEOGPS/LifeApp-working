@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><!-- LifeOS weather icon (snow). Original artwork generated for LifeOS, 2026. --><style>
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 4.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+.drift{animation:drift 8s ease-in-out infinite alternate}
+.drift2{animation:drift 11s ease-in-out infinite alternate-reverse}
+@keyframes drift{from{transform:translateX(-2px)}to{transform:translateX(2px)}}
+.drop{animation:fall 1.15s linear infinite}
+@keyframes fall{0%{transform:translate(1px,-7px);opacity:0}25%{opacity:1}100%{transform:translate(-3px,15px);opacity:0}}
+.flake{animation:snow 3.4s linear infinite}
+@keyframes snow{0%{transform:translate(0,-6px);opacity:0}20%{opacity:1}100%{transform:translate(2px,16px);opacity:0}}
+.bolt{animation:flash 3.6s linear infinite}
+@keyframes flash{0%,62%,70%,100%{opacity:.7}64%,68%{opacity:1}66%{opacity:.5}}
+.fog{animation:drift 9s ease-in-out infinite alternate}
+.fog2{animation:drift 12s ease-in-out infinite alternate-reverse}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style><defs>
+<filter id="fluff" x="-25%" y="-25%" width="150%" height="150%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="7" result="n"/>
+  <feDisplacementMap in="SourceGraphic" in2="n" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+  <feGaussianBlur in="d" stdDeviation="0.55"/>
+</filter>
+<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+  <feGaussianBlur stdDeviation="2.2" result="b"/>
+  <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter>
+<radialGradient id="hl" cx="0.4" cy="0.35" r="0.6"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6ff" stop-opacity=".1"/><stop offset="1" stop-color="#f4fbff"/></linearGradient>
+<radialGradient id="flakeG"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eaf6ff" stop-opacity=".9"/><stop offset="1" stop-color="#bfe3ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="iceG" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#d8efff"/><stop offset="1" stop-color="#7fb4d9"/></radialGradient>
+<linearGradient id="cb16" gradientUnits="userSpaceOnUse" x1="0" y1="18.5" x2="0" y2="77.3"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e6ebf2"/><stop offset="1" stop-color="#8f9aab"/></linearGradient></defs><ellipse cx="64.1" cy="75.2" rx="37.8" ry="6.3" fill="#000" opacity=".35" filter="url(#soft)"/><g class="drift"><g filter="url(#fluff)"><circle cx="36.8" cy="58.4" r="13.7" fill="url(#cb16)"/><circle cx="51.5" cy="45.8" r="17.9" fill="url(#cb16)"/><circle cx="70.4" cy="39.5" r="21.0" fill="url(#cb16)"/><circle cx="87.2" cy="50.0" r="15.8" fill="url(#cb16)"/><circle cx="97.7" cy="60.5" r="10.5" fill="url(#cb16)"/><circle cx="62.0" cy="60.5" r="17.9" fill="url(#cb16)"/><circle cx="30.5" cy="63.6" r="9.5" fill="url(#cb16)"/><circle cx="78.8" cy="62.6" r="14.7" fill="url(#cb16)"/><rect x="30.5" y="56.3" width="67.2" height="16.8" rx="8.4" fill="url(#cb16)"/><circle cx="51.5" cy="41.6" r="11.6" fill="url(#hl)" opacity=".85"/><circle cx="70.4" cy="34.2" r="13.7" fill="url(#hl)" opacity=".85"/><circle cx="87.2" cy="45.8" r="8.4" fill="url(#hl)" opacity=".85"/><circle cx="36.8" cy="54.2" r="7.4" fill="url(#hl)" opacity=".85"/></g></g><g><circle class="flake" style="animation-delay:-2.60s" cx="44.8" cy="86.3" r="2.9" fill="url(#flakeG)"/><circle class="flake" style="animation-delay:-0.16s" cx="49.2" cy="81.7" r="3.2" fill="url(#flakeG)"/><circle class="flake" style="animation-delay:-0.66s" cx="56.5" cy="88.5" r="2.5" fill="url(#flakeG)"/><circle class="flake" style="animation-delay:-1.38s" cx="61.4" cy="89.4" r="3.1" fill="url(#flakeG)"/><circle class="flake" style="animation-delay:-2.60s" cx="65.8" cy="89.4" r="2.5" fill="url(#flakeG)"/><circle class="flake" style="animation-delay:-2.68s" cx="68.5" cy="89.2" r="2.4" fill="url(#flakeG)"/><circle class="flake" style="animation-delay:-1.74s" cx="73.2" cy="90.6" r="3.5" fill="url(#flakeG)"/><circle class="flake" style="animation-delay:-2.27s" cx="78.3" cy="83.1" r="3.4" fill="url(#flakeG)"/></g></svg>

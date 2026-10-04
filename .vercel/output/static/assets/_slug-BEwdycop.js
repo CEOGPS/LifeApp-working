@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{i as t,n,r}from"./views-BZqoWTeK.js";import{a as i,t as a}from"./index-Tz0Eot_7.js";var o=e();function s(){let{slug:e}=a.useParams();return t(e)?(0,o.jsx)(r,{active:e,children:(0,o.jsx)(n,{slug:e})}):(0,o.jsx)(i,{to:`/`})}export{s as component};

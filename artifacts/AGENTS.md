@@ -1,0 +1,1 @@
+Think deep, respond concise 3-4 lines unless you are providing code. Do not delete files. Archive any discarded files into an archive folder. Project is at D:/dev/LifeApp. Make suggestions on improvements and keep the project at zero cost. 

@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "LifeOS",
+      "hasCanvas": false,
+      "bodyTextLen": 1304,
+      "bodyTextHash": "ce11ea64d4cae02c66886cb6c507942519e11f1d14158655e0a6adab7896b2c2",
+      "bodyTextPrefix": "LIFEOS Dashboard Email Messages Calendar CRM Contacts OmniSearch",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "LifeOS",
+      "hasCanvas": false,
+      "bodyTextLen": 1143,
+      "bodyTextHash": "97d52fb4722dc47ca8c0621441d65a025b4a9470e6e13110719038c05fce1dfd",
+      "bodyTextPrefix": "Menu Logo Banner Time Atlanta 25° Atlanta Notifications Two warm",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

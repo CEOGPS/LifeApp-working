@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><!-- LifeOS weather icon (wind). Original artwork generated for LifeOS, 2026. --><style>
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 4.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+.drift{animation:drift 8s ease-in-out infinite alternate}
+.drift2{animation:drift 11s ease-in-out infinite alternate-reverse}
+@keyframes drift{from{transform:translateX(-2px)}to{transform:translateX(2px)}}
+.drop{animation:fall 1.15s linear infinite}
+@keyframes fall{0%{transform:translate(1px,-7px);opacity:0}25%{opacity:1}100%{transform:translate(-3px,15px);opacity:0}}
+.flake{animation:snow 3.4s linear infinite}
+@keyframes snow{0%{transform:translate(0,-6px);opacity:0}20%{opacity:1}100%{transform:translate(2px,16px);opacity:0}}
+.bolt{animation:flash 3.6s linear infinite}
+@keyframes flash{0%,62%,70%,100%{opacity:.7}64%,68%{opacity:1}66%{opacity:.5}}
+.fog{animation:drift 9s ease-in-out infinite alternate}
+.fog2{animation:drift 12s ease-in-out infinite alternate-reverse}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style><defs>
+<filter id="fluff" x="-25%" y="-25%" width="150%" height="150%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="7" result="n"/>
+  <feDisplacementMap in="SourceGraphic" in2="n" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+  <feGaussianBlur in="d" stdDeviation="0.55"/>
+</filter>
+<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+  <feGaussianBlur stdDeviation="2.2" result="b"/>
+  <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter>
+<radialGradient id="hl" cx="0.4" cy="0.35" r="0.6"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6ff" stop-opacity=".1"/><stop offset="1" stop-color="#f4fbff"/></linearGradient>
+<radialGradient id="flakeG"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eaf6ff" stop-opacity=".9"/><stop offset="1" stop-color="#bfe3ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="iceG" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#d8efff"/><stop offset="1" stop-color="#7fb4d9"/></radialGradient>
+<linearGradient id="cb24" gradientUnits="userSpaceOnUse" x1="0" y1="23.0" x2="0" y2="62.2"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e6ebf2"/><stop offset="1" stop-color="#8f9aab"/></linearGradient><linearGradient id="windG" x1="0" x2="1"><stop offset="0" stop-color="#e9f4ff" stop-opacity="0"/><stop offset=".4" stop-color="#f2f8ff" stop-opacity=".95"/><stop offset="1" stop-color="#cfe3f5" stop-opacity=".2"/></linearGradient></defs><ellipse cx="71.4" cy="60.8" rx="25.2" ry="4.2" fill="#000" opacity=".35" filter="url(#soft)"/><g class="drift"><g filter="url(#fluff)"><circle cx="53.2" cy="49.6" r="9.1" fill="url(#cb24)"/><circle cx="63.0" cy="41.2" r="11.9" fill="url(#cb24)"/><circle cx="75.6" cy="37.0" r="14.0" fill="url(#cb24)"/><circle cx="86.8" cy="44.0" r="10.5" fill="url(#cb24)"/><circle cx="93.8" cy="51.0" r="7.0" fill="url(#cb24)"/><circle cx="70.0" cy="51.0" r="11.9" fill="url(#cb24)"/><circle cx="49.0" cy="53.1" r="6.3" fill="url(#cb24)"/><circle cx="81.2" cy="52.4" r="9.8" fill="url(#cb24)"/><rect x="49.0" y="48.2" width="44.8" height="11.2" rx="5.6" fill="url(#cb24)"/><circle cx="63.0" cy="38.4" r="7.7" fill="url(#hl)" opacity=".85"/><circle cx="75.6" cy="33.5" r="9.1" fill="url(#hl)" opacity=".85"/><circle cx="86.8" cy="41.2" r="5.6" fill="url(#hl)" opacity=".85"/><circle cx="53.2" cy="46.8" r="4.9" fill="url(#hl)" opacity=".85"/></g></g><g filter="url(#glow)"><g class="fog"><path d="M14,78 C40,72 70,84 104,76 C114,74 116,64 106,64" fill="none" stroke="url(#windG)" stroke-width="3.2" stroke-linecap="round"/></g><g class="fog2"><path d="M24,90 C50,86 80,96 112,88" fill="none" stroke="url(#windG)" stroke-width="2.7" stroke-linecap="round"/></g><g class="fog"><path d="M18,102 C44,98 66,106 92,102 C102,100 104,110 96,111" fill="none" stroke="url(#windG)" stroke-width="2.2" stroke-linecap="round"/></g></g></svg>

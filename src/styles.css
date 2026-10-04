@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Rajdhani", system-ui, sans-serif;
+  --font-mono: "Share Tech Mono", ui-monospace, monospace;
+  --font-display: "Orbitron", sans-serif;
+  --color-bg: #000000;
+  --color-fg: #f7f7f7;
+  --color-muted: rgba(255, 255, 255, 0.45);
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-blue: #4fd2ff;
+  --color-blue-2: #8aebff;
+  --color-primary: #4fd2ff;
+  --color-glass: rgba(0, 0, 0, 0.45);
+  --color-ink: #000000;
+  --color-pink: #4fd2ff;
+  --color-violet: #2dd4bf;
+  --color-orange: #fb923c;
+  --color-green: #34d399;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background: #000000;
+    color: var(--color-fg);
+    font-family: "Rajdhani", sans-serif;
+    line-height: 1.45;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.68 0.15 230 / 45%) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: oklch(0.68 0.15 230 / 45%);
+    border-radius: 2px;
+  }
+}
+
+.module-card button.bg-blue,
+.module-card a.bg-blue,
+button.bg-blue,
+a.bg-blue {
+  background-color: rgba(76, 29, 149, 0.55) !important;
+  color: rgba(243, 232, 255, 0.95) !important;
+  border: 1px solid rgba(168, 85, 247, 0.55) !important;
+  box-shadow: 0 0 12px rgba(76, 29, 149, 0.4);
+  border-radius: 999px !important;
+  min-height: 2rem !important;
+  height: auto !important;
+  padding: 0.2rem 0.85rem !important;
+  font-size: 0.75rem;
+  line-height: 1.4rem;
+}
+.module-card .dock-bar button,
+button.dock-bar {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  min-height: 0 !important;
+  padding: 0.15rem 0.4rem !important;
+  font-family: Orbitron, sans-serif;
+  font-size: 9px !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.module-card .dock-bar button.on {
+  color: rgba(243, 232, 255, 0.95) !important;
+  box-shadow: inset 0 -1px 0 rgba(168, 85, 247, 0.95) !important;
+}
+.cal-day {
+  position: relative;
+  margin-inline: auto;
+  display: grid;
+  height: 1.7rem;
+  width: 1.7rem;
+  place-items: center;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+}
+
+.cal-day.is-today { color: #8aebff; }
+.cal-day.is-on { background: rgba(76, 29, 149, 0.65); color: white; }
+.cal-day i {
+  position: absolute;
+  bottom: 2px;
+  height: 3px;
+  width: 3px;
+  border-radius: 999px;
+  background: #d8b4fe;
+}
+.grid-bg,
+.dot-field {
+  background-color: #000000;
+  background-image: radial-gradient(circle, oklch(0.75 0.12 220 / 8%) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.dot-spot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, oklch(0.84 0.13 210 / 80%) 1.15px, transparent 1.25px);
+  background-size: 28px 28px;
+  opacity: 0;
+  -webkit-mask-image: radial-gradient(120px circle at var(--mx, -200px) var(--my, -200px), #000 0%, transparent 72%);
+  mask-image: radial-gradient(120px circle at var(--mx, -200px) var(--my, -200px), #000 0%, transparent 72%);
+}
+
+.dot-field:hover .dot-spot {
+  opacity: 1;
+}
+
+.glass {
+  background: linear-gradient(135deg, oklch(0.68 0.15 230 / 7%) 0%, oklch(0.68 0.15 230 / 3%) 50%, oklch(0 0 0 / 30%) 100%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid oklch(0.68 0.15 230 / 15%);
+}
+
+.module-card {
+  background: linear-gradient(135deg, oklch(0.68 0.15 230 / 11%) 0%, oklch(0.68 0.15 230 / 4%) 52%, oklch(0 0 0 / 34%) 100%);
+  backdrop-filter: blur(24px) saturate(160%);
+  border-radius: 14px;
+  border: 1px solid oklch(0.72 0.14 220 / 24%);
+  box-shadow:
+    inset 1px 1px 0 oklch(0.86 0.08 210 / 48%),
+    inset -1px -1px 0 oklch(0.18 0.04 230 / 85%),
+    0 12px 28px rgba(0, 0, 0, 0.5);
+}
+
+.module-title {
+  font-family: Orbitron, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+}
+
+.brand-script {
+  color: oklch(0.82 0.13 220);
+  font-family: Orbitron, sans-serif;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 14px oklch(0.72 0.15 225 / 80%);
+}
+
+.agent-ring {
+  box-shadow:
+    0 0 0 1px oklch(0.75 0.12 210 / 70%),
+    0 0 24px oklch(0.68 0.15 230 / 35%),
+    inset 1px 1px 0 oklch(0.86 0.08 210 / 40%);
+}
+
+.chart-glow .recharts-rectangle,
+.chart-glow .recharts-area-area,
+.chart-glow .recharts-area-curve {
+  filter: drop-shadow(0 0 8px rgba(176, 107, 255, 0.65)) drop-shadow(0 0 10px rgba(52, 211, 153, 0.4));
+}
+
+.nav-link {
+  font-family: Orbitron, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  border-radius: 8px;
+}
+
+.nav-link.is-on {
+  background: oklch(0.68 0.15 230 / 20%);
+  color: oklch(0.82 0.13 220);
+}
+
+.glow-amber {
+  color: rgba(250, 204, 21, 0.72);
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.55);
+}
+
+.text-ember {
+  color: rgba(251, 146, 60, 0.62);
+}
+
+.light-amber {
+  background: rgba(250, 204, 21, 0.35);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.75);
+}
+
+@keyframes blink {
+  50% { opacity: 0.25; }
+}
+
+.blink {
+  animation: blink 1.1s steps(2, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink { animation: none; }
+}

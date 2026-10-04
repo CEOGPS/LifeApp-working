@@ -1,0 +1,403 @@
+import { useMemo, useState } from "react";
+import { newId, type EmailCampaign, type EmailDomain, type MailFolder, type Memory } from "./memory";
+
+type Update = (recipe: (prev: Memory) => Memory) => void;
+type Tab = "Inbox" | "Campaigns" | "Analytics" | "Verification" | "DNS" | "Lists";
+type Folder = MailFolder | "starred";
+
+const TABS: Tab[] = ["Inbox", "Campaigns", "Analytics", "Verification", "DNS", "Lists"];
+const FOLDERS: { id: Folder; label: string }[] = [
+  { id: "inbox", label: "Inbox" },
+  { id: "starred", label: "Starred" },
+  { id: "sent", label: "Sent" },
+  { id: "drafts", label: "Drafts" },
+  { id: "spam", label: "Spam" },
+  { id: "archive", label: "Archive" },
+  { id: "trash", label: "Trash" },
+];
+const field = "h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm";
+
+function addresses(text: string) {
+  return text.split(/[\s,;]+/).map((item) => item.trim().toLowerCase()).filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item));
+}
+
+async function txt(name: string) {
+  const response = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(name)}&type=TXT`);
+  const data = await response.json();
+  const rows = Array.isArray(data.Answer) ? data.Answer : [];
+  return rows.map((row: { data?: string }) => String(row.data || "").replaceAll('"', "")).join(" ");
+}
+
+async function ask(prompt: string) {
+  const { askNyx } = await import("@/lib/lifeos/sync");
+  const result = await askNyx({ data: { question: prompt, facts: "Email campaign copy. No invented metrics." } });
+  if (result.ok && result.text) return result.text.trim();
+  throw new Error("No model reply");
+}
+
+export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
+  const hub = data.emailHub;
+  const [tab, setTab] = useState<Tab>("Inbox");
+  const [folder, setFolder] = useState<Folder>("inbox");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [accountId, setAccountId] = useState(hub.accounts[0]?.id || "");
+  const [to, setTo] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [note, setNote] = useState("");
+  const [accountForm, setAccountForm] = useState({ email: "", name: "", provider: "gmail" as const });
+  const [campaign, setCampaign] = useState({ name: "", fromName: "", fromEmail: "", subject: "", body: "", listIds: [] as string[], when: "" });
+  const [busy, setBusy] = useState("");
+  const [domainName, setDomainName] = useState("");
+  const [selector, setSelector] = useState("lifeos");
+  const [domainId, setDomainId] = useState(hub.domains[0]?.id || "");
+  const [listForm, setListForm] = useState({ name: "", description: "", people: "" });
+  const [listQuery, setListQuery] = useState("");
+
+  const account = hub.accounts.find((row) => row.id === accountId) || null;
+  const rows = data.mail.filter((row) => {
+    const inFolder = folder === "starred" ? row.starred && row.folder !== "trash" : row.folder === folder;
+    const q = search.toLowerCase();
+    return inFolder && (!q || `${row.title} ${row.body} ${row.to} ${row.from}`.toLowerCase().includes(q));
+  });
+  const open = data.mail.find((row) => row.id === openId) || null;
+  const domain = hub.domains.find((row) => row.id === domainId) || hub.domains[0] || null;
+  const totals = useMemo(() => hub.campaigns.reduce((sum, row) => ({
+    sent: sum.sent + row.sent,
+    opens: sum.opens + row.opens,
+    clicks: sum.clicks + row.clicks,
+    bounces: sum.bounces + row.bounces,
+  }), { sent: 0, opens: 0, clicks: 0, bounces: 0 }), [hub.campaigns]);
+
+  function saveMail(next: MailFolder) {
+    if (!subject.trim() && !body.trim()) return;
+    update((prev) => ({
+      ...prev,
+      mail: [{ id: newId(), title: subject.trim() || "No subject", body: body.trim(), at: new Date().toISOString(), folder: next, to: to.trim(), from: account?.email || "", starred: false }, ...prev.mail],
+    }));
+    if (next === "sent" && to.trim()) window.location.href = `mailto:${to.trim()}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setTo("");
+    setSubject("");
+    setBody("");
+    setFolder(next);
+    setOpenId(null);
+  }
+
+  function move(id: string, next: MailFolder) {
+    update((prev) => ({ ...prev, mail: prev.mail.map((row) => row.id === id ? { ...row, folder: next } : row) }));
+    setOpenId(null);
+    setFolder(next);
+  }
+
+  function setHub(recipe: (prev: Memory["emailHub"]) => Memory["emailHub"]) {
+    update((prev) => ({ ...prev, emailHub: recipe(prev.emailHub) }));
+  }
+
+  async function writeSubject() {
+    if (!campaign.name.trim()) { setNote("Name the campaign first."); return; }
+    setBusy("subject");
+    try {
+      const text = await ask(`Write one email subject under 60 characters for this campaign: ${campaign.name}. Return only the subject.`);
+      setCampaign((prev) => ({ ...prev, subject: text.replace(/^"|"$/g, "").split("\n")[0].slice(0, 80) }));
+      setNote("Subject written.");
+    } catch (error) {
+      setNote(error instanceof Error ? error.message : "Subject was not written.");
+    } finally { setBusy(""); }
+  }
+
+  async function writeBody() {
+    if (!campaign.subject.trim()) { setNote("Add a subject first."); return; }
+    setBusy("body");
+    try {
+      const text = await ask(`Write a marketing email under 160 words. No markdown. End with one call to action. Campaign: ${campaign.name}. Subject: ${campaign.subject}.`);
+      setCampaign((prev) => ({ ...prev, body: text }));
+      setNote("Body written.");
+    } catch (error) {
+      setNote(error instanceof Error ? error.message : "Body was not written.");
+    } finally { setBusy(""); }
+  }
+
+  function storeCampaign(status: EmailCampaign["status"]) {
+    if (!campaign.name.trim()) { setNote("Campaign name is required."); return; }
+    const sent = status === "sent";
+    const people = new Set(hub.lists.filter((row) => campaign.listIds.includes(row.id)).flatMap((row) => row.subscribers));
+    if (sent && people.size === 0) { setNote("Pick a list with addresses before sending."); return; }
+    const row: EmailCampaign = {
+      id: newId(),
+      name: campaign.name.trim(),
+      fromName: campaign.fromName.trim(),
+      fromEmail: campaign.fromEmail || account?.email || "",
+      subject: campaign.subject.trim(),
+      body: campaign.body.trim(),
+      listIds: campaign.listIds,
+      status,
+      scheduledFor: status === "scheduled" ? campaign.when : "",
+      sentAt: sent ? new Date().toISOString() : "",
+      sent: sent ? people.size : 0,
+      opens: 0,
+      clicks: 0,
+      bounces: 0,
+      at: new Date().toISOString(),
+    };
+    setHub((prev) => ({ ...prev, campaigns: [row, ...prev.campaigns] }));
+    if (sent) {
+      update((prev) => ({
+        ...prev,
+        mail: [{ id: newId(), title: row.subject || row.name, body: row.body, at: row.at, folder: "sent", to: `${people.size} on list`, from: row.fromEmail, starred: false }, ...prev.mail],
+      }));
+    }
+    setCampaign({ name: "", fromName: "", fromEmail: campaign.fromEmail, subject: "", body: "", listIds: [], when: "" });
+    setNote(status === "draft" ? "Draft saved." : status === "scheduled" ? "Scheduled on this board." : `Marked sent to ${people.size}.`);
+  }
+
+  async function check(row: EmailDomain) {
+    setBusy(row.id);
+    try {
+      const [spf, dkim, dmarc] = await Promise.all([
+        txt(row.domain),
+        txt(`${row.selector}._domainkey.${row.domain}`),
+        txt(`_dmarc.${row.domain}`),
+      ]);
+      setHub((prev) => ({
+        ...prev,
+        domains: prev.domains.map((item) => item.id === row.id ? { ...item, spf: /v=spf1/i.test(spf), dkim: /v=dkim1/i.test(dkim), dmarc: /v=dmarc1/i.test(dmarc), checkedAt: new Date().toISOString() } : item),
+      }));
+      setNote("DNS checked against public records.");
+    } catch {
+      setNote("DNS check did not answer.");
+    } finally { setBusy(""); }
+  }
+
+  function copy(text: string) {
+    void navigator.clipboard.writeText(text).then(() => setNote("Copied.")).catch(() => setNote("Clipboard blocked."));
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="dock-bar flex flex-wrap gap-3">
+        {TABS.map((name) => <button key={name} type="button" className={tab === name ? "on" : ""} onClick={() => { setTab(name); setNote(""); }}>{name}</button>)}
+      </div>
+      {note ? <p className="text-ember text-xs">{note}</p> : null}
+
+      {tab === "Inbox" ? (
+        <div className="grid gap-4 lg:grid-cols-[11rem_1fr]">
+          <section className="module-card grid content-start gap-4 p-3">
+            <div>
+              <p className="module-title mb-2">Accounts</p>
+              {hub.accounts.map((row) => (
+                <button key={row.id} type="button" className={`block w-full py-1 text-left text-sm ${accountId === row.id ? "text-blue-2" : ""}`} onClick={() => setAccountId(row.id)}>{row.name}</button>
+              ))}
+              <form className="mt-2 grid gap-2" onSubmit={(event) => {
+                event.preventDefault();
+                const email = accountForm.email.trim();
+                if (!email.includes("@")) return;
+                const row = { id: newId(), email, name: accountForm.name.trim() || email, provider: accountForm.provider };
+                setHub((prev) => ({ ...prev, accounts: [row, ...prev.accounts] }));
+                setAccountId(row.id);
+                setAccountForm({ email: "", name: "", provider: "gmail" });
+              }}>
+                <input className={field} placeholder="name@mail.com" value={accountForm.email} onChange={(event) => setAccountForm({ ...accountForm, email: event.target.value })} />
+                <select className={field} value={accountForm.provider} onChange={(event) => setAccountForm({ ...accountForm, provider: event.target.value as typeof accountForm.provider })}>
+                  <option value="gmail">Gmail</option>
+                  <option value="outlook">Outlook</option>
+                  <option value="yahoo">Yahoo</option>
+                  <option value="imap">IMAP</option>
+                </select>
+                <button type="submit" className="bg-blue">Add account</button>
+              </form>
+            </div>
+            <div className="dock-bar flex flex-col items-start">
+              {FOLDERS.map((item) => {
+                const count = item.id === "starred" ? data.mail.filter((row) => row.starred && row.folder !== "trash").length : data.mail.filter((row) => row.folder === item.id).length;
+                return <button key={item.id} type="button" className={folder === item.id ? "on" : ""} onClick={() => { setFolder(item.id); setOpenId(null); }}>{item.label} {count || ""}</button>;
+              })}
+            </div>
+          </section>
+          <section className="module-card p-4">
+            <input className={field} placeholder="Search mail" value={search} onChange={(event) => setSearch(event.target.value)} />
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_15rem]">
+              {open ? (
+                <div>
+                  <p className="text-sm">{open.title}</p>
+                  <p className="text-xs text-white/45">{open.from || "Local"} → {open.to || "No recipient"}</p>
+                  <p className="mt-3 whitespace-pre-wrap text-sm">{open.body}</p>
+                  <div className="dock-bar mt-4 flex flex-wrap gap-3">
+                    <button type="button" onClick={() => update((prev) => ({ ...prev, mail: prev.mail.map((row) => row.id === open.id ? { ...row, starred: !row.starred } : row) }))}>{open.starred ? "Unstar" : "Star"}</button>
+                    <button type="button" onClick={() => move(open.id, "archive")}>Archive</button>
+                    <button type="button" onClick={() => move(open.id, "spam")}>Spam</button>
+                    <button type="button" onClick={() => move(open.id, "inbox")}>Inbox</button>
+                    <button type="button" onClick={() => move(open.id, "trash")}>Trash</button>
+                  </div>
+                </div>
+              ) : (
+                <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); saveMail("sent"); }}>
+                  <input className={field} placeholder="To" value={to} onChange={(event) => setTo(event.target.value)} />
+                  <input className={field} placeholder="Subject" value={subject} onChange={(event) => setSubject(event.target.value)} />
+                  <textarea className="min-h-36 rounded-2xl border border-line bg-black/40 px-3 py-2 text-sm" style={{ caretColor: "transparent" }} placeholder="Message" value={body} onChange={(event) => setBody(event.target.value)} />
+                  <div className="flex gap-2">
+                    <button type="submit" className="bg-blue">Send</button>
+                    <button type="button" className="bg-blue" onClick={() => saveMail("drafts")}>Save draft</button>
+                  </div>
+                </form>
+              )}
+              <ul className="grid content-start">
+                {rows.map((row) => (
+                  <li key={row.id}><button type="button" className="w-full py-2 text-left text-sm" onClick={() => setOpenId(row.id)}><span className="block truncate">{row.starred ? "★ " : ""}{row.title}</span><span className="block truncate text-xs text-white/40">{row.to || row.body}</span></button></li>
+                ))}
+                {rows.length === 0 ? <li className="text-sm text-white/40">Nothing in {folder}.</li> : null}
+              </ul>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {tab === "Campaigns" ? (
+        <div className="grid gap-4 lg:grid-cols-[1fr_14rem]">
+          <section className="module-card grid gap-2 p-4">
+            <input className={field} placeholder="Campaign name" value={campaign.name} onChange={(event) => setCampaign({ ...campaign, name: event.target.value })} />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input className={field} placeholder="From name" value={campaign.fromName} onChange={(event) => setCampaign({ ...campaign, fromName: event.target.value })} />
+              <select className={field} value={campaign.fromEmail} onChange={(event) => setCampaign({ ...campaign, fromEmail: event.target.value })}>
+                <option value="">From account</option>
+                {hub.accounts.map((row) => <option key={row.id} value={row.email}>{row.email}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <input className={field} placeholder="Subject" value={campaign.subject} onChange={(event) => setCampaign({ ...campaign, subject: event.target.value })} />
+              <button type="button" className="bg-blue" disabled={busy === "subject"} onClick={() => void writeSubject()}>Subject</button>
+            </div>
+            <textarea className="min-h-36 rounded-2xl border border-line bg-black/40 px-3 py-2 text-sm" style={{ caretColor: "transparent" }} placeholder="Body" value={campaign.body} onChange={(event) => setCampaign({ ...campaign, body: event.target.value })} />
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="bg-blue" disabled={busy === "body"} onClick={() => void writeBody()}>Write body</button>
+              <button type="button" className="bg-blue" onClick={() => storeCampaign("draft")}>Save draft</button>
+              <input className={field + " max-w-48"} type="datetime-local" value={campaign.when} onChange={(event) => setCampaign({ ...campaign, when: event.target.value })} />
+              <button type="button" className="bg-blue" onClick={() => storeCampaign("scheduled")}>Schedule</button>
+              <button type="button" className="bg-blue" onClick={() => storeCampaign("sent")}>Send</button>
+            </div>
+            <ul className="mt-2">{hub.campaigns.map((row) => <li key={row.id} className="flex justify-between gap-3 py-1 text-sm"><span>{row.name}</span><span className="text-white/45">{row.status}</span></li>)}</ul>
+          </section>
+          <section className="module-card p-4">
+            <p className="module-title mb-2">Lists</p>
+            {hub.lists.map((row) => (
+              <label key={row.id} className="flex items-center gap-2 py-1 text-sm">
+                <input type="checkbox" checked={campaign.listIds.includes(row.id)} onChange={(event) => setCampaign((prev) => ({ ...prev, listIds: event.target.checked ? [...prev.listIds, row.id] : prev.listIds.filter((id) => id !== row.id) }))} />
+                {row.name} <span className="text-white/40">{row.subscribers.length}</span>
+              </label>
+            ))}
+            {hub.lists.length === 0 ? <p className="text-sm text-white/40">Make a list in Lists first.</p> : null}
+          </section>
+        </div>
+      ) : null}
+
+      {tab === "Analytics" ? (
+        <section className="module-card p-4">
+          <div className="grid grid-cols-4 gap-3 text-center">
+            {[["Sent", totals.sent], ["Opens", totals.opens], ["Clicks", totals.clicks], ["Bounces", totals.bounces]].map(([label, value]) => (
+              <p key={String(label)}><span className="block font-display text-2xl">{value}</span><span className="text-ember text-[10px] tracking-widest">{label}</span></p>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-2">
+            {hub.campaigns.filter((row) => row.status === "sent").map((row) => (
+              <div key={row.id} className="grid items-center gap-2 text-sm sm:grid-cols-[1fr_5rem_5rem_5rem]">
+                <span>{row.name}</span>
+                {(["opens", "clicks", "bounces"] as const).map((key) => (
+                  <input key={key} className={field} aria-label={key} value={row[key]} onChange={(event) => {
+                    const value = Number(event.target.value);
+                    if (!Number.isFinite(value)) return;
+                    setHub((prev) => ({ ...prev, campaigns: prev.campaigns.map((item) => item.id === row.id ? { ...item, [key]: value } : item) }));
+                  }} />
+                ))}
+              </div>
+            ))}
+            {hub.campaigns.every((row) => row.status !== "sent") ? <p className="text-sm text-white/40">Send a campaign and the counts show here. Opens, clicks, and bounces are yours to log.</p> : null}
+          </div>
+        </section>
+      ) : null}
+
+      {tab === "Verification" ? (
+        <section className="module-card grid gap-3 p-4">
+          <form className="flex flex-wrap gap-2" onSubmit={(event) => {
+            event.preventDefault();
+            const domain = domainName.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0];
+            if (!domain.includes(".")) { setNote("Enter a real domain."); return; }
+            const row = { id: newId(), domain, selector: selector.trim() || "lifeos", policy: "none" as const, spf: false, dkim: false, dmarc: false, checkedAt: "" };
+            setHub((prev) => ({ ...prev, domains: [row, ...prev.domains] }));
+            setDomainId(row.id);
+            setDomainName("");
+          }}>
+            <input className={field + " max-w-xs"} placeholder="yourdomain.com" value={domainName} onChange={(event) => setDomainName(event.target.value)} />
+            <input className={field + " max-w-32"} placeholder="selector" value={selector} onChange={(event) => setSelector(event.target.value)} />
+            <button type="submit" className="bg-blue">Add domain</button>
+          </form>
+          {hub.domains.map((row) => (
+            <div key={row.id} className="border-t border-white/10 pt-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span>{row.domain}</span>
+                <button type="button" className="bg-blue" disabled={busy === row.id} onClick={() => void check(row)}>{busy === row.id ? "Checking" : "Check DNS"}</button>
+              </div>
+              <p className="mt-1 text-xs text-white/50">SPF {row.spf ? "found" : "missing"} · DKIM {row.dkim ? "found" : "missing"} · DMARC {row.dmarc ? "found" : "missing"}{row.checkedAt ? ` · ${new Date(row.checkedAt).toLocaleString()}` : ""}</p>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {tab === "DNS" ? (
+        <section className="module-card grid gap-3 p-4 text-sm">
+          {!domain ? <p className="text-white/40">Add a domain in Verification first.</p> : (
+            <>
+              <div className="dock-bar flex flex-wrap gap-3">{hub.domains.map((row) => <button key={row.id} type="button" className={domain.id === row.id ? "on" : ""} onClick={() => setDomainId(row.id)}>{row.domain}</button>)}</div>
+              <p>SPF <button type="button" className="dock-bar" onClick={() => copy("v=spf1 include:_spf.google.com include:sendgrid.net ~all")}>Copy</button></p>
+              <code className="block truncate text-xs text-white/60">v=spf1 include:_spf.google.com include:sendgrid.net ~all</code>
+              <p>DKIM name {domain.selector}._domainkey <button type="button" className="dock-bar" onClick={() => copy(`v=DKIM1; k=rsa; p= <generate this key at your mail host>`)}>Copy</button></p>
+              <label className="block text-xs text-white/50">DMARC
+                <select className={field + " mt-1"} value={domain.policy} onChange={(event) => setHub((prev) => ({ ...prev, domains: prev.domains.map((row) => row.id === domain.id ? { ...row, policy: event.target.value as EmailDomain["policy"] } : row) }))}>
+                  <option value="none">none</option>
+                  <option value="quarantine">quarantine</option>
+                  <option value="reject">reject</option>
+                </select>
+              </label>
+              <code className="block truncate text-xs text-white/60">v=DMARC1; p={domain.policy}; rua=mailto:dmarc@{domain.domain}</code>
+              <p className="text-xs text-white/45">Sending host: mail.{domain.domain}</p>
+            </>
+          )}
+        </section>
+      ) : null}
+
+      {tab === "Lists" ? (
+        <section className="module-card grid gap-3 p-4">
+          <input className={field} placeholder="Search lists" value={listQuery} onChange={(event) => setListQuery(event.target.value)} />
+          <form className="grid gap-2" onSubmit={(event) => {
+            event.preventDefault();
+            if (!listForm.name.trim()) return;
+            const own = addresses(listForm.people);
+            const fromContacts = data.contacts.map((row) => row.email.toLowerCase()).filter((row) => row.includes("@"));
+            setHub((prev) => ({ ...prev, lists: [{ id: newId(), name: listForm.name.trim(), description: listForm.description.trim(), subscribers: [...new Set([...own, ...fromContacts])] }, ...prev.lists] }));
+            setListForm({ name: "", description: "", people: "" });
+            setNote("List saved.");
+          }}>
+            <input className={field} placeholder="List name" value={listForm.name} onChange={(event) => setListForm({ ...listForm, name: event.target.value })} />
+            <input className={field} placeholder="What this list is for" value={listForm.description} onChange={(event) => setListForm({ ...listForm, description: event.target.value })} />
+            <textarea className="min-h-20 rounded-2xl border border-line bg-black/40 px-3 py-2 text-sm" style={{ caretColor: "transparent" }} placeholder="Paste emails. Contacts already on the board are added too." value={listForm.people} onChange={(event) => setListForm({ ...listForm, people: event.target.value })} />
+            <button type="submit" className="bg-blue">Save list</button>
+          </form>
+          {hub.lists.filter((row) => `${row.name} ${row.description}`.toLowerCase().includes(listQuery.toLowerCase())).map((row) => (
+            <div key={row.id} className="flex items-start justify-between gap-3 border-t border-white/10 pt-3 text-sm">
+              <div><p>{row.name} <span className="text-white/40">{row.subscribers.length}</span></p><p className="text-xs text-white/45">{row.description}</p></div>
+              <div className="dock-bar flex gap-3">
+                <button type="button" onClick={() => {
+                  const csv = ["email", ...row.subscribers].join("\n");
+                  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                  const link = document.createElement("a");
+                  link.href = url; link.download = `${row.name}.csv`; link.click();
+                  URL.revokeObjectURL(url);
+                }}>Export</button>
+                <button type="button" onClick={() => setHub((prev) => ({ ...prev, lists: prev.lists.filter((item) => item.id !== row.id) }))}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </section>
+      ) : null}
+    </div>
+  );
+}

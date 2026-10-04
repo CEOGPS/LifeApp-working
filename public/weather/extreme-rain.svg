@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><!-- LifeOS weather icon (extreme-rain). Original artwork generated for LifeOS, 2026. --><style>
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 4.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+.drift{animation:drift 8s ease-in-out infinite alternate}
+.drift2{animation:drift 11s ease-in-out infinite alternate-reverse}
+@keyframes drift{from{transform:translateX(-2px)}to{transform:translateX(2px)}}
+.drop{animation:fall 1.15s linear infinite}
+@keyframes fall{0%{transform:translate(1px,-7px);opacity:0}25%{opacity:1}100%{transform:translate(-3px,15px);opacity:0}}
+.flake{animation:snow 3.4s linear infinite}
+@keyframes snow{0%{transform:translate(0,-6px);opacity:0}20%{opacity:1}100%{transform:translate(2px,16px);opacity:0}}
+.bolt{animation:flash 3.6s linear infinite}
+@keyframes flash{0%,62%,70%,100%{opacity:.7}64%,68%{opacity:1}66%{opacity:.5}}
+.fog{animation:drift 9s ease-in-out infinite alternate}
+.fog2{animation:drift 12s ease-in-out infinite alternate-reverse}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style><defs>
+<filter id="fluff" x="-25%" y="-25%" width="150%" height="150%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="7" result="n"/>
+  <feDisplacementMap in="SourceGraphic" in2="n" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+  <feGaussianBlur in="d" stdDeviation="0.55"/>
+</filter>
+<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+  <feGaussianBlur stdDeviation="2.2" result="b"/>
+  <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter>
+<radialGradient id="hl" cx="0.4" cy="0.35" r="0.6"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6ff" stop-opacity=".1"/><stop offset="1" stop-color="#f4fbff"/></linearGradient>
+<radialGradient id="flakeG"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eaf6ff" stop-opacity=".9"/><stop offset="1" stop-color="#bfe3ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="iceG" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#d8efff"/><stop offset="1" stop-color="#7fb4d9"/></radialGradient>
+<linearGradient id="cb14" gradientUnits="userSpaceOnUse" x1="0" y1="15.0" x2="0" y2="76.6"><stop offset="0" stop-color="#b9bfc9"/><stop offset=".55" stop-color="#6f7785"/><stop offset="1" stop-color="#2c313a"/></linearGradient></defs><ellipse cx="64.2" cy="74.4" rx="39.6" ry="6.6" fill="#000" opacity=".35" filter="url(#soft)"/><g class="drift"><g filter="url(#fluff)"><circle cx="35.6" cy="56.8" r="14.3" fill="url(#cb14)"/><circle cx="51.0" cy="43.6" r="18.7" fill="url(#cb14)"/><circle cx="70.8" cy="37.0" r="22.0" fill="url(#cb14)"/><circle cx="88.4" cy="48.0" r="16.5" fill="url(#cb14)"/><circle cx="99.4" cy="59.0" r="11.0" fill="url(#cb14)"/><circle cx="62.0" cy="59.0" r="18.7" fill="url(#cb14)"/><circle cx="29.0" cy="62.3" r="9.9" fill="url(#cb14)"/><circle cx="79.6" cy="61.2" r="15.4" fill="url(#cb14)"/><rect x="29.0" y="54.6" width="70.4" height="17.6" rx="8.8" fill="url(#cb14)"/><circle cx="51.0" cy="39.2" r="12.1" fill="url(#hl)" opacity=".55"/><circle cx="70.8" cy="31.5" r="14.3" fill="url(#hl)" opacity=".55"/><circle cx="88.4" cy="43.6" r="8.8" fill="url(#hl)" opacity=".55"/><circle cx="35.6" cy="52.4" r="7.7" fill="url(#hl)" opacity=".55"/></g></g><g><line class="drop" style="animation-delay:-0.65s" x1="40.7" y1="82.0" x2="37.7" y2="96.0" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-0.41s" x1="42.7" y1="78.9" x2="39.7" y2="92.9" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-0.19s" x1="46.1" y1="79.0" x2="43.1" y2="93.0" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-0.14s" x1="49.7" y1="82.4" x2="46.7" y2="96.4" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-1.04s" x1="56.2" y1="80.9" x2="53.2" y2="94.9" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-0.75s" x1="60.5" y1="84.2" x2="57.5" y2="98.2" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-1.15s" x1="65.1" y1="85.5" x2="62.1" y2="99.5" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-0.34s" x1="66.9" y1="80.4" x2="63.9" y2="94.4" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-1.06s" x1="71.3" y1="84.1" x2="68.3" y2="98.1" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-1.06s" x1="74.8" y1="79.3" x2="71.8" y2="93.3" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-1.03s" x1="79.2" y1="78.7" x2="76.2" y2="92.7" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/><line class="drop" style="animation-delay:-0.65s" x1="84.0" y1="78.1" x2="81.0" y2="92.1" stroke="url(#streak)" stroke-width="2.8" stroke-linecap="round"/></g></svg>

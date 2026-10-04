@@ -1,0 +1,30 @@
+name = "lifeos1-api"
+compatibility_date = "2026-07-01"
+main = "src/index.ts"
+
+[build]
+command = "npm run build"
+
+[vars]
+SUPABASE_URL = "https://mhvcdstgkyplhzjptgfr.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odmNkc3Rna3lwbGh6anB0Z2ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NzE3MDQsImV4cCI6MjA3NDA0NzcwNH0.F5jF5s6rF5s6rF5s6rF5s6rF5s6rF5s6rF5s6rF5s6"
+OAUTH_REDIRECT_URI = "https://lifeos1.pages.dev/oauth/callback"
+
+# KV namespace for persistent storage
+[[kv_namespaces]]
+binding = "LIFEOS_KV"
+id = "c7e7fb2195cc4397af43f41a06be7efb"
+
+# R2 bucket for file storage
+[[r2_buckets]]
+binding = "LIFEOS_STORAGE"
+bucket_name = "lifeos-storage"
+
+# D1 database
+[[d1_databases]]
+binding = "LIFEOS_DB"
+database_name = "lifeos1"
+database_id = "9aa6e88b-bba8-43c8-8591-5fac48d5a200"
+
+[observability]
+enabled = true

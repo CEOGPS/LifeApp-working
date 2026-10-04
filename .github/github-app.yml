@@ -1,0 +1,4 @@
+instructions: "Use the local files at D:/dev/LifeApp and the new repo on the main branch CEOGPS/LifeApp only use no other files or repos. DO NOT USE repo CEOGPS/life.gps. It is incorrect. "
+automation:
+  auto_issue_session: true
+  remote_control: false

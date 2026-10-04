@@ -1,0 +1,178 @@
+[
+  {
+    "title": "Daily schedule outline",
+    "promptTemplate": "Outline a daily schedule starting at {startTime} and ending at {endTime} to maximize productivity.",
+    "variables": [
+      {
+        "name": "startTime",
+        "value": "8:00 AM",
+        "displayName": "Start Time"
+      },
+      {
+        "name": "endTime",
+        "value": "6:00 PM",
+        "displayName": "End Time"
+      }
+    ],
+    "Id": "df9b6ead-2566-40bc-8347-4a73e2607d5b",
+    "History": []
+  },
+  {
+    "title": "Task prioritization",
+    "promptTemplate": "Help me prioritize my tasks: {tasksList}.",
+    "variables": [
+      {
+        "name": "tasksList",
+        "value": "respond to emails, write report, prepare presentation",
+        "displayName": "Tasks List"
+      }
+    ],
+    "Id": "e535df03-c560-41d0-a078-ba71a3eb0c72",
+    "History": []
+  },
+  {
+    "title": "SMART goal setting",
+    "promptTemplate": "Assist me in setting SMART goals for {goalArea}.",
+    "variables": [
+      {
+        "name": "goalArea",
+        "value": "improving team communication",
+        "displayName": "Goal Area"
+      }
+    ],
+    "Id": "acc76970-de5d-490a-8486-b18467da1e6c",
+    "History": []
+  },
+  {
+    "title": "Time blocking plan",
+    "promptTemplate": "Create a time-blocking plan for {project} over {duration} days.",
+    "variables": [
+      {
+        "name": "project",
+        "value": "launching new marketing campaign",
+        "displayName": "Project"
+      },
+      {
+        "name": "duration",
+        "value": "7",
+        "displayName": "Duration (days)"
+      }
+    ],
+    "Id": "ce7f6d75-1915-4712-837b-b8397701adbd",
+    "History": []
+  },
+  {
+    "title": "Weekly review template",
+    "promptTemplate": "Provide a template for a weekly review focusing on {focusArea}.",
+    "variables": [
+      {
+        "name": "focusArea",
+        "value": "personal productivity metrics",
+        "displayName": "Focus Area"
+      }
+    ],
+    "Id": "d97a014c-a76f-4d22-b21f-809cf8b3fcb9",
+    "History": []
+  },
+  {
+    "title": "To-do list creation",
+    "promptTemplate": "Generate a to-do list for accomplishing {objective} today.",
+    "variables": [
+      {
+        "name": "objective",
+        "value": "finishing the budget proposal",
+        "displayName": "Objective"
+      }
+    ],
+    "Id": "dae727d2-648e-4e32-9e5b-5a541e7317c0",
+    "History": []
+  },
+  {
+    "title": "Meeting agenda preparation",
+    "promptTemplate": "Draft an agenda for a meeting about {meetingTopic} lasting {minutes} minutes.",
+    "variables": [
+      {
+        "name": "meetingTopic",
+        "value": "quarterly sales review",
+        "displayName": "Meeting Topic"
+      },
+      {
+        "name": "minutes",
+        "value": "45",
+        "displayName": "Meeting Duration (minutes)"
+      }
+    ],
+    "Id": "437905f9-a81e-4e45-b88d-b197d3564b4e",
+    "History": []
+  },
+  {
+    "title": "Pomodoro technique guide",
+    "promptTemplate": "Explain how to use the Pomodoro technique to tackle {task}.",
+    "variables": [
+      {
+        "name": "task",
+        "value": "writing the project summary",
+        "displayName": "Task"
+      }
+    ],
+    "Id": "6a3f6d14-836d-470d-9bcd-17e98938badb",
+    "History": []
+  },
+  {
+    "title": "Project roadmap creation",
+    "promptTemplate": "Outline a high-level roadmap for completing {project} in {weeks} weeks.",
+    "variables": [
+      {
+        "name": "project",
+        "value": "website redesign",
+        "displayName": "Project"
+      },
+      {
+        "name": "weeks",
+        "value": "4",
+        "displayName": "Timeline (weeks)"
+      }
+    ],
+    "Id": "7ec62067-4c33-41ef-8589-06ea94facc18",
+    "History": []
+  },
+  {
+    "title": "Productivity tool recommendation",
+    "promptTemplate": "Recommend productivity tools for managing {typeOfWork} tasks.",
+    "variables": [
+      {
+        "name": "typeOfWork",
+        "value": "remote collaboration",
+        "displayName": "Type of Work"
+      }
+    ],
+    "Id": "4438848e-4595-4c46-b644-513765d3c1ae",
+    "History": []
+  },
+  {
+    "title": "Focus improvement strategies",
+    "promptTemplate": "Suggest strategies to maintain focus when working on {taskType}.",
+    "variables": [
+      {
+        "name": "taskType",
+        "value": "data analysis",
+        "displayName": "Task Type"
+      }
+    ],
+    "Id": "cd0f4bd1-04ca-4635-9cbf-9170d1595095",
+    "History": []
+  },
+  {
+    "title": "Goal tracking setup",
+    "promptTemplate": "How can I set up a system to track progress on {goal}? ",
+    "variables": [
+      {
+        "name": "goal",
+        "value": "increasing daily step count",
+        "displayName": "Goal"
+      }
+    ],
+    "Id": "6cac2d25-5fa8-486b-ad3a-70ed47f6ed51",
+    "History": []
+  }
+]

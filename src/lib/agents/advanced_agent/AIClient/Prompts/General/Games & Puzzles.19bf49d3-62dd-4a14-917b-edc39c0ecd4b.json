@@ -1,0 +1,145 @@
+[
+  {
+    "title": "20 Questions Game",
+    "promptTemplate": "Let's play a round of 20 questions. I'll think of something�ask me yes-or-no questions to guess it!",
+    "variables": [],
+    "Id": "683b984a-abaa-4610-b04b-59ece34d0bef",
+    "History": []
+  },
+  {
+    "title": "Riddle Challenge",
+    "promptTemplate": "Give me a new riddle to solve.",
+    "variables": [],
+    "Id": "52a16520-c4eb-46fe-a362-11cd3495b7cf",
+    "History": []
+  },
+  {
+    "title": "Custom Puzzle Solver",
+    "promptTemplate": "Solve the following puzzle: {puzzleDescription}",
+    "variables": [
+      {
+        "name": "puzzleDescription",
+        "value": "A farmer needs to get a wolf, a goat, and a cabbage across a river",
+        "displayName": "Puzzle Description"
+      }
+    ],
+    "Id": "3f48cc74-bb38-4aaa-9798-b794e92eac7f",
+    "History": []
+  },
+  {
+    "title": "Crossword Clue Creator",
+    "promptTemplate": "Create a crossword clue for the word {word}.",
+    "variables": [
+      {
+        "name": "word",
+        "value": "ocean",
+        "displayName": "Word"
+      }
+    ],
+    "Id": "91578729-b341-43b1-bc6e-aa58cc11a736",
+    "History": []
+  },
+  {
+    "title": "Trivia Question",
+    "promptTemplate": "Ask me a multiple-choice trivia question about {topic}.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "astronomy",
+        "displayName": "Topic"
+      }
+    ],
+    "Id": "c081960c-3d9d-4422-90a8-c74c8eb601e5",
+    "History": []
+  },
+  {
+    "title": "Rock-Paper-Scissors",
+    "promptTemplate": "Start a game of rock-paper-scissors with me.",
+    "variables": [],
+    "Id": "4d91537f-f9dc-40f7-8a50-5b074968e5b4",
+    "History": []
+  },
+  {
+    "title": "Generate Sudoku",
+    "promptTemplate": "Generate a Sudoku puzzle of difficulty {level}.",
+    "variables": [
+      {
+        "name": "level",
+        "value": "medium",
+        "displayName": "Difficulty Level"
+      }
+    ],
+    "Id": "f8c6359f-0689-42dc-8010-0a82da8b62a7",
+    "History": []
+  },
+  {
+    "title": "Logic Puzzle Creator",
+    "promptTemplate": "Give me a logic puzzle involving {scenario}.",
+    "variables": [
+      {
+        "name": "scenario",
+        "value": "three friends and their favorite pets",
+        "displayName": "Scenario"
+      }
+    ],
+    "Id": "f6193f1a-a19a-4321-9ae9-4ed4c1f45654",
+    "History": []
+  },
+  {
+    "title": "Word Association",
+    "promptTemplate": "Start a word association game with the word {word}.",
+    "variables": [
+      {
+        "name": "word",
+        "value": "tree",
+        "displayName": "Starting Word"
+      }
+    ],
+    "Id": "be102e0a-db0a-47c2-9f2d-93e265a3717c",
+    "History": []
+  },
+  {
+    "title": "Math Puzzle Challenge",
+    "promptTemplate": "Challenge me with a math puzzle at level {difficulty}.",
+    "variables": [
+      {
+        "name": "difficulty",
+        "value": "intermediate",
+        "displayName": "Difficulty"
+      }
+    ],
+    "Id": "c640799d-5211-486e-9ffb-73b5c136ed85",
+    "History": []
+  },
+  {
+    "title": "Spot-the-Difference",
+    "promptTemplate": "Provide a spot-the-difference puzzle based on two descriptions: {descriptionA} and {descriptionB}.",
+    "variables": [
+      {
+        "name": "descriptionA",
+        "value": "a park scene with children playing",
+        "displayName": "Scene A Description"
+      },
+      {
+        "name": "descriptionB",
+        "value": "the same park scene but with a kite in the sky",
+        "displayName": "Scene B Description"
+      }
+    ],
+    "Id": "63fc5997-ff4b-4118-a8f7-e3a2547f72f3",
+    "History": []
+  },
+  {
+    "title": "Hangman Game",
+    "promptTemplate": "Play hangman with me using a word related to {category}.",
+    "variables": [
+      {
+        "name": "category",
+        "value": "fruits",
+        "displayName": "Word Category"
+      }
+    ],
+    "Id": "741f2715-a59b-48b3-933e-10830a870e11",
+    "History": []
+  }
+]

@@ -1,0 +1,215 @@
+[
+  {
+    "title": "Book recommendations",
+    "promptTemplate": "Suggest {count} {genre} novels for someone who enjoys {interest}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "3",
+        "displayName": "Number of Books"
+      },
+      {
+        "name": "genre",
+        "value": "science fiction",
+        "displayName": "Genre"
+      },
+      {
+        "name": "interest",
+        "value": "space exploration",
+        "displayName": "Reader�s Interest"
+      }
+    ],
+    "Id": "fd5b04da-6765-4245-8847-96701c86f308",
+    "History": []
+  },
+  {
+    "title": "Movie recommendations",
+    "promptTemplate": "Recommend {count} {genre} films I can watch this weekend.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Movies"
+      },
+      {
+        "name": "genre",
+        "value": "thriller",
+        "displayName": "Genre"
+      }
+    ],
+    "Id": "7119ee10-7861-4988-bc84-092475f8f9b4",
+    "History": []
+  },
+  {
+    "title": "Restaurant suggestions",
+    "promptTemplate": "Suggest {count} restaurants in {city} that serve {cuisine}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "4",
+        "displayName": "Number of Restaurants"
+      },
+      {
+        "name": "city",
+        "value": "Dublin",
+        "displayName": "City"
+      },
+      {
+        "name": "cuisine",
+        "value": "Italian",
+        "displayName": "Cuisine"
+      }
+    ],
+    "Id": "54b38704-f066-424b-8564-a4f180503fa9",
+    "History": []
+  },
+  {
+    "title": "Podcast recommendations",
+    "promptTemplate": "Recommend {count} podcasts about {topic}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "3",
+        "displayName": "Number of Podcasts"
+      },
+      {
+        "name": "topic",
+        "value": "personal finance",
+        "displayName": "Topic"
+      }
+    ],
+    "Id": "723ec0df-2ab5-4bd3-8e0d-f6b194e23bf1",
+    "History": []
+  },
+  {
+    "title": "Online course recommendations",
+    "promptTemplate": "Suggest {count} online courses to learn {skill}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "3",
+        "displayName": "Number of Courses"
+      },
+      {
+        "name": "skill",
+        "value": "digital marketing",
+        "displayName": "Skill"
+      }
+    ],
+    "Id": "42520395-13e7-4e02-86b5-6d8b8de6d992",
+    "History": []
+  },
+  {
+    "title": "Product recommendations",
+    "promptTemplate": "What are the top {count} {productType} for {useCase}?",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Products"
+      },
+      {
+        "name": "productType",
+        "value": "wireless headphones",
+        "displayName": "Product Type"
+      },
+      {
+        "name": "useCase",
+        "value": "working out",
+        "displayName": "Use Case"
+      }
+    ],
+    "Id": "f6f25aac-b398-4323-bd93-4c1e1922ce5b",
+    "History": []
+  },
+  {
+    "title": "Gift suggestions",
+    "promptTemplate": "Suggest {count} gift ideas for a {recipientType}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "6",
+        "displayName": "Number of Gifts"
+      },
+      {
+        "name": "recipientType",
+        "value": "new parent",
+        "displayName": "Recipient Type"
+      }
+    ],
+    "Id": "09865f61-e9ae-4106-8ce3-07a98119bb9c",
+    "History": []
+  },
+  {
+    "title": "Board game recommendations",
+    "promptTemplate": "Recommend {count} board games for a group of {players} players.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "4",
+        "displayName": "Number of Games"
+      },
+      {
+        "name": "players",
+        "value": "5",
+        "displayName": "Number of Players"
+      }
+    ],
+    "Id": "b657a164-4546-44f0-82ce-2bb78fa54f62",
+    "History": []
+  },
+  {
+    "title": "App suggestions",
+    "promptTemplate": "What are the best {count} mobile apps for {purpose}?",
+    "variables": [
+      {
+        "name": "count",
+        "value": "3",
+        "displayName": "Number of Apps"
+      },
+      {
+        "name": "purpose",
+        "value": "task management",
+        "displayName": "Purpose"
+      }
+    ],
+    "Id": "a15cae17-8a3c-432a-b12c-d1e724670a92",
+    "History": []
+  },
+  {
+    "title": "Travel destination ideas",
+    "promptTemplate": "Suggest {count} travel destinations for someone who loves {activity}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "4",
+        "displayName": "Number of Destinations"
+      },
+      {
+        "name": "activity",
+        "value": "hiking",
+        "displayName": "Activity"
+      }
+    ],
+    "Id": "7094314d-5506-4ac5-8427-fca6a0009345",
+    "History": []
+  },
+  {
+    "title": "Music playlist recommendations",
+    "promptTemplate": "Recommend {count} songs for a {mood} playlist.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "10",
+        "displayName": "Number of Songs"
+      },
+      {
+        "name": "mood",
+        "value": "chill evening",
+        "displayName": "Mood"
+      }
+    ],
+    "Id": "dbf2fd7c-e6cb-4cc2-aac9-f24e6e68383d",
+    "History": []
+  }
+]

@@ -1,0 +1,220 @@
+[
+  {
+    "title": "Multiple-choice quiz",
+    "promptTemplate": "Quiz me on {topic} with {count} multiple-choice questions each having {options} options.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "world capitals",
+        "displayName": "Quiz Topic"
+      },
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Questions"
+      },
+      {
+        "name": "options",
+        "value": "4",
+        "displayName": "Options per Question"
+      }
+    ],
+    "Id": "0b91b968-a4f4-44c7-b0a5-2afadba633e1",
+    "History": []
+  },
+  {
+    "title": "True/false quiz",
+    "promptTemplate": "Give me {count} true/false statements about {subject}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "8",
+        "displayName": "Number of Statements"
+      },
+      {
+        "name": "subject",
+        "value": "space exploration",
+        "displayName": "Subject"
+      }
+    ],
+    "Id": "d7b2efaf-4f72-425f-9373-48bed7753d9c",
+    "History": []
+  },
+  {
+    "title": "Fill-in-the-blank quiz",
+    "promptTemplate": "Create a fill-in-the-blank quiz with {count} questions on {topic}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Questions"
+      },
+      {
+        "name": "topic",
+        "value": "human anatomy",
+        "displayName": "Topic"
+      }
+    ],
+    "Id": "203e6e39-59d8-426e-8a44-f1ace7625f16",
+    "History": []
+  },
+  {
+    "title": "Timed quiz",
+    "promptTemplate": "Give me a timed quiz of {count} questions on {topic}, with {timeLimit} seconds per question.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "10",
+        "displayName": "Number of Questions"
+      },
+      {
+        "name": "topic",
+        "value": "basic math",
+        "displayName": "Topic"
+      },
+      {
+        "name": "timeLimit",
+        "value": "30",
+        "displayName": "Time Limit (seconds)"
+      }
+    ],
+    "Id": "769fdbd1-cfb4-443e-ac0e-66b197d0666c",
+    "History": []
+  },
+  {
+    "title": "Picture quiz",
+    "promptTemplate": "Describe an image-based quiz with {count} items on {theme}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "6",
+        "displayName": "Number of Items"
+      },
+      {
+        "name": "theme",
+        "value": "national flags",
+        "displayName": "Quiz Theme"
+      }
+    ],
+    "Id": "a8c0889b-a506-4af2-b182-dbeea5d4c657",
+    "History": []
+  },
+  {
+    "title": "Difficulty-scaled quiz",
+    "promptTemplate": "Create a quiz on {topic} with {easyCount} easy, {mediumCount} medium, and {hardCount} hard questions.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "computer science",
+        "displayName": "Quiz Topic"
+      },
+      {
+        "name": "easyCount",
+        "value": "3",
+        "displayName": "Easy Questions"
+      },
+      {
+        "name": "mediumCount",
+        "value": "4",
+        "displayName": "Medium Questions"
+      },
+      {
+        "name": "hardCount",
+        "value": "3",
+        "displayName": "Hard Questions"
+      }
+    ],
+    "Id": "4f3816b8-38b5-42bc-84d7-f91b7937023a",
+    "History": []
+  },
+  {
+    "title": "Competitive quiz",
+    "promptTemplate": "Simulate a two-player quiz on {topic} with {count} questions each.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "pop music trivia",
+        "displayName": "Quiz Topic"
+      },
+      {
+        "name": "count",
+        "value": "7",
+        "displayName": "Questions per Player"
+      }
+    ],
+    "Id": "f6daa583-79ae-4688-9e6a-d54965f054b3",
+    "History": []
+  },
+  {
+    "title": "Rapid-fire quiz",
+    "promptTemplate": "Give me {count} rapid-fire questions on {topic}, no time to think!",
+    "variables": [
+      {
+        "name": "count",
+        "value": "10",
+        "displayName": "Number of Questions"
+      },
+      {
+        "name": "topic",
+        "value": "movie quotes",
+        "displayName": "Quiz Topic"
+      }
+    ],
+    "Id": "d7bc99de-edc2-4007-bd1c-03fee5eb5e67",
+    "History": []
+  },
+  {
+    "title": "Subject-mixed quiz",
+    "promptTemplate": "Create a mixed subject quiz with {count} questions covering {subjects}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "10",
+        "displayName": "Number of Questions"
+      },
+      {
+        "name": "subjects",
+        "value": "history, science, literature",
+        "displayName": "Quiz Subjects"
+      }
+    ],
+    "Id": "49fb62d4-bd22-448f-a0ac-7806e2f9718b",
+    "History": []
+  },
+  {
+    "title": "Daily quiz challenge",
+    "promptTemplate": "Provide me with today's daily quiz of {count} questions on {topic}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Questions"
+      },
+      {
+        "name": "topic",
+        "value": "geography",
+        "displayName": "Quiz Topic"
+      }
+    ],
+    "Id": "1d6957a9-9c4b-4f76-aa06-b3359a9fdf54",
+    "History": []
+  },
+  {
+    "title": "End-of-quiz summary",
+    "promptTemplate": "After I answer {count} questions on {topic}, give me a performance summary.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "8",
+        "displayName": "Number of Questions"
+      },
+      {
+        "name": "topic",
+        "value": "world history",
+        "displayName": "Quiz Topic"
+      }
+    ],
+    "Id": "660bfe8c-132c-466f-8d77-9bb46f429e8a",
+    "History": []
+  }
+]

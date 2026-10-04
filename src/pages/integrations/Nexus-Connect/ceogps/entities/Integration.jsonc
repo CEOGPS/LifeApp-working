@@ -1,0 +1,125 @@
+{
+  "name": "Integration",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "Service name",
+      "minLength": 1
+    },
+    "category": {
+      "type": "string",
+      "title": "Category",
+      "enum": [
+        "LLMs",
+        "Emails",
+        "Texts",
+        "Financial",
+        "Browsers",
+        "Creative",
+        "Development",
+        "Social Media",
+        "Marketing",
+        "CRMs",
+        "PC",
+        "Search Engines",
+        "Directories"
+      ],
+      "default": "Development"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description",
+      "description": "Short description of the service"
+    },
+    "connection_type": {
+      "type": "string",
+      "title": "Connection Type",
+      "enum": [
+        "api_key",
+        "oauth_pkce"
+      ],
+      "default": "api_key"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "connected",
+        "disconnected",
+        "error"
+      ],
+      "default": "disconnected"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API Key",
+      "description": "Stored API key (masked in UI)"
+    },
+    "api_secret": {
+      "type": "string",
+      "title": "API Secret",
+      "description": "Stored API secret (masked in UI)"
+    },
+    "base_url": {
+      "type": "string",
+      "title": "Base URL",
+      "description": "API base URL endpoint"
+    },
+    "scopes": {
+      "type": "string",
+      "title": "Scopes",
+      "description": "Comma-separated OAuth scopes"
+    },
+    "icon_color": {
+      "type": "string",
+      "title": "Icon Color",
+      "description": "Tailwind gradient classes for the icon",
+      "default": "from-slate-500 to-slate-700"
+    },
+    "is_custom": {
+      "type": "boolean",
+      "title": "Is Custom",
+      "default": false
+    },
+    "rotation_enabled": {
+      "type": "boolean",
+      "title": "Rotation Enabled",
+      "default": false
+    },
+    "rotation_frequency_days": {
+      "type": "number",
+      "title": "Rotation Frequency (days)",
+      "default": 30
+    },
+    "last_rotated": {
+      "type": "string",
+      "title": "Last Rotated",
+      "format": "date-time"
+    },
+    "next_rotation": {
+      "type": "string",
+      "title": "Next Rotation",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

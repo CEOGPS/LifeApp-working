@@ -1,0 +1,218 @@
+[
+  {
+    "title": "Job interview roleplay",
+    "promptTemplate": "Let's roleplay a job interview for the position of {position} at {company}.",
+    "variables": [
+      {
+        "name": "position",
+        "value": "Software Engineer",
+        "displayName": "Position"
+      },
+      {
+        "name": "company",
+        "value": "TechCorp Inc.",
+        "displayName": "Company"
+      }
+    ],
+    "Id": "c6799206-4abd-4fd8-b7f3-704b6f93fbb0",
+    "History": []
+  },
+  {
+    "title": "Negotiation simulation",
+    "promptTemplate": "Simulate a negotiation between {partyA} and {partyB} over {issue}.",
+    "variables": [
+      {
+        "name": "partyA",
+        "value": "a supplier",
+        "displayName": "First Party"
+      },
+      {
+        "name": "partyB",
+        "value": "a retailer",
+        "displayName": "Second Party"
+      },
+      {
+        "name": "issue",
+        "value": "pricing terms",
+        "displayName": "Issue"
+      }
+    ],
+    "Id": "3ea583ec-9c99-4373-b007-6387db2f8cb4",
+    "History": []
+  },
+  {
+    "title": "Travel agent scenario",
+    "promptTemplate": "Act as a travel agent planning a {days}-day trip to {destination} with a budget of {budget}.",
+    "variables": [
+      {
+        "name": "days",
+        "value": "7",
+        "displayName": "Number of Days"
+      },
+      {
+        "name": "destination",
+        "value": "Paris, France",
+        "displayName": "Destination"
+      },
+      {
+        "name": "budget",
+        "value": "$2,000",
+        "displayName": "Budget"
+      }
+    ],
+    "Id": "4b2a081f-b8dc-40e8-b3de-e8e57b80d3c7",
+    "History": []
+  },
+  {
+    "title": "Doctor�patient conversation",
+    "promptTemplate": "Roleplay a doctor-patient conversation where I have symptoms of {symptoms}.",
+    "variables": [
+      {
+        "name": "symptoms",
+        "value": "persistent cough and fatigue",
+        "displayName": "Symptoms"
+      }
+    ],
+    "Id": "21f204c0-0882-4bdc-9fad-c5c9a3ac17a8",
+    "History": []
+  },
+  {
+    "title": "Debate practice",
+    "promptTemplate": "Simulate a debate on {topic} with me taking the {side} side.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "remote work adoption",
+        "displayName": "Debate Topic"
+      },
+      {
+        "name": "side",
+        "value": "pro",
+        "displayName": "Your Side"
+      }
+    ],
+    "Id": "a1721a02-db82-4076-bd67-c07119566d6f",
+    "History": []
+  },
+  {
+    "title": "Language conversation practice",
+    "promptTemplate": "Let's practice a {language} conversation about {topic}.",
+    "variables": [
+      {
+        "name": "language",
+        "value": "Spanish",
+        "displayName": "Language"
+      },
+      {
+        "name": "topic",
+        "value": "ordering food in a restaurant",
+        "displayName": "Conversation Topic"
+      }
+    ],
+    "Id": "9c809e3c-6fbd-45b4-b8a2-473ba21e650c",
+    "History": []
+  },
+  {
+    "title": "Customer service simulation",
+    "promptTemplate": "Roleplay a customer service representative handling a complaint about {issue}.",
+    "variables": [
+      {
+        "name": "issue",
+        "value": "a delayed shipment",
+        "displayName": "Complaint Issue"
+      }
+    ],
+    "Id": "d64c4e4a-28b8-4717-b598-04fdcc88804c",
+    "History": []
+  },
+  {
+    "title": "Virtual fitness coach",
+    "promptTemplate": "Act as my virtual fitness coach and create a {duration}-minute workout for {goal}.",
+    "variables": [
+      {
+        "name": "duration",
+        "value": "30",
+        "displayName": "Workout Duration (minutes)"
+      },
+      {
+        "name": "goal",
+        "value": "building core strength",
+        "displayName": "Fitness Goal"
+      }
+    ],
+    "Id": "17019bb1-0e82-471c-be08-8f493fdd0b3f",
+    "History": []
+  },
+  {
+    "title": "Sales pitch practice",
+    "promptTemplate": "Simulate a sales pitch for {product} to a prospective client interested in {benefit}.",
+    "variables": [
+      {
+        "name": "product",
+        "value": "cloud storage solution",
+        "displayName": "Product"
+      },
+      {
+        "name": "benefit",
+        "value": "data security",
+        "displayName": "Key Benefit"
+      }
+    ],
+    "Id": "fee9025e-9d4c-4a75-9c4e-567f793d5e87",
+    "History": []
+  },
+  {
+    "title": "Conflict resolution roleplay",
+    "promptTemplate": "Roleplay a conflict resolution session between {role1} and {role2} regarding {conflictTopic}.",
+    "variables": [
+      {
+        "name": "role1",
+        "value": "team leader",
+        "displayName": "First Role"
+      },
+      {
+        "name": "role2",
+        "value": "team member",
+        "displayName": "Second Role"
+      },
+      {
+        "name": "conflictTopic",
+        "value": "missed deadlines",
+        "displayName": "Conflict Topic"
+      }
+    ],
+    "Id": "2bf75188-d348-41eb-8305-054ec0ee8077",
+    "History": []
+  },
+  {
+    "title": "Historian explanation",
+    "promptTemplate": "Pretend to be a {historian} explaining the significance of {event}.",
+    "variables": [
+      {
+        "name": "historian",
+        "value": "World War II expert",
+        "displayName": "Historian Role"
+      },
+      {
+        "name": "event",
+        "value": "the Battle of Stalingrad",
+        "displayName": "Historical Event"
+      }
+    ],
+    "Id": "515b74eb-93da-432a-87f6-d61a31b19c69",
+    "History": []
+  },
+  {
+    "title": "Press conference simulation",
+    "promptTemplate": "Simulate a press conference where I am a journalist asking questions about {issue}.",
+    "variables": [
+      {
+        "name": "issue",
+        "value": "environmental policy reforms",
+        "displayName": "Press Topic"
+      }
+    ],
+    "Id": "27dbc7c3-7ae1-448b-b555-fb90ab3f2e99",
+    "History": []
+  }
+]

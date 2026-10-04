@@ -1,0 +1,141 @@
+[
+  {
+    "title": "Knock-knock joke",
+    "promptTemplate": "Tell me a knock-knock joke.",
+    "variables": [],
+    "Id": "22c9cc8d-cb21-46d4-aaeb-b5c428e31381",
+    "History": []
+  },
+  {
+    "title": "One-liner joke",
+    "promptTemplate": "Share a one-liner about {topic}.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "technology",
+        "displayName": "Topic"
+      }
+    ],
+    "Id": "317eb226-a6ca-4cfa-816e-ed53679b36f5",
+    "History": []
+  },
+  {
+    "title": "Subject pun",
+    "promptTemplate": "Write a pun involving {subject}.",
+    "variables": [
+      {
+        "name": "subject",
+        "value": "coffee",
+        "displayName": "Subject"
+      }
+    ],
+    "Id": "2cd83172-740b-405e-930f-72fc6006b5b1",
+    "History": []
+  },
+  {
+    "title": "Classic dad joke",
+    "promptTemplate": "Give me a dad joke.",
+    "variables": [],
+    "Id": "869347e2-d390-4fd9-b2a0-cd7641b6f91c",
+    "History": []
+  },
+  {
+    "title": "Humorous story",
+    "promptTemplate": "Tell a short humorous story about {scenario}.",
+    "variables": [
+      {
+        "name": "scenario",
+        "value": "a cat learning to skateboard",
+        "displayName": "Scenario"
+      }
+    ],
+    "Id": "bdb12959-1881-4959-bfb4-374d4a055f2a",
+    "History": []
+  },
+  {
+    "title": "Witty comeback",
+    "promptTemplate": "Share a witty comeback for {situation}.",
+    "variables": [
+      {
+        "name": "situation",
+        "value": "being teased about your cooking",
+        "displayName": "Situation"
+      }
+    ],
+    "Id": "f6b52400-cc79-4458-b3fb-16baef201ae2",
+    "History": []
+  },
+  {
+    "title": "Funny limerick",
+    "promptTemplate": "Create a funny limerick about {topic}.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "rainy days",
+        "displayName": "Topic"
+      }
+    ],
+    "Id": "efa857d3-6685-4885-ad3f-d99c36098786",
+    "History": []
+  },
+  {
+    "title": "Profession joke",
+    "promptTemplate": "Make a light-hearted joke about {profession}.",
+    "variables": [
+      {
+        "name": "profession",
+        "value": "accountants",
+        "displayName": "Profession"
+      }
+    ],
+    "Id": "0ae821b7-8a29-44db-a1f9-aa078cf94597",
+    "History": []
+  },
+  {
+    "title": "Cheesy pick-up line",
+    "promptTemplate": "Provide a cheesy pick-up line.",
+    "variables": [],
+    "Id": "a9f1c4f1-6943-4769-b32b-7b32f00a214a",
+    "History": []
+  },
+  {
+    "title": "Clean kids� joke",
+    "promptTemplate": "Tell a clean joke suitable for kids.",
+    "variables": [],
+    "Id": "2c93530f-7e82-480f-8b34-39448f91828b",
+    "History": []
+  },
+  {
+    "title": "Humorous tweet",
+    "promptTemplate": "Generate a humorous tweet about {currentEvent}.",
+    "variables": [
+      {
+        "name": "currentEvent",
+        "value": "the latest smartphone release",
+        "displayName": "Current Event"
+      }
+    ],
+    "Id": "222adc6f-d0c1-46fd-8c74-02bddc3f6bf1",
+    "History": []
+  },
+  {
+    "title": "Comedy sketch pitch",
+    "promptTemplate": "Write a short comedy sketch scenario about {theme}.",
+    "variables": [
+      {
+        "name": "theme",
+        "value": "office life",
+        "displayName": "Theme"
+      }
+    ],
+    "Id": "6735c535-5368-4885-b83c-14805d85660a",
+    "History": []
+  },
+  {
+    "title": "Programmer joke",
+    "promptTemplate": "Give me a tech-related joke for a programmer.",
+    "variables": [],
+    "Id": "0eceb36c-4231-4294-a2ea-e84a472e9fb2",
+    "History": []
+  }
+]

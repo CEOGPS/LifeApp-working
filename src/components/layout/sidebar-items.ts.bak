@@ -1,0 +1,76 @@
+export interface SidebarItem {
+  id: string;
+  label: string;
+  icon: string;
+  badge?: string | number;
+  badgeVariant?: "default" | "primary" | "success" | "warning" | "danger";
+  children?: SidebarItem[];
+  href?: string;
+  onClick?: () => void;
+}
+
+export interface SidebarSection {
+  id: string;
+  label: string;
+  items: SidebarItem[];
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+}
+
+export const SIDEBAR_SECTIONS: SidebarSection[] = [
+  {
+    id: "core",
+    label: "CORE",
+    items: [
+      { id: "dashboard", label: "Dashboard", icon: "LayoutDashboard", href: "/" },
+      { id: "ai-dock", label: "AI Dock", icon: "Bot", href: "/ai-dock" },
+      { id: "calendar", label: "Calendar", icon: "Calendar", href: "/calendar" },
+      { id: "tasks", label: "Tasks", icon: "CheckSquare", href: "/tasks" },
+      { id: "notes", label: "Notes", icon: "FileText", href: "/notes" },
+    ],
+  },
+  {
+    id: "business",
+    label: "BUSINESS",
+    items: [
+      { id: "leads", label: "Leads CRM", icon: "Users", href: "/leads" },
+      { id: "finance", label: "Finance", icon: "DollarSign", href: "/finance" },
+      { id: "analytics", label: "Analytics", icon: "BarChart3", href: "/analytics" },
+      { id: "marketing", label: "Marketing", icon: "Megaphone", href: "/marketing" },
+      { id: "community", label: "Community", icon: "Users", href: "/community" },
+      { id: "social", label: "Social", icon: "Share2", href: "/social" },
+    ],
+  },
+  {
+    id: "creator",
+    label: "CREATOR",
+    items: [
+      { id: "veriton", label: "Veriton Music", icon: "Music", href: "/veriton" },
+      { id: "creator-os", label: "CreatorOS", icon: "PenTool", href: "/creator" },
+      { id: "omni-search", label: "OmniSearch", icon: "Search", href: "/omni" },
+    ],
+  },
+  {
+    id: "tools",
+    label: "TOOLS",
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      { id: "browser", label: "Browser", icon: "Globe", href: "/browser" },
+      { id: "terminal", label: "Terminal", icon: "Terminal", href: "/terminal" },
+      { id: "simulators", label: "Simulators", icon: "Cpu", href: "/simulators" },
+      { id: "vault", label: "Vault", icon: "Lock", href: "/vault" },
+    ],
+  },
+  {
+    id: "settings",
+    label: "SETTINGS",
+    items: [
+      { id: "integrations", label: "Integrations", icon: "Plug", href: "/integrations" },
+      { id: "agents", label: "Agents", icon: "Network", href: "/agents" },
+      { id: "preferences", label: "Preferences", icon: "Settings", href: "/preferences" },
+    ],
+  },
+];
+
+export const SIDEBAR_ITEMS = SIDEBAR_SECTIONS.flatMap(s => s.items);

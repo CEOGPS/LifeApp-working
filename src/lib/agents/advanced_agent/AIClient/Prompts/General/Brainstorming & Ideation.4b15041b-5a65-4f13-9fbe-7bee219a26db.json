@@ -1,0 +1,218 @@
+[
+  {
+    "title": "Blog post topic brainstorm",
+    "promptTemplate": "Help me come up with {count} blog post topics on {subject}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Topics"
+      },
+      {
+        "name": "subject",
+        "value": "sustainability",
+        "displayName": "Subject"
+      }
+    ],
+    "Id": "53f3131a-f009-456a-97d5-e1a0f5dc3630",
+    "History": []
+  },
+  {
+    "title": "App feature ideas",
+    "promptTemplate": "Brainstorm {count} feature ideas for a {appType}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "7",
+        "displayName": "Number of Features"
+      },
+      {
+        "name": "appType",
+        "value": "fitness tracking app",
+        "displayName": "App Type"
+      }
+    ],
+    "Id": "bf620ba6-12e4-4561-9a79-c0f851b5a964",
+    "History": []
+  },
+  {
+    "title": "Marketing slogan generation",
+    "promptTemplate": "Generate {count} catchy slogans for {product}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "3",
+        "displayName": "Number of Slogans"
+      },
+      {
+        "name": "product",
+        "value": "eco-friendly water bottle",
+        "displayName": "Product"
+      }
+    ],
+    "Id": "9e6d717e-94b1-4cc5-80ee-dc713e4c2c64",
+    "History": []
+  },
+  {
+    "title": "Event theme ideas",
+    "promptTemplate": "List {count} creative themes for a {eventType}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "4",
+        "displayName": "Number of Themes"
+      },
+      {
+        "name": "eventType",
+        "value": "charity fundraiser",
+        "displayName": "Event Type"
+      }
+    ],
+    "Id": "4246e4d5-3db4-41b5-a575-a4dfb57d87e7",
+    "History": []
+  },
+  {
+    "title": "Campaign concept brainstorming",
+    "promptTemplate": "Suggest {count} marketing campaign ideas for {campaignFocus}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "6",
+        "displayName": "Number of Ideas"
+      },
+      {
+        "name": "campaignFocus",
+        "value": "new product launch",
+        "displayName": "Campaign Focus"
+      }
+    ],
+    "Id": "3018d3a3-9375-43b0-a9cc-e0fb24b9c80a",
+    "History": []
+  },
+  {
+    "title": "Gift idea generation",
+    "promptTemplate": "Brainstorm {count} unique gift ideas for a {recipientType}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "8",
+        "displayName": "Number of Gifts"
+      },
+      {
+        "name": "recipientType",
+        "value": "tech enthusiast",
+        "displayName": "Recipient Type"
+      }
+    ],
+    "Id": "2114f85b-f5c8-4bbe-9c2f-04ee820f53c8",
+    "History": []
+  },
+  {
+    "title": "Business name ideas",
+    "promptTemplate": "Help me brainstorm {count} business name ideas for a {businessType}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "10",
+        "displayName": "Number of Names"
+      },
+      {
+        "name": "businessType",
+        "value": "coffee shop",
+        "displayName": "Business Type"
+      }
+    ],
+    "Id": "90ecb867-7770-49fc-a68d-5a56309bba76",
+    "History": []
+  },
+  {
+    "title": "Tagline creation",
+    "promptTemplate": "Generate {count} taglines for a {companyType}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Taglines"
+      },
+      {
+        "name": "companyType",
+        "value": "startup",
+        "displayName": "Company Type"
+      }
+    ],
+    "Id": "79c7e0f7-6594-4fb6-8e49-b558cbecd981",
+    "History": []
+  },
+  {
+    "title": "Book title suggestions",
+    "promptTemplate": "Suggest {count} engaging book title ideas about {topic}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "7",
+        "displayName": "Number of Titles"
+      },
+      {
+        "name": "topic",
+        "value": "time management",
+        "displayName": "Topic"
+      }
+    ],
+    "Id": "79a5e4d2-4d7a-4fd2-9229-2b31898670b4",
+    "History": []
+  },
+  {
+    "title": "Team-building activities",
+    "promptTemplate": "List {count} team-building activity ideas for a {teamType}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "6",
+        "displayName": "Number of Activities"
+      },
+      {
+        "name": "teamType",
+        "value": "remote team",
+        "displayName": "Team Type"
+      }
+    ],
+    "Id": "3c15033d-05d0-4dd8-aa17-6e6bae481f68",
+    "History": []
+  },
+  {
+    "title": "App design concept brainstorm",
+    "promptTemplate": "Brainstorm {count} design concepts for a {appType} interface.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Concepts"
+      },
+      {
+        "name": "appType",
+        "value": "fitness tracking app",
+        "displayName": "App Type"
+      }
+    ],
+    "Id": "fff8e722-ecc3-4beb-8e3d-ec3037f2df1e",
+    "History": []
+  },
+  {
+    "title": "Social media post ideas",
+    "promptTemplate": "Generate {count} social media post ideas about {campaignTopic}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "8",
+        "displayName": "Number of Posts"
+      },
+      {
+        "name": "campaignTopic",
+        "value": "mental health awareness",
+        "displayName": "Campaign Topic"
+      }
+    ],
+    "Id": "b5eef074-fa76-4ef8-a385-009470109f66",
+    "History": []
+  }
+]

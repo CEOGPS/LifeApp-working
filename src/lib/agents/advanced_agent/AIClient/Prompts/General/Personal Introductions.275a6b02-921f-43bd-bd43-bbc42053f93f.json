@@ -1,0 +1,106 @@
+[
+  {
+    "title": "Basic introduction",
+    "promptTemplate": "Introduce yourself.",
+    "variables": [],
+    "Id": "ff02593b-500a-4a74-aec0-a3999451dcaa",
+    "History": []
+  },
+  {
+    "title": "Share your background",
+    "promptTemplate": "Tell me something interesting about your background.",
+    "variables": [],
+    "Id": "7aa98f64-c471-43d1-b582-a7c64dd93d39",
+    "History": []
+  },
+  {
+    "title": "Reveal your strengths",
+    "promptTemplate": "What are your greatest strengths?",
+    "variables": [],
+    "Id": "9f09719f-566b-4cd7-a972-59cb4ff942df",
+    "History": []
+  },
+  {
+    "title": "Discuss your experience",
+    "promptTemplate": "Tell me about your experience in {field}.",
+    "variables": [
+      {
+        "name": "field",
+        "value": "software development",
+        "displayName": "Field of Expertise"
+      }
+    ],
+    "Id": "709c7f6e-7019-4d05-b054-09bc117ebf26",
+    "History": []
+  },
+  {
+    "title": "Share your hobbies",
+    "promptTemplate": "What are your hobbies or interests outside of work?",
+    "variables": [],
+    "Id": "e216cc2a-67ee-4216-ac8f-454c3a25a1b6",
+    "History": []
+  },
+  {
+    "title": "Talk about your role",
+    "promptTemplate": "What is your current role and what do you do?",
+    "variables": [],
+    "Id": "56bcb47d-3d23-47c1-8679-ec79c11145fb",
+    "History": []
+  },
+  {
+    "title": "Discuss your journey",
+    "promptTemplate": "How did you get started in this line of work?",
+    "variables": [],
+    "Id": "1009be07-c890-4887-bf8c-8bcaa829bbf1",
+    "History": []
+  },
+  {
+    "title": "Mention a fun fact",
+    "promptTemplate": "Share a fun fact about yourself.",
+    "variables": [],
+    "Id": "39a8e4c5-ca04-4d76-87b5-0ea43547b4bf",
+    "History": []
+  },
+  {
+    "title": "State your goals",
+    "promptTemplate": "What are your professional goals for the next year?",
+    "variables": [],
+    "Id": "c4ac753f-397d-48ce-84dd-021f4938f996",
+    "History": []
+  },
+  {
+    "title": "Share your motivation",
+    "promptTemplate": "What motivates you in your work?",
+    "variables": [],
+    "Id": "1e0c26a8-8deb-4d38-acc9-f22d136c2a73",
+    "History": []
+  },
+  {
+    "title": "Describe your skills",
+    "promptTemplate": "What skills do you bring to a team?",
+    "variables": [],
+    "Id": "4c99b784-8b8d-4966-a572-41ad8834de43",
+    "History": []
+  },
+  {
+    "title": "Personal origin",
+    "promptTemplate": "Where are you from originally?",
+    "variables": [],
+    "Id": "7f427e5c-d336-456c-a035-93f8bdb2b6fc",
+    "History": []
+  },
+  {
+    "title": "Talk about your inspiration",
+    "promptTemplate": "Who or what inspired you to pursue your career?",
+    "variables": [],
+    "Id": "4205b194-7bac-4bdc-b85e-0b1a593149bf",
+    "History": []
+  },
+  {
+    "title": "Describe your ideal project",
+    "promptTemplate": "Describe your ideal project to work on.",
+    "variables": [],
+    "Id": "87f3a334-e788-474e-a986-165b4242ce26",
+    "History": []
+  }
+]

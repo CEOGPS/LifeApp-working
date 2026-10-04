@@ -1,0 +1,158 @@
+[
+  {
+    "title": "Manage exam stress",
+    "promptTemplate": "How can I manage stress before {event}?",
+    "variables": [
+      {
+        "name": "event",
+        "value": "final exams",
+        "displayName": "Event"
+      }
+    ],
+    "Id": "6a9043ae-b0ea-4f78-abcd-1a9e0a84f91f",
+    "History": []
+  },
+  {
+    "title": "Handle workplace overwhelm",
+    "promptTemplate": "What should I do if I'm feeling overwhelmed at work because of {reason}?",
+    "variables": [
+      {
+        "name": "reason",
+        "value": "tight deadlines",
+        "displayName": "Reason for Overwhelm"
+      }
+    ],
+    "Id": "af9c7e01-966d-4326-8065-b16007da7015",
+    "History": []
+  },
+  {
+    "title": "Improve time management",
+    "promptTemplate": "How can I improve my time management to better handle {task}?",
+    "variables": [
+      {
+        "name": "task",
+        "value": "multiple client projects",
+        "displayName": "Task"
+      }
+    ],
+    "Id": "a868ac6f-8a18-47b7-9957-19b0264c19d9",
+    "History": []
+  },
+  {
+    "title": "Build self-confidence",
+    "promptTemplate": "What are some strategies to build self-confidence when I feel {feeling}?",
+    "variables": [
+      {
+        "name": "feeling",
+        "value": "insecure in social situations",
+        "displayName": "Feeling"
+      }
+    ],
+    "Id": "2734244d-0d54-48a1-a560-e2f6b706c19f",
+    "History": []
+  },
+  {
+    "title": "Cope with anxiety",
+    "promptTemplate": "What techniques can help me cope with anxiety related to {situation}?",
+    "variables": [
+      {
+        "name": "situation",
+        "value": "giving presentations",
+        "displayName": "Anxiety Situation"
+      }
+    ],
+    "Id": "09ceb010-1338-4fd9-b97d-00cab467e2ab",
+    "History": []
+  },
+  {
+    "title": "Overcome imposter syndrome",
+    "promptTemplate": "How do I deal with imposter syndrome when starting a new {role}?",
+    "variables": [
+      {
+        "name": "role",
+        "value": "management position",
+        "displayName": "New Role"
+      }
+    ],
+    "Id": "010a3895-b0e3-420b-9ed4-febb40efd232",
+    "History": []
+  },
+  {
+    "title": "Resolve conflict",
+    "promptTemplate": "What steps can I take to resolve a conflict with {personType}?",
+    "variables": [
+      {
+        "name": "personType",
+        "value": "a colleague",
+        "displayName": "Person Type"
+      }
+    ],
+    "Id": "de32f69c-3517-41ef-9765-2cf2491c99a1",
+    "History": []
+  },
+  {
+    "title": "Enhance communication skills",
+    "promptTemplate": "How can I improve my communication skills when {context}?",
+    "variables": [
+      {
+        "name": "context",
+        "value": "leading team meetings",
+        "displayName": "Context"
+      }
+    ],
+    "Id": "e69cd7d3-582a-4a4d-8df7-f990b6cf73e9",
+    "History": []
+  },
+  {
+    "title": "Break a bad habit",
+    "promptTemplate": "What are effective methods to break the habit of {habit}?",
+    "variables": [
+      {
+        "name": "habit",
+        "value": "procrastinating",
+        "displayName": "Habit"
+      }
+    ],
+    "Id": "b26bd343-5ca7-4d03-8213-e2aa263062c8",
+    "History": []
+  },
+  {
+    "title": "Increase motivation",
+    "promptTemplate": "What can I do to stay motivated when working on {project}?",
+    "variables": [
+      {
+        "name": "project",
+        "value": "a long-term research paper",
+        "displayName": "Project"
+      }
+    ],
+    "Id": "8f2c99b2-c4f2-4f94-9e5a-1e1d37060a0d",
+    "History": []
+  },
+  {
+    "title": "Balance work and life",
+    "promptTemplate": "How can I better balance work and life with a schedule that includes {commitment}?",
+    "variables": [
+      {
+        "name": "commitment",
+        "value": "evening classes",
+        "displayName": "Commitment"
+      }
+    ],
+    "Id": "17a5786d-3e2b-4996-8fda-b1f5cd46ffed",
+    "History": []
+  },
+  {
+    "title": "Manage financial stress",
+    "promptTemplate": "What advice do you have for managing financial stress when dealing with {expense}?",
+    "variables": [
+      {
+        "name": "expense",
+        "value": "student loan payments",
+        "displayName": "Expense"
+      }
+    ],
+    "Id": "3a6e5828-209f-4489-9c0a-9d69754efe48",
+    "History": []
+  }
+]

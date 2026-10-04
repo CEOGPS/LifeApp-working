@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><!-- LifeOS weather icon (fog). Original artwork generated for LifeOS, 2026. --><style>
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 4.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+.drift{animation:drift 8s ease-in-out infinite alternate}
+.drift2{animation:drift 11s ease-in-out infinite alternate-reverse}
+@keyframes drift{from{transform:translateX(-2px)}to{transform:translateX(2px)}}
+.drop{animation:fall 1.15s linear infinite}
+@keyframes fall{0%{transform:translate(1px,-7px);opacity:0}25%{opacity:1}100%{transform:translate(-3px,15px);opacity:0}}
+.flake{animation:snow 3.4s linear infinite}
+@keyframes snow{0%{transform:translate(0,-6px);opacity:0}20%{opacity:1}100%{transform:translate(2px,16px);opacity:0}}
+.bolt{animation:flash 3.6s linear infinite}
+@keyframes flash{0%,62%,70%,100%{opacity:.7}64%,68%{opacity:1}66%{opacity:.5}}
+.fog{animation:drift 9s ease-in-out infinite alternate}
+.fog2{animation:drift 12s ease-in-out infinite alternate-reverse}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style><defs>
+<filter id="fluff" x="-25%" y="-25%" width="150%" height="150%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="7" result="n"/>
+  <feDisplacementMap in="SourceGraphic" in2="n" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+  <feGaussianBlur in="d" stdDeviation="0.55"/>
+</filter>
+<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+  <feGaussianBlur stdDeviation="2.2" result="b"/>
+  <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter>
+<radialGradient id="hl" cx="0.4" cy="0.35" r="0.6"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6ff" stop-opacity=".1"/><stop offset="1" stop-color="#f4fbff"/></linearGradient>
+<radialGradient id="flakeG"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eaf6ff" stop-opacity=".9"/><stop offset="1" stop-color="#bfe3ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="iceG" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#d8efff"/><stop offset="1" stop-color="#7fb4d9"/></radialGradient>
+<linearGradient id="cb9" gradientUnits="userSpaceOnUse" x1="0" y1="23.5" x2="0" y2="76.7"><stop offset="0" stop-color="#eef1f5"/><stop offset=".55" stop-color="#b3bbc7"/><stop offset="1" stop-color="#5f6877"/></linearGradient><linearGradient id="fogG" x1="0" x2="1"><stop offset="0" stop-color="#dfe5ee" stop-opacity="0"/><stop offset=".25" stop-color="#e8edf4" stop-opacity=".9"/><stop offset=".75" stop-color="#d4dbe6" stop-opacity=".9"/><stop offset="1" stop-color="#dfe5ee" stop-opacity="0"/></linearGradient></defs><ellipse cx="63.9" cy="74.8" rx="34.2" ry="5.7" fill="#000" opacity=".35" filter="url(#soft)"/><g class="drift"><g filter="url(#fluff)"><circle cx="39.2" cy="59.6" r="12.3" fill="url(#cb9)"/><circle cx="52.5" cy="48.2" r="16.1" fill="url(#cb9)"/><circle cx="69.6" cy="42.5" r="19.0" fill="url(#cb9)"/><circle cx="84.8" cy="52.0" r="14.2" fill="url(#cb9)"/><circle cx="94.3" cy="61.5" r="9.5" fill="url(#cb9)"/><circle cx="62.0" cy="61.5" r="16.1" fill="url(#cb9)"/><circle cx="33.5" cy="64.3" r="8.5" fill="url(#cb9)"/><circle cx="77.2" cy="63.4" r="13.3" fill="url(#cb9)"/><rect x="33.5" y="57.7" width="60.8" height="15.2" rx="7.6" fill="url(#cb9)"/><circle cx="52.5" cy="44.4" r="10.4" fill="url(#hl)" opacity=".85"/><circle cx="69.6" cy="37.8" r="12.3" fill="url(#hl)" opacity=".85"/><circle cx="84.8" cy="48.2" r="7.6" fill="url(#hl)" opacity=".85"/><circle cx="39.2" cy="55.8" r="6.6" fill="url(#hl)" opacity=".85"/></g></g><g class="fog"><rect x="16.0" y="70.0" width="88" height="7" rx="3.5" fill="url(#fogG)" opacity="0.75" filter="url(#blur1)"/></g><g class="fog2"><rect x="34.0" y="81.0" width="72" height="7" rx="3.5" fill="url(#fogG)" opacity="0.75" filter="url(#blur1)"/></g><g class="fog"><rect x="16.0" y="92.0" width="88" height="7" rx="3.5" fill="url(#fogG)" opacity="0.75" filter="url(#blur1)"/></g></svg>

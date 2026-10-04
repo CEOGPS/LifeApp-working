@@ -1,0 +1,90 @@
+{
+  "name": "OAuthProvider",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "Display name for this OAuth provider",
+      "minLength": 1
+    },
+    "provider": {
+      "type": "string",
+      "title": "Provider",
+      "description": "Preset key or 'custom'",
+      "default": "custom"
+    },
+    "client_id": {
+      "type": "string",
+      "title": "Client ID",
+      "description": "OAuth client ID"
+    },
+    "client_secret": {
+      "type": "string",
+      "title": "Client Secret",
+      "description": "OAuth client secret (masked in UI)"
+    },
+    "redirect_uri": {
+      "type": "string",
+      "title": "Redirect URI",
+      "description": "OAuth callback URL"
+    },
+    "authorization_url": {
+      "type": "string",
+      "title": "Authorization URL",
+      "description": "OAuth authorization endpoint"
+    },
+    "token_url": {
+      "type": "string",
+      "title": "Token URL",
+      "description": "OAuth token exchange endpoint"
+    },
+    "api_base_url": {
+      "type": "string",
+      "title": "API Base URL",
+      "description": "Provider API base URL"
+    },
+    "scopes": {
+      "type": "string",
+      "title": "Scopes",
+      "description": "Comma-separated OAuth scopes"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "configured",
+        "active",
+        "error"
+      ],
+      "default": "configured"
+    },
+    "icon_color": {
+      "type": "string",
+      "title": "Icon Color",
+      "default": "from-slate-500 to-slate-700"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "name",
+    "provider"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

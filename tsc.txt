@@ -1,0 +1,48 @@
+npm warn install-scripts .npmrc: ignoring unparseable entry "esbuild workerd"
+npm notice run lifeos1.agentzero@0.1.0 npx
+npm notice run tsc --noEmit
+src/components/ErebusDock.tsx(4,25): error TS2307: Cannot find module '@/lib/SupabaseAuthContext' or its corresponding type declarations.
+src/contexts/AgentDockContext.tsx(14,35): error TS2339: Property 'agentId' does not exist on type '{}'.
+src/contexts/GlobalPlaybackContext.tsx(1,1): error TS2578: Unused '@ts-expect-error' directive.
+src/hooks/useUserEmail.ts(5,3): error TS2303: Circular definition of import alias 'useUserEmail'.
+src/hooks/useUserEmail.ts(6,3): error TS2303: Circular definition of import alias 'persistUserEmail'.
+src/hooks/useUserEmail.ts(7,3): error TS2303: Circular definition of import alias 'clearUserEmail'.
+src/hooks/useUserEmail.ts(8,3): error TS2303: Circular definition of import alias 'getCurrentUserEmail'.
+src/pages/auth/Login.tsx(3,25): error TS2307: Cannot find module '@/lib/SupabaseAuthContext' or its corresponding type declarations.
+src/pages/communications/CommunicationsPanel.tsx(15,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/communications/CommunicationsPanel.tsx(16,30): error TS2307: Cannot find module '@/lib/useUserEmail' or its corresponding type declarations.
+src/pages/communications/CommunicationsPanel.tsx(19,36): error TS2307: Cannot find module '@/lib/usePersistentState' or its corresponding type declarations.
+src/pages/crm/CRMPanel.tsx(13,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/crm/CRMPanel.tsx(14,30): error TS2307: Cannot find module '@/lib/useUserEmail' or its corresponding type declarations.
+src/pages/dashboard/_components/AiInsights.tsx(4,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/AiMoneyTips.tsx(4,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/BudgetExpenses.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/CalendarModule.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/FinancialStats.tsx(10,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/LeadsModule.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/LifeHacks.tsx(4,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/NotesModule.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/QuickLinks.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/ActivityFeedPanel.tsx(15,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/dashboard/ActivityFeedPanel.tsx(18,30): error TS2307: Cannot find module '@/lib/useUserEmail' or its corresponding type declarations.
+src/pages/integrations/IntegrationsPanel.tsx(11,25): error TS2307: Cannot find module '@/components/layout/PanelLayout.tsx' or its corresponding type declarations.
+src/pages/integrations/IntegrationsPanel.tsx(13,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/integrations/IntegrationsPanel.tsx(15,25): error TS2307: Cannot find module '@/lib/SupabaseAuthContext.tsx' or its corresponding type declarations.
+src/pages/integrations/IntegrationsPanel.tsx(398,25): error TS2488: Type 'unknown' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/pages/integrations/IntegrationsPanel.tsx(462,29): error TS2339: Property 'filter' does not exist on type 'unknown'.
+src/pages/journal/JournalPanel.tsx(14,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/journal/JournalPanel.tsx(17,25): error TS2307: Cannot find module '@/lib/SupabaseAuthContext' or its corresponding type declarations.
+src/pages/legal/LegalPanel.tsx(19,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/legal/LegalPanel.tsx(23,36): error TS2307: Cannot find module '@/lib/usePersistentState' or its corresponding type declarations.
+src/pages/media/MediaPanel.tsx(23,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/media/MediaPanel.tsx(27,36): error TS2307: Cannot find module '@/lib/usePersistentState' or its corresponding type declarations.
+src/pages/music/MusicPanel.tsx(23,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/NotFound.tsx(4,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/office/OfficePanel.tsx(17,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/office/OfficePanel.tsx(21,25): error TS2307: Cannot find module '@/lib/SupabaseAuthContext' or its corresponding type declarations.
+src/pages/projects/ProjectsPanel.tsx(12,25): error TS2307: Cannot find module '@/components/layout/PanelLayout' or its corresponding type declarations.
+src/pages/projects/ProjectsPanel.tsx(16,36): error TS2307: Cannot find module '@/lib/usePersistentState' or its corresponding type declarations.
+src/ui/layout/Layout.tsx(72,9): error TS2322: Type '{ className: string; routes: { path: string; label: string; icon: string; }[]; isActive: (path: string) => boolean; onNavigate: () => void; }' is not assignable to type 'IntrinsicAttributes & SidebarProps'.
+  Property 'routes' does not exist on type 'IntrinsicAttributes & SidebarProps'.
+src/ui/layout/Layout.tsx(86,17): error TS2322: Type '{ onMenuClick: () => void; isMobile: boolean; }' is not assignable to type 'IntrinsicAttributes & TopbarProps'.
+  Property 'onMenuClick' does not exist on type 'IntrinsicAttributes & TopbarProps'.

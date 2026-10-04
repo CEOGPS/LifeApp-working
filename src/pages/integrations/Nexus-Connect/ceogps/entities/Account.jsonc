@@ -1,0 +1,92 @@
+{
+  "name": "Account",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "title": "Label",
+      "description": "Account label / nickname",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "title": "Platform",
+      "description": "Service or platform name"
+    },
+    "category": {
+      "type": "string",
+      "title": "Category",
+      "enum": [
+        "LLMs",
+        "Emails",
+        "Texts",
+        "Financial",
+        "Browsers",
+        "Creative",
+        "Development",
+        "Social Media",
+        "Marketing",
+        "CRMs",
+        "PC",
+        "Search Engines",
+        "Directories",
+        "Other"
+      ],
+      "default": "Other"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "username": {
+      "type": "string",
+      "title": "Username"
+    },
+    "password": {
+      "type": "string",
+      "title": "Password",
+      "description": "Stored encrypted / masked in UI"
+    },
+    "two_factor": {
+      "type": "string",
+      "title": "2FA / Backup Codes",
+      "description": "Two-factor secret or backup codes"
+    },
+    "login_url": {
+      "type": "string",
+      "title": "Login URL"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    },
+    "icon_color": {
+      "type": "string",
+      "title": "Icon Color",
+      "default": "from-slate-500 to-slate-700"
+    },
+    "last_accessed": {
+      "type": "string",
+      "title": "Last Accessed",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "label",
+    "platform"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

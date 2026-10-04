@@ -1,0 +1,43 @@
+name = "lifeos-omni-search"
+main = "src/index.ts"
+compatibility_date = "2024-09-25"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables — set via `wrangler secret put` for sensitive values
+[vars]
+SUPABASE_URL = "https://mhvcdstgkyplhzjptgfr.supabase.co"
+OLLAMA_ENDPOINT = "http://localhost:11434"
+ENVIRONMENT = "production"
+
+# Secrets (set via wrangler):
+# wrangler secret put SUPABASE_SERVICE_KEY
+# wrangler secret put OPENAI_API_KEY (if using)
+# wrangler secret put GROK_API_KEY (if using)
+
+# Routes
+# routes = [
+#   { pattern = "search.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]
+
+# KV for caching search results
+[[kv_namespaces]]
+binding = "SEARCH_CACHE"
+id = "your-kv-namespace-id"
+
+# R2 for image storage (reverse image search)
+[[r2_buckets]]
+binding = "IMAGE_BUCKET"
+bucket_name = "lifeos-search-images"
+
+# Smart placement for lower latency
+[placement]
+mode = "smart"
+
+# Build watch paths
+[build]
+command = "npm run build:worker"
+
+# Dev settings
+[dev]
+port = 8787
+local_protocol = "http"

@@ -1,0 +1,1 @@
+export default function ExplodingButton(props: any) { return <button>{props.children}</button>; }

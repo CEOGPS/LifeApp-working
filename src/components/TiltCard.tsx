@@ -1,0 +1,1 @@
+export default function TiltCard(props: any) { return <div>TiltCard Stub {props.children}</div>; }

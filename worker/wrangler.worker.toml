@@ -1,0 +1,30 @@
+name = "lifeos1-api"
+compatibility_date = "2026-07-01"
+main = "src/working-worker.ts"
+
+[vars]
+SUPABASE_URL = "https://mhvcdstgkyplhzjptgfr.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tj21EW0eGMS0C2rvhkGwHA_yIr7oZl6"
+OAUTH_REDIRECT_URI = "https://lifeos1.pages.dev/oauth/callback"
+# PATCH (worker-ai-route): /api/ai/* + /api/llm/invoke per-user daily caps (UTC day) and hosted-Ollama fallback model
+AI_DAILY_CHAT_LIMIT = "200"
+AI_DAILY_IMAGE_LIMIT = "25"
+OLLAMA_MODEL = "gpt-oss:20b"
+# Only this owner uid (or anonymous sessions linked to it in public.owner_links) may use the AI routes; comma-separate to add more
+AI_OWNER_ID = "0355fae3-863b-432c-bac8-968942681e1b"
+
+[[kv_namespaces]]
+binding = "LIFEOS_KV"
+id = "c7e7fb2195cc4397af43f41a06be7efb"
+
+[[r2_buckets]]
+binding = "LIFEOS_STORAGE"
+bucket_name = "lifeos-storage"
+
+[[d1_databases]]
+binding = "LIFEOS_DB"
+database_name = "lifeos1"
+database_id = "9aa6e88b-bba8-43c8-8591-5fac48d5a200"
+
+[observability]
+enabled = true

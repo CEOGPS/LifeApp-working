@@ -1,0 +1,11 @@
+name = "lifeos1-api"
+main = "src/working-worker.ts"
+compatibility_date = "2026-07-01"
+
+[[kv_namespaces]]
+binding = "LIFEOS_KV"
+id = "c7e7fb2195cc4397af43f41a06be7efb"
+
+[[r2_buckets]]
+binding = "LIFEOS_STORAGE"
+bucket_name = "lifeos-storage"

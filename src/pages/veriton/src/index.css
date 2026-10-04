@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Crimson Phantom Aesthetic */
+    --background: 0 0% 3%;
+    --foreground: 0 0% 100%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 353 100% 46%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 5% 16%;
+    --muted-foreground: 240 5% 70%;
+    --accent: 353 100% 46%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 100%;
+    --input: 240 5% 20%;
+    --ring: 353 100% 46%;
+    --crimson: 353 100% 46%;
+    --crimson-light: 350 100% 55%;
+    --radius: 0.75rem;
+    --font-heading:
+      "Inter", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    --sidebar-background: 240 10% 6%;
+    --sidebar-foreground: 0 0% 80%;
+    --sidebar-primary: 353 100% 46%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 5% 15%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 353 100% 46%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: rgba(255, 255, 255, 0.1);
+    outline-color: hsl(var(--ring) / 0.5);
+  }
+
+  body {
+    color: hsl(var(--foreground));
+    font-family: var(--font-body);
+    background: #050505;
+    background-image:
+      radial-gradient(
+        ellipse 80% 50% at 50% -20%,
+        rgba(220, 20, 60, 0.15),
+        transparent
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 80% 100%,
+        rgba(220, 20, 60, 0.08),
+        transparent
+      ),
+      radial-gradient(
+        ellipse 40% 30% at 20% 80%,
+        rgba(255, 26, 64, 0.05),
+        transparent
+      );
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Glassmorphism */
+  .glass {
+    background: rgba(20, 20, 30, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    transition:
+      backdrop-filter 0.3s ease,
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .glass-hover:hover {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-color: rgba(220, 20, 60, 0.3);
+    box-shadow: 0 8px 40px rgba(220, 20, 60, 0.15);
+  }
+
+  .glass-strong {
+    background: rgba(15, 15, 25, 0.85);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+  }
+
+  .glass-crimson {
+    background: linear-gradient(
+      135deg,
+      rgba(220, 20, 60, 0.2),
+      rgba(220, 20, 60, 0.05)
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(220, 20, 60, 0.3);
+    border-radius: 20px;
+  }
+
+  /* Glow Pulse */
+  .glow-pulse {
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes glowPulse {
+    0%,
+    100% {
+      box-shadow:
+        0 0 20px rgba(220, 20, 60, 0.4),
+        0 0 60px rgba(220, 20, 60, 0.1);
+    }
+    50% {
+      box-shadow:
+        0 0 30px rgba(220, 20, 60, 0.55),
+        0 0 80px rgba(220, 20, 60, 0.2);
+    }
+  }
+
+  /* Crimson scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(220, 20, 60, 0.3);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(220, 20, 60, 0.6);
+  }
+
+  /* Range slider styling */
+  .crimson-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(
+      90deg,
+      rgba(220, 20, 60, 0.8),
+      rgba(255, 26, 64, 0.6)
+    );
+    outline: none;
+  }
+  .crimson-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #dc143c;
+    box-shadow: 0 0 12px rgba(220, 20, 60, 0.7);
+    cursor: pointer;
+  }
+  .crimson-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: #dc143c;
+    box-shadow: 0 0 12px rgba(220, 20, 60, 0.7);
+    cursor: pointer;
+  }
+
+  .text-crimson {
+    color: #ff1a40;
+  }
+
+  .bg-crimson {
+    background: #dc143c;
+  }
+
+  .crimson-gradient {
+    background: linear-gradient(135deg, #dc143c, #ff1a40);
+  }
+
+  .crimson-text-gradient {
+    background: linear-gradient(135deg, #dc143c, #ff1a40);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(220, 20, 60, 0.15) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}

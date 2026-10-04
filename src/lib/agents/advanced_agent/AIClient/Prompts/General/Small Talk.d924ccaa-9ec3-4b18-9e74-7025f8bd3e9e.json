@@ -1,0 +1,92 @@
+[
+  {
+    "title": "Ask about the user�s day",
+    "promptTemplate": "How�s your day going?",
+    "variables": [],
+    "Id": "3378911d-9e08-470f-8d81-457961f2cdc0",
+    "History": []
+  },
+  {
+    "title": "Ask about mood",
+    "promptTemplate": "How are you feeling today?",
+    "variables": [],
+    "Id": "7a31be0f-4332-4424-97f7-b7583b4b04b8",
+    "History": []
+  },
+  {
+    "title": "Discuss weekend plans",
+    "promptTemplate": "Do you have any plans for the weekend?",
+    "variables": [],
+    "Id": "023df61f-4a9f-4b1f-8cd2-d2d4161f078c",
+    "History": []
+  },
+  {
+    "title": "Comment on the weather",
+    "promptTemplate": "How�s the weather where you are?",
+    "variables": [],
+    "Id": "925284ee-bb5a-47c8-8fbe-b0f13f142875",
+    "History": []
+  },
+  {
+    "title": "Talk about hobbies",
+    "promptTemplate": "What�s your favorite hobby?",
+    "variables": [],
+    "Id": "097cbefb-5fca-4c3c-b2d3-9fb52bfe2ff8",
+    "History": []
+  },
+  {
+    "title": "Favorite movie genre",
+    "promptTemplate": "What kind of movies do you like?",
+    "variables": [],
+    "Id": "9d091083-d885-4a2f-883a-e5a70aa7a062",
+    "History": []
+  },
+  {
+    "title": "Breakfast preference",
+    "promptTemplate": "What did you have for breakfast?",
+    "variables": [],
+    "Id": "f6bf883a-df79-4ff6-a992-09a24d3225ed",
+    "History": []
+  },
+  {
+    "title": "Discuss favorite music",
+    "promptTemplate": "What�s your favorite song right now?",
+    "variables": [],
+    "Id": "ead4ca6c-ea03-4db1-8a9b-e3163738b0bc",
+    "History": []
+  },
+  {
+    "title": "Ask about pets",
+    "promptTemplate": "Do you have any pets?",
+    "variables": [],
+    "Id": "7e0be882-8403-4bc2-9cd7-01ae76794c01",
+    "History": []
+  },
+  {
+    "title": "Recent book read",
+    "promptTemplate": "Have you read any good books lately?",
+    "variables": [],
+    "Id": "57f2380e-a111-4b0e-a98f-9bc4dd8733fe",
+    "History": []
+  },
+  {
+    "title": "Check energy level",
+    "promptTemplate": "On a scale of 1 to {scaleMax}, how�s your energy today?",
+    "variables": [
+      {
+        "name": "scaleMax",
+        "value": "10",
+        "displayName": "Maximum Scale"
+      }
+    ],
+    "Id": "bafe42a3-df1a-4629-94c0-c615af0a5563",
+    "History": []
+  },
+  {
+    "title": "Travel conversation starter",
+    "promptTemplate": "If you could travel anywhere right now, where would you go?",
+    "variables": [],
+    "Id": "78f2cbb8-f738-410d-8488-6bbe6c0d3744",
+    "History": []
+  }
+]

@@ -1,0 +1,183 @@
+[
+  {
+    "title": "Teach the basics",
+    "promptTemplate": "Teach me the basics of {subject}.",
+    "variables": [
+      {
+        "name": "subject",
+        "value": "algebra",
+        "displayName": "Subject"
+      }
+    ],
+    "Id": "6506a819-0209-4b60-8353-d68ed29c5495",
+    "History": []
+  },
+  {
+    "title": "Step-by-step explanation",
+    "promptTemplate": "Explain the {concept} step by step.",
+    "variables": [
+      {
+        "name": "concept",
+        "value": "Pythagorean theorem",
+        "displayName": "Concept"
+      }
+    ],
+    "Id": "a6b141d1-d1a1-4846-818e-b561938eb4bd",
+    "History": []
+  },
+  {
+    "title": "Practice problem set",
+    "promptTemplate": "Give me {count} practice problems on {topic}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Problems"
+      },
+      {
+        "name": "topic",
+        "value": "fractions",
+        "displayName": "Topic"
+      }
+    ],
+    "Id": "5e6ec36a-f8fe-41e4-add8-cee8147e8268",
+    "History": []
+  },
+  {
+    "title": "Concept with examples",
+    "promptTemplate": "Help me understand {concept} with two examples.",
+    "variables": [
+      {
+        "name": "concept",
+        "value": "photosynthesis",
+        "displayName": "Concept"
+      }
+    ],
+    "Id": "abf3fc09-901b-4446-9828-a62ce8ae6fd0",
+    "History": []
+  },
+  {
+    "title": "Quiz me",
+    "promptTemplate": "Quiz me on {topic} with {count} multiple-choice questions.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "European capitals",
+        "displayName": "Topic"
+      },
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Questions"
+      }
+    ],
+    "Id": "2426e0b5-9377-4964-bca5-f753c0e1d845",
+    "History": []
+  },
+  {
+    "title": "Lesson plan outline",
+    "promptTemplate": "Provide a lesson plan outline for teaching {subject} to {audience}.",
+    "variables": [
+      {
+        "name": "subject",
+        "value": "basic coding",
+        "displayName": "Subject"
+      },
+      {
+        "name": "audience",
+        "value": "middle school students",
+        "displayName": "Audience"
+      }
+    ],
+    "Id": "990d995a-b51a-46e6-b19b-f5061418aa1b",
+    "History": []
+  },
+  {
+    "title": "Explain differences",
+    "promptTemplate": "Explain the difference between {concept1} and {concept2}.",
+    "variables": [
+      {
+        "name": "concept1",
+        "value": "mitosis",
+        "displayName": "First Concept"
+      },
+      {
+        "name": "concept2",
+        "value": "meiosis",
+        "displayName": "Second Concept"
+      }
+    ],
+    "Id": "76888d4d-7fef-41c4-aa4b-f792427c0b4d",
+    "History": []
+  },
+  {
+    "title": "Problem walkthrough",
+    "promptTemplate": "Walk me through solving this problem: {problemDescription}",
+    "variables": [
+      {
+        "name": "problemDescription",
+        "value": "2x + 3 = 11",
+        "displayName": "Problem Description"
+      }
+    ],
+    "Id": "2ac507b0-6ecc-47e6-a1ba-74235fc7dd99",
+    "History": []
+  },
+  {
+    "title": "Summarize key points",
+    "promptTemplate": "Summarize the key points of {chapter} in {subject}.",
+    "variables": [
+      {
+        "name": "chapter",
+        "value": "Chapter 5",
+        "displayName": "Chapter"
+      },
+      {
+        "name": "subject",
+        "value": "World History",
+        "displayName": "Subject"
+      }
+    ],
+    "Id": "af139207-2250-4cbf-b6dd-4424fd6754e6",
+    "History": []
+  },
+  {
+    "title": "Create a flashcard",
+    "promptTemplate": "Create a flashcard for the term '{term}' with definition and an example.",
+    "variables": [
+      {
+        "name": "term",
+        "value": "osmosis",
+        "displayName": "Term"
+      }
+    ],
+    "Id": "65fc20a5-1c8b-4a05-bd89-6715ca3b06f7",
+    "History": []
+  },
+  {
+    "title": "Identify common mistakes",
+    "promptTemplate": "What are common mistakes when learning {skill} and how can I avoid them?",
+    "variables": [
+      {
+        "name": "skill",
+        "value": "playing the guitar",
+        "displayName": "Skill"
+      }
+    ],
+    "Id": "e8a0e81f-0f44-4571-8a25-d96ea95e74d2",
+    "History": []
+  },
+  {
+    "title": "Mnemonic creation",
+    "promptTemplate": "Provide a mnemonic to remember {fact}.",
+    "variables": [
+      {
+        "name": "fact",
+        "value": "order of operations",
+        "displayName": "Fact"
+      }
+    ],
+    "Id": "c92dc21b-e9b0-4e61-81f8-3cc78cb0d561",
+    "History": []
+  }
+]

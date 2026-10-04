@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LifeOS1 / CEO GPS Architecture",
+    "quality_profile": "showcase"
+  },
+  "layout": {
+    "mode": "grid",
+    "cols": 12,
+    "gapX": 40,
+    "gapY": 40,
+    "cellW": 140,
+    "cellH": 100
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "Users",
+      "sublabel": "Browser & Desktop",
+      "row": 0,
+      "col": 0,
+      "size": [160, 100]
+    },
+    {
+      "id": "cloudflare-pages",
+      "type": "cloud",
+      "label": "Cloudflare Pages",
+      "sublabel": "Frontend Hosting + CDN",
+      "row": 1,
+      "col": 0,
+      "size": [180, 100]
+    },
+    {
+      "id": "worker-api",
+      "type": "backend",
+      "label": "Worker API",
+      "sublabel": "Hono BFF Layer",
+      "row": 2,
+      "col": 0,
+      "size": [180, 100]
+    },
+    {
+      "id": "supabase",
+      "type": "database",
+      "label": "Supabase PostgreSQL",
+      "sublabel": "Auth + Data + Realtime",
+      "row": 3,
+      "col": 0,
+      "size": [200, 100]
+    },
+    {
+      "id": "kv-session",
+      "type": "cloud",
+      "label": "SESSION_KV",
+      "sublabel": "Auth Sessions",
+      "row": 2,
+      "col": 2,
+      "size": [160, 100]
+    },
+    {
+      "id": "kv-cache",
+      "type": "cloud",
+      "label": "CACHE_KV",
+      "sublabel": "API Cache + Rate Limit",
+      "row": 2,
+      "col": 4,
+      "size": [180, 100]
+    },
+    {
+      "id": "r2-files",
+      "type": "cloud",
+      "label": "R2 Storage",
+      "sublabel": "File Uploads",
+      "row": 2,
+      "col": 6,
+      "size": [160, 100]
+    },
+    {
+      "id": "electron",
+      "type": "frontend",
+      "label": "Electron App",
+      "sublabel": "Desktop Wrapper",
+      "row": 0,
+      "col": 8,
+      "size": [180, 100]
+    },
+    {
+      "id": "ollama",
+      "type": "external",
+      "label": "Ollama (Local)",
+      "sublabel": "deepseek-coder-v2:16b",
+      "row": 3,
+      "col": 8,
+      "size": [200, 100]
+    },
+    {
+      "id": "sub-apps",
+      "type": "frontend",
+      "label": "Embedded Sub-Apps",
+      "sublabel": "Veriton • Creator\nLucidSystems",
+      "row": 1,
+      "col": 8,
+      "size": [200, 100]
+    },
+    {
+      "id": "dashboard-modules",
+      "type": "frontend",
+      "label": "Dashboard Modules",
+      "sublabel": "26 Routes: CRM, Tasks, Notes,\nCalendar, Finance, Analytics,\nSocial, AI Dock",
+      "row": 0,
+      "col": 10,
+      "size": [280, 100]
+    },
+    {
+      "id": "worker-routes",
+      "type": "backend",
+      "label": "Worker Routes (30+)",
+      "sublabel": "/api/auth • /api/tasks\n/api/habits • /api/notes\n/api/projects • /api/analytics\n/api/llm",
+      "row": 3,
+      "col": 10,
+      "size": [280, 100]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Cloudflare Edge Network",
+      "wraps": ["cloudflare-pages", "worker-api", "kv-session", "kv-cache", "r2-files"],
+      "pad": 20
+    },
+    {
+      "kind": "security-group",
+      "label": "Auth Boundary",
+      "wraps": ["worker-api", "kv-session", "supabase"],
+      "pad": 20
+    }
+  ],
+  "connections": [
+    { 
+      "from": "users", 
+      "to": "cloudflare-pages", 
+      "label": "HTTPS", 
+      "variant": "default",
+      "labelAt": [120, 160]
+    },
+    { 
+      "from": "cloudflare-pages", 
+      "to": "worker-api", 
+      "label": "REST /api/*", 
+      "variant": "default",
+      "labelAt": [140, 270]
+    },
+    { 
+      "from": "worker-api", 
+      "to": "supabase", 
+      "label": "PostgreSQL + Auth", 
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [140, 400]
+    },
+    { 
+      "from": "worker-api", 
+      "to": "kv-session", 
+      "label": "Session Store", 
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [300, 360]
+    },
+    { 
+      "from": "worker-api", 
+      "to": "kv-cache", 
+      "label": "Response Cache", 
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[400, 370], [520, 370]],
+      "labelAt": [460, 340]
+    },
+    { 
+      "from": "worker-api", 
+      "to": "r2-files", 
+      "label": "File Storage", 
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[400, 390], [700, 390]],
+      "labelAt": [550, 360]
+    },
+    { 
+      "from": "worker-api", 
+      "to": "ollama", 
+      "label": "LLM Proxy", 
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "orthogonal-v",
+      "via": [[140, 420], [140, 600], [1300, 600], [1300, 550]],
+      "labelAt": [700, 580]
+    },
+    { 
+      "from": "dashboard-modules", 
+      "to": "worker-api", 
+      "label": "TanStack Query", 
+      "variant": "default",
+      "fromSide": "left",
+      "toSide": "top",
+      "route": "orthogonal-v",
+      "via": [[1000, 170], [1000, 420], [140, 420]],
+      "labelAt": [1000, 300]
+    },
+    { 
+      "from": "sub-apps", 
+      "to": "worker-api", 
+      "label": "Shared API", 
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "orthogonal-v",
+      "via": [[1150, 220], [1150, 420], [140, 420]],
+      "labelAt": [1150, 320]
+    },
+    { 
+      "from": "electron", 
+      "to": "cloudflare-pages", 
+      "label": "file:// dist/", 
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [1250, 170]
+    },
+    { 
+      "from": "electron", 
+      "to": "worker-api", 
+      "label": "Direct API", 
+      "variant": "default",
+      "fromSide": "left",
+      "toSide": "right",
+      "route": "orthogonal-h",
+      "via": [[1200, 170], [1200, 370], [380, 370]],
+      "labelAt": [1200, 270]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Frontend Stack",
+      "items": ["React 18 + TypeScript", "Vite + TanStack Router", "Tailwind CSS v3", "TanStack Query v5", "Electron (Desktop)"]
+    },
+    {
+      "dot": "emerald",
+      "title": "Backend Stack",
+      "items": ["Cloudflare Workers (Hono)", "itty-router", "D1 / KV / R2", "JWT Auth + Refresh Tokens", "30+ API Routes"]
+    },
+    {
+      "dot": "violet",
+      "title": "Data & AI",
+      "items": ["Supabase PostgreSQL", "7 SQL Migrations", "Ollama Local LLMs", "Mem0 Cross-Session Memory", "Real-time Subscriptions"]
+    }
+  ]
+}

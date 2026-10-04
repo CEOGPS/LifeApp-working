@@ -1,0 +1,21 @@
+{
+  "name": "lifeos1-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/working-worker.ts",
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.worker.toml",
+    "build": "wrangler deploy --dry-run --outdir dist --config wrangler.worker.toml",
+    "deploy": "wrangler deploy --config wrangler.worker.toml",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "itty-router": "^5.0.18"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240919.0",
+    "typescript": "^5.5.4",
+    "wrangler": "^3.78.0"
+  }
+}

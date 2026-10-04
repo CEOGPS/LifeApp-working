@@ -1,0 +1,173 @@
+[
+  {
+    "title": "Short story about a subject",
+    "promptTemplate": "Write a short story about {subject}.",
+    "variables": [
+      {
+        "name": "subject",
+        "value": "a time-traveling cat",
+        "displayName": "Subject"
+      }
+    ],
+    "Id": "1d4fbc6c-8026-4644-9481-9f416169cdf7",
+    "History": []
+  },
+  {
+    "title": "Dialogue between characters",
+    "promptTemplate": "Create a fictional dialogue between {character1} and {character2}.",
+    "variables": [
+      {
+        "name": "character1",
+        "value": "an astronaut",
+        "displayName": "First Character"
+      },
+      {
+        "name": "character2",
+        "value": "an AI robot",
+        "displayName": "Second Character"
+      }
+    ],
+    "Id": "e78a145d-d800-4d3b-9bab-be228de964ae",
+    "History": []
+  },
+  {
+    "title": "Narrative in an author�s style",
+    "promptTemplate": "Compose a short narrative in the style of {author}.",
+    "variables": [
+      {
+        "name": "author",
+        "value": "Edgar Allan Poe",
+        "displayName": "Author"
+      }
+    ],
+    "Id": "b70f8405-4315-4d13-84a9-699dd51c0806",
+    "History": []
+  },
+  {
+    "title": "Scene description for a setting",
+    "promptTemplate": "Generate a vivid scene description for a {setting}.",
+    "variables": [
+      {
+        "name": "setting",
+        "value": "mystical forest at dawn",
+        "displayName": "Setting"
+      }
+    ],
+    "Id": "a24f8f33-7d1a-42c5-9180-76a3ae920730",
+    "History": []
+  },
+  {
+    "title": "Poem about a theme",
+    "promptTemplate": "Write a poem about {theme}.",
+    "variables": [
+      {
+        "name": "theme",
+        "value": "lost love",
+        "displayName": "Theme"
+      }
+    ],
+    "Id": "ab215c51-dfad-4624-8f6b-29943016fec6",
+    "History": []
+  },
+  {
+    "title": "Video script outline",
+    "promptTemplate": "Create a script outline for a {duration}-minute {genre} video.",
+    "variables": [
+      {
+        "name": "duration",
+        "value": "3",
+        "displayName": "Duration (minutes)"
+      },
+      {
+        "name": "genre",
+        "value": "comedy",
+        "displayName": "Genre"
+      }
+    ],
+    "Id": "1f98c428-e145-4291-bed2-5a2233e36ec7",
+    "History": []
+  },
+  {
+    "title": "Product description",
+    "promptTemplate": "Write a creative product description for {product}.",
+    "variables": [
+      {
+        "name": "product",
+        "value": "a self-heating travel mug",
+        "displayName": "Product"
+      }
+    ],
+    "Id": "4dbe3982-a818-4aa1-91b0-053cef30fe6c",
+    "History": []
+  },
+  {
+    "title": "Brand mascot backstory",
+    "promptTemplate": "Create a backstory for a brand mascot named {mascotName} for {brand}.",
+    "variables": [
+      {
+        "name": "mascotName",
+        "value": "Fizz the Fox",
+        "displayName": "Mascot Name"
+      },
+      {
+        "name": "brand",
+        "value": "Sparkle Soda",
+        "displayName": "Brand"
+      }
+    ],
+    "Id": "e1021bd2-b6c8-4e7b-abee-740436328761",
+    "History": []
+  },
+  {
+    "title": "Character profiles",
+    "promptTemplate": "Generate character profiles for a story about {topic}.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "an intergalactic peace summit",
+        "displayName": "Topic"
+      }
+    ],
+    "Id": "02efbd2d-4d94-448e-95a6-998c739f4507",
+    "History": []
+  },
+  {
+    "title": "Sci-fi plot outline",
+    "promptTemplate": "Write a sci-fi plot outline featuring {element}.",
+    "variables": [
+      {
+        "name": "element",
+        "value": "sentient starships",
+        "displayName": "Sci-fi Element"
+      }
+    ],
+    "Id": "89072a91-aa07-4551-8b98-68eddd0411ef",
+    "History": []
+  },
+  {
+    "title": "Marketing copy",
+    "promptTemplate": "Compose persuasive marketing copy for a campaign about {campaignTopic}.",
+    "variables": [
+      {
+        "name": "campaignTopic",
+        "value": "eco-friendly packaging",
+        "displayName": "Campaign Topic"
+      }
+    ],
+    "Id": "af975b05-1222-4729-8fc0-ac1418c41c2d",
+    "History": []
+  },
+  {
+    "title": "Fairy tale concept",
+    "promptTemplate": "Invent a new fairy tale that revolves around {magicalObject}.",
+    "variables": [
+      {
+        "name": "magicalObject",
+        "value": "an enchanted mirror",
+        "displayName": "Magical Object"
+      }
+    ],
+    "Id": "f5e59746-67b5-42eb-8359-a3582e88284b",
+    "History": []
+  }
+]

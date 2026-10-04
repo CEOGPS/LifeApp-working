@@ -1,0 +1,157 @@
+[
+  {
+    "title": "Year of an event",
+    "promptTemplate": "What year did {event} occur?",
+    "variables": [
+      {
+        "name": "event",
+        "value": "the first moon landing",
+        "displayName": "Event"
+      }
+    ],
+    "Id": "98ed3d12-984f-4137-9b36-783a3c8af1c4",
+    "History": []
+  },
+  {
+    "title": "Population of a place",
+    "promptTemplate": "What is the population of {place}?",
+    "variables": [
+      {
+        "name": "place",
+        "value": "Tokyo",
+        "displayName": "Place"
+      }
+    ],
+    "Id": "d2e18ee0-0bed-4730-8b57-c3fd477a468e",
+    "History": []
+  },
+  {
+    "title": "Capital city",
+    "promptTemplate": "What is the capital of {country}?",
+    "variables": [
+      {
+        "name": "country",
+        "value": "France",
+        "displayName": "Country"
+      }
+    ],
+    "Id": "22341869-187d-4254-be0f-411763cd9566",
+    "History": []
+  },
+  {
+    "title": "Distance between two locations",
+    "promptTemplate": "How far is it between {city1} and {city2}?",
+    "variables": [
+      {
+        "name": "city1",
+        "value": "New York",
+        "displayName": "First City"
+      },
+      {
+        "name": "city2",
+        "value": "London",
+        "displayName": "Second City"
+      }
+    ],
+    "Id": "28e75b21-86c9-4b81-831d-f6e261188c53",
+    "History": []
+  },
+  {
+    "title": "Height of a structure",
+    "promptTemplate": "What is the height of {structure}?",
+    "variables": [
+      {
+        "name": "structure",
+        "value": "the Eiffel Tower",
+        "displayName": "Structure"
+      }
+    ],
+    "Id": "2bf2645d-4151-43d5-be39-24ca4c3cb67e",
+    "History": []
+  },
+  {
+    "title": "Largest animal category",
+    "promptTemplate": "What is the largest {category} in the world?",
+    "variables": [
+      {
+        "name": "category",
+        "value": "mammal",
+        "displayName": "Animal Category"
+      }
+    ],
+    "Id": "444e8572-a3a2-47d9-bd54-5e028a120fe8",
+    "History": []
+  },
+  {
+    "title": "Atomic number of an element",
+    "promptTemplate": "What is the atomic number of {element}?",
+    "variables": [
+      {
+        "name": "element",
+        "value": "carbon",
+        "displayName": "Chemical Element"
+      }
+    ],
+    "Id": "a17f4f73-96ab-459b-af3f-269f5ee45ed2",
+    "History": []
+  },
+  {
+    "title": "Official currency",
+    "promptTemplate": "What is the official currency of {country}?",
+    "variables": [
+      {
+        "name": "country",
+        "value": "Japan",
+        "displayName": "Country"
+      }
+    ],
+    "Id": "9636ffd4-6654-4024-b5f3-6f699b3e6b42",
+    "History": []
+  },
+  {
+    "title": "Date of a historical event",
+    "promptTemplate": "When did {historicalEvent} happen?",
+    "variables": [
+      {
+        "name": "historicalEvent",
+        "value": "the Fall of the Berlin Wall",
+        "displayName": "Historical Event"
+      }
+    ],
+    "Id": "c5450017-4415-4c8a-88a9-06f120f9bc01",
+    "History": []
+  },
+  {
+    "title": "Current head of state",
+    "promptTemplate": "Who is the current president of {country}?",
+    "variables": [
+      {
+        "name": "country",
+        "value": "the United States",
+        "displayName": "Country"
+      }
+    ],
+    "Id": "6947bddd-4c7a-4af8-b40f-d699d0e32cbc",
+    "History": []
+  },
+  {
+    "title": "Periodic table element count",
+    "promptTemplate": "How many elements are there in the periodic table?",
+    "variables": [],
+    "Id": "1f69dca0-6b78-49c9-9abd-b814cfb496a8",
+    "History": []
+  },
+  {
+    "title": "Length of a river",
+    "promptTemplate": "What is the length of the {river}?",
+    "variables": [
+      {
+        "name": "river",
+        "value": "Nile",
+        "displayName": "River"
+      }
+    ],
+    "Id": "49f0ae91-3848-4951-9f6f-6622ea29f558",
+    "History": []
+  }
+]

@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Private / authenticated-only routes — do not index.
+Disallow: /vault
+Disallow: /privacy
+Disallow: /settings
+Disallow: /integrations
+Disallow: /legal
+
+Sitemap: https://lifeos1.pages.dev/sitemap.xml

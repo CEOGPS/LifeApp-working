@@ -1,0 +1,143 @@
+[
+  {
+    "title": "Healthy snack ideas",
+    "promptTemplate": "Give me {count} healthy snack ideas for {dietPreference}.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "3",
+        "displayName": "Number of Snacks"
+      },
+      {
+        "name": "dietPreference",
+        "value": "vegetarian",
+        "displayName": "Diet Preference"
+      }
+    ],
+    "Id": "9e1297b9-eb30-45fe-b619-c1b4f7683c89",
+    "History": []
+  },
+  {
+    "title": "At-home exercise suggestions",
+    "promptTemplate": "Suggest {count} easy at-home exercises that require no equipment.",
+    "variables": [
+      {
+        "name": "count",
+        "value": "5",
+        "displayName": "Number of Exercises"
+      }
+    ],
+    "Id": "1d6b0fe2-29d9-4797-93cc-969d71fd53b5",
+    "History": []
+  },
+  {
+    "title": "Improve sleep quality",
+    "promptTemplate": "What are some effective tips to improve sleep quality?",
+    "variables": [],
+    "Id": "91a189f8-04fc-454b-aacd-8ff382fd4567",
+    "History": []
+  },
+  {
+    "title": "Stress reduction techniques",
+    "promptTemplate": "What are {count} techniques to reduce stress when feeling {stressor}?",
+    "variables": [
+      {
+        "name": "count",
+        "value": "4",
+        "displayName": "Number of Techniques"
+      },
+      {
+        "name": "stressor",
+        "value": "overwhelmed",
+        "displayName": "Type of Stress"
+      }
+    ],
+    "Id": "98d94a6b-35a6-4cef-a9d3-97d07479c316",
+    "History": []
+  },
+  {
+    "title": "Morning routine ideas",
+    "promptTemplate": "Outline a simple morning routine to boost productivity and well-being.",
+    "variables": [],
+    "Id": "ef8da076-5cec-482b-b8c5-1facecca8f37",
+    "History": []
+  },
+  {
+    "title": "Work-life balance tips",
+    "promptTemplate": "How can I improve my work-life balance with {commitment} in my schedule?",
+    "variables": [
+      {
+        "name": "commitment",
+        "value": "evening workouts",
+        "displayName": "Additional Commitment"
+      }
+    ],
+    "Id": "04a37dad-2b40-495a-9e43-b13f79d4ce1c",
+    "History": []
+  },
+  {
+    "title": "Hydration reminders",
+    "promptTemplate": "Provide strategies to remember to drink water regularly throughout the day.",
+    "variables": [],
+    "Id": "f3290b5f-20e2-441e-b235-fa0e1de1fd70",
+    "History": []
+  },
+  {
+    "title": "Mindfulness exercises",
+    "promptTemplate": "What are {count} quick mindfulness exercises I can do at my desk?",
+    "variables": [
+      {
+        "name": "count",
+        "value": "3",
+        "displayName": "Number of Exercises"
+      }
+    ],
+    "Id": "78b729e5-21e1-44ba-b9be-565ade3412b7",
+    "History": []
+  },
+  {
+    "title": "Healthy meal planning",
+    "promptTemplate": "Help me plan a {mealType} meal that is balanced and under {calorieLimit} calories.",
+    "variables": [
+      {
+        "name": "mealType",
+        "value": "lunch",
+        "displayName": "Meal Type"
+      },
+      {
+        "name": "calorieLimit",
+        "value": "600",
+        "displayName": "Calorie Limit"
+      }
+    ],
+    "Id": "c123b9a1-f5f0-43b6-b578-2de0c0d616a1",
+    "History": []
+  },
+  {
+    "title": "Posture improvement tips",
+    "promptTemplate": "What exercises or habits can help improve posture for someone who sits {hours} hours a day?",
+    "variables": [
+      {
+        "name": "hours",
+        "value": "8",
+        "displayName": "Hours Sitting"
+      }
+    ],
+    "Id": "996195a4-20cc-4197-a1d6-4fae5cfe0232",
+    "History": []
+  },
+  {
+    "title": "Digital detox plan",
+    "promptTemplate": "Suggest a one-day digital detox plan to reduce screen time and improve mental wellness.",
+    "variables": [],
+    "Id": "6c99ae89-3786-458b-beb9-80a233dc63c8",
+    "History": []
+  },
+  {
+    "title": "Boost energy naturally",
+    "promptTemplate": "What natural methods can help boost energy levels without caffeine?",
+    "variables": [],
+    "Id": "8ca54f63-4fac-41e0-b5b4-effd7d723ba7",
+    "History": []
+  }
+]

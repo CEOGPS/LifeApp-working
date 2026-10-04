@@ -1,0 +1,7 @@
+LifeOS weather icons (public/weather/*.svg)
+
+Original artwork generated for LifeOS on 2026-09-30 (blue-theme pass): layered SVG
+with gradients, glow/blur filters and procedural cloud shapes, loosely styled after a
+photorealistic 3D weather-icon reference supplied by Chris. No third-party image data
+is included. The previous Meteocons set (MIT, Bas Milius) and its LICENSE are backed up
+in .build-fix-backup\blue-theme\public\weather\.

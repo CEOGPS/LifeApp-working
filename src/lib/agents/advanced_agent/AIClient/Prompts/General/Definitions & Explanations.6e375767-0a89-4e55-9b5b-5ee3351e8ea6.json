@@ -1,0 +1,173 @@
+[
+  {
+    "title": "Define a term",
+    "promptTemplate": "What does {term} mean?",
+    "variables": [
+      {
+        "name": "term",
+        "value": "blockchain",
+        "displayName": "Term"
+      }
+    ],
+    "Id": "9509a671-b04a-4c1a-bc44-51c9b9289ad2",
+    "History": []
+  },
+  {
+    "title": "Explain a concept simply",
+    "promptTemplate": "Explain {concept} in simple terms.",
+    "variables": [
+      {
+        "name": "concept",
+        "value": "quantum computing",
+        "displayName": "Concept"
+      }
+    ],
+    "Id": "cb4f0d09-5984-47cd-a7af-4d092a7e312f",
+    "History": []
+  },
+  {
+    "title": "Compare two concepts",
+    "promptTemplate": "What is the difference between {concept1} and {concept2}?",
+    "variables": [
+      {
+        "name": "concept1",
+        "value": "HTTP",
+        "displayName": "First Concept"
+      },
+      {
+        "name": "concept2",
+        "value": "HTTPS",
+        "displayName": "Second Concept"
+      }
+    ],
+    "Id": "f733fffb-ed84-4349-bd68-cd25c9972fcf",
+    "History": []
+  },
+  {
+    "title": "Explain for a child",
+    "promptTemplate": "Explain {topic} as if I were a {age}-year-old child.",
+    "variables": [
+      {
+        "name": "topic",
+        "value": "gravity",
+        "displayName": "Topic"
+      },
+      {
+        "name": "age",
+        "value": "8",
+        "displayName": "Child�s Age"
+      }
+    ],
+    "Id": "bc7d8aec-1221-45d9-9f5a-b5de6c352d1f",
+    "History": []
+  },
+  {
+    "title": "Technical explanation",
+    "promptTemplate": "Provide a technical explanation of how {technology} works.",
+    "variables": [
+      {
+        "name": "technology",
+        "value": "machine learning algorithms",
+        "displayName": "Technology"
+      }
+    ],
+    "Id": "f42fb78f-9e55-4021-aeee-269aa6d74b08",
+    "History": []
+  },
+  {
+    "title": "Historical context",
+    "promptTemplate": "Explain the historical background of {event}.",
+    "variables": [
+      {
+        "name": "event",
+        "value": "the Industrial Revolution",
+        "displayName": "Event"
+      }
+    ],
+    "Id": "aa466679-f293-48ea-8867-a95bc786f951",
+    "History": []
+  },
+  {
+    "title": "Provide an analogy",
+    "promptTemplate": "Give an analogy to help understand {concept}.",
+    "variables": [
+      {
+        "name": "concept",
+        "value": "data encryption",
+        "displayName": "Concept"
+      }
+    ],
+    "Id": "cf1afec3-cd6a-4d03-8a8a-e292cbd4f628",
+    "History": []
+  },
+  {
+    "title": "Step-by-step explanation",
+    "promptTemplate": "Explain how to {process} step by step.",
+    "variables": [
+      {
+        "name": "process",
+        "value": "create a budget spreadsheet",
+        "displayName": "Process"
+      }
+    ],
+    "Id": "0dde63c4-5e80-4e5d-bd29-f8d76aaca7a3",
+    "History": []
+  },
+  {
+    "title": "Explain jargon",
+    "promptTemplate": "What does the term '{jargon}' mean in {field}?",
+    "variables": [
+      {
+        "name": "jargon",
+        "value": "ROI",
+        "displayName": "Jargon"
+      },
+      {
+        "name": "field",
+        "value": "marketing",
+        "displayName": "Field"
+      }
+    ],
+    "Id": "9ae199e8-34b5-4ab8-a1e4-b8b8173effe6",
+    "History": []
+  },
+  {
+    "title": "Explain with examples",
+    "promptTemplate": "Explain {concept} and provide two examples.",
+    "variables": [
+      {
+        "name": "concept",
+        "value": "metaphor",
+        "displayName": "Concept"
+      }
+    ],
+    "Id": "83802f2e-a7ad-4d65-bd1d-838fc0e62e1e",
+    "History": []
+  },
+  {
+    "title": "Explain implications",
+    "promptTemplate": "What are the implications of {development}?",
+    "variables": [
+      {
+        "name": "development",
+        "value": "artificial intelligence in healthcare",
+        "displayName": "Development"
+      }
+    ],
+    "Id": "7c898dc4-c8bd-4132-9832-61f012e1ebc0",
+    "History": []
+  },
+  {
+    "title": "Clarify misconceptions",
+    "promptTemplate": "What are common misconceptions about {subject}?",
+    "variables": [
+      {
+        "name": "subject",
+        "value": "vaccines",
+        "displayName": "Subject"
+      }
+    ],
+    "Id": "5109bbcb-19db-4a53-b2a1-9e2ccce2380b",
+    "History": []
+  }
+]

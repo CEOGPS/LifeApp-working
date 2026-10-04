@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><!-- LifeOS weather icon (clear-night). Original artwork generated for LifeOS, 2026. --><style>
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 4.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+.drift{animation:drift 8s ease-in-out infinite alternate}
+.drift2{animation:drift 11s ease-in-out infinite alternate-reverse}
+@keyframes drift{from{transform:translateX(-2px)}to{transform:translateX(2px)}}
+.drop{animation:fall 1.15s linear infinite}
+@keyframes fall{0%{transform:translate(1px,-7px);opacity:0}25%{opacity:1}100%{transform:translate(-3px,15px);opacity:0}}
+.flake{animation:snow 3.4s linear infinite}
+@keyframes snow{0%{transform:translate(0,-6px);opacity:0}20%{opacity:1}100%{transform:translate(2px,16px);opacity:0}}
+.bolt{animation:flash 3.6s linear infinite}
+@keyframes flash{0%,62%,70%,100%{opacity:.7}64%,68%{opacity:1}66%{opacity:.5}}
+.fog{animation:drift 9s ease-in-out infinite alternate}
+.fog2{animation:drift 12s ease-in-out infinite alternate-reverse}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style><defs>
+<filter id="fluff" x="-25%" y="-25%" width="150%" height="150%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="7" result="n"/>
+  <feDisplacementMap in="SourceGraphic" in2="n" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+  <feGaussianBlur in="d" stdDeviation="0.55"/>
+</filter>
+<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter>
+<filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+  <feGaussianBlur stdDeviation="2.2" result="b"/>
+  <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter>
+<radialGradient id="hl" cx="0.4" cy="0.35" r="0.6"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6ff" stop-opacity=".1"/><stop offset="1" stop-color="#f4fbff"/></linearGradient>
+<radialGradient id="flakeG"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eaf6ff" stop-opacity=".9"/><stop offset="1" stop-color="#bfe3ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="iceG" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#d8efff"/><stop offset="1" stop-color="#7fb4d9"/></radialGradient>
+<radialGradient id="moonG" cx=".38" cy=".35" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#dfe4ec"/><stop offset="1" stop-color="#8e98a8"/></radialGradient><radialGradient id="moonHalo"><stop offset="0" stop-color="#cfe6ff" stop-opacity=".7"/><stop offset=".5" stop-color="#8fc3ff" stop-opacity=".25"/><stop offset="1" stop-color="#6aa8ff" stop-opacity="0"/></radialGradient><radialGradient id="crater" cx=".6" cy=".6" r=".6"><stop offset="0" stop-color="#7d8696" stop-opacity=".55"/><stop offset="1" stop-color="#7d8696" stop-opacity="0"/></radialGradient></defs><g class="pulse"><circle cx="64" cy="64" r="56.7" fill="url(#moonHalo)"/></g><circle cx="64" cy="64" r="27" fill="url(#moonG)" filter="url(#glow)"/><circle cx="54.5" cy="58.6" r="5.9" fill="url(#crater)"/><circle cx="70.8" cy="68.0" r="8.1" fill="url(#crater)"/><circle cx="61.3" cy="76.2" r="4.3" fill="url(#crater)"/><circle cx="73.5" cy="53.2" r="3.5" fill="url(#crater)"/><circle cx="51.9" cy="72.1" r="2.7" fill="url(#crater)"/><circle cx="65.3" cy="62.6" r="3.2" fill="url(#crater)"/></svg>

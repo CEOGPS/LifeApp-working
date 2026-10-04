@@ -1,0 +1,257 @@
+npm warn install-scripts .npmrc: ignoring unparseable entry "esbuild workerd"
+npm notice run lifeos1.agentzero@0.1.0 npx
+npm notice run tsc --noEmit
+src/api/ceogpsclient.tsx(77,16): error TS6133: 'getApiKey' is declared but its value is never read.
+src/AppRoutes.tsx(2,20): error TS6133: 'lazy' is declared but its value is never read.
+src/components/AIAssistant.tsx(3,38): error TS6133: 'Settings' is declared but its value is never read.
+src/components/AuthCallback.tsx(124,17): error TS6133: 'data' is declared but its value is never read.
+src/components/AvatarCanvas.tsx(2,10): error TS2305: Module '"@mediapipe/tasks-vision"' has no exported member 'FaceMesh'.
+src/components/AvatarCanvas.tsx(2,37): error TS6133: 'DrawingUtils' is declared but its value is never read.
+src/components/ErebusDock.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/GlobalMusicPlayer.tsx(21,5): error TS6133: 'shuffle' is declared but its value is never read.
+src/components/layout/AppLayout.tsx(1,27): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/layout/AppLayout.tsx(2,18): error TS6133: 'NavLink' is declared but its value is never read.
+src/components/layout/AppLayout.tsx(3,1): error TS6133: 'cn' is declared but its value is never read.
+src/components/layout/AppLayout.tsx(5,10): error TS6133: 'SIDEBAR_SECTIONS' is declared but its value is never read.
+src/components/layout/AppLayout.tsx(5,48): error TS6133: 'SidebarItem' is declared but its value is never read.
+src/components/layout/AppLayout.tsx(12,61): error TS6133: 'onSignOut' is declared but its value is never read.
+src/components/layout/AppLayout.tsx(14,10): error TS6133: 'mobileSidebarOpen' is declared but its value is never read.
+src/components/layout/BannerArea.tsx(3,1): error TS6192: All imports in import declaration are unused.
+src/components/layout/Layout.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/layout/Layout.tsx(2,18): error TS6133: 'Link' is declared but its value is never read.
+src/components/layout/Layout.tsx(10,9): error TS6133: 'navigate' is declared but its value is never read.
+src/components/layout/Layout.tsx(72,9): error TS2322: Type '{ className: string; routes: { path: string; label: string; icon: string; }[]; isActive: (path: string) => boolean; onNavigate: () => void; }' is not assignable to type 'IntrinsicAttributes & SidebarProps'.
+  Property 'routes' does not exist on type 'IntrinsicAttributes & SidebarProps'.
+src/components/layout/Layout.tsx(86,17): error TS2322: Type '{ onMenuClick: () => void; isMobile: boolean; }' is not assignable to type 'IntrinsicAttributes & TopbarProps'.
+  Property 'onMenuClick' does not exist on type 'IntrinsicAttributes & TopbarProps'.
+src/components/layout/PanelLayout.tsx(27,3): error TS6133: 'onSidebarToggle' is declared but its value is never read.
+src/components/layout/Sidebar.tsx(1,35): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/layout/Sidebar.tsx(309,9): error TS6133: 'hasActive' is declared but its value is never read.
+src/components/layout/Topbar.tsx(66,3): error TS6133: 'onNotificationsClick' is declared but its value is never read.
+src/components/slider.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-slider' or its corresponding type declarations.
+src/components/templates/TemplatePanel.tsx(42,39): error TS6133: 'props' is declared but its value is never read.
+src/contexts/AgentDockContext.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/contexts/AgentDockContext.tsx(10,37): error TS7031: Binding element 'children' implicitly has an 'any' type.
+src/contexts/AgentDockContext.tsx(24,7): error TS2322: Type '{ open: boolean; setOpen: React.Dispatch<React.SetStateAction<boolean>>; openDock: ({ agentId }?: { agentId?: string; }) => void; closeDock: () => void; requestedAgentId: string | null; clearRequestedAgent: () => void; }' is not assignable to type 'null'.
+src/contexts/FirebaseAuthContext.tsx(17,16): error TS6133: 'setUser' is declared but its value is never read.
+src/contexts/FirebaseAuthContext.tsx(30,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '{ user: null; loading: boolean; signIn: () => Promise<void>; signOut: () => Promise<void>; }' is not assignable to type 'null'.
+src/lib/agents/erebus/initiation/InitiationEngine.ts(11,3): error TS6196: 'CooldownSettings' is declared but never used.
+src/lib/agents/erebus/initiation/TriggerRegistry.ts(3,30): error TS6196: 'TriggerType' is declared but never used.
+src/lib/agents/erebus/ui/ErebusPresence.tsx(4,8): error TS6133: 'React' is declared but its value is never read.
+src/lib/agents/erebus/ui/ErebusPresence.tsx(9,3): error TS6196: 'PresenceState' is declared but never used.
+src/lib/agents/erebus/ui/ErebusPresence.tsx(11,3): error TS6196: 'InitiationLogEntry' is declared but never used.
+src/lib/agents/kranos/Kranos.ts(506,9): error TS2416: Property 'think' in type 'Kranos' is not assignable to the same property in base type 'UnifiedAgent'.
+  Type '(userMessage: string, context?: Record<string, unknown>) => Promise<ThinkResult>' is not assignable to type '(userMessage: string, context?: any) => Promise<AgentThinkResult>'.
+    Type 'Promise<ThinkResult>' is not assignable to type 'Promise<AgentThinkResult>'.
+      Type 'ThinkResult' is missing the following properties from type 'AgentThinkResult': response, model, provider
+src/lib/agents/kranos/Kranos.ts(509,20): error TS2352: Conversion of type 'AgentThinkResult' to type 'ThinkResult' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'AgentThinkResult'.
+src/lib/agents/kranos/Kranos.ts(546,20): error TS2352: Conversion of type 'MemorySystem' to type '{ episodic: unknown[]; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'episodic' is private in type 'MemorySystem' but not in type '{ episodic: unknown[]; }'.
+src/lib/agents/UnifiedAgentCore.ts(106,11): error TS6133: 'semantic' is declared but its value is never read.
+src/lib/agents/UnifiedAgentCore.ts(179,11): error TS6133: 'userTakeoverMode' is declared but its value is never read.
+src/lib/imageProcessingService.ts(15,11): error TS6133: 'originalCanvas' is declared but its value is never read.
+src/lib/imageProcessingService.ts(18,11): error TS6133: 'imageData' is declared but its value is never read.
+src/lib/invokeLLM.ts(11,3): error TS6133: 'signal' is declared but its value is never read.
+src/lib/palette.ts(15,1): error TS2578: Unused '@ts-expect-error' directive.
+src/lib/palette.ts(18,11): error TS6196: 'ThemeTokens' is declared but never used.
+src/lib/palette.ts(59,14): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ "command-crimson": { name: string; swatch: string[]; tokens: { "--bg1": string; "--bg2": string; "--bg3": string; "--b1": string; "--b2": string; "--t1": string; "--t2": string; "--t3": string; "--crimson": string; "--crimson-dim": string; ... 5 more ...; "--accent": string; }; }; "cyber-dark": { ...; }; "midnight...'.
+  No index signature with a parameter of type 'string' was found on type '{ "command-crimson": { name: string; swatch: string[]; tokens: { "--bg1": string; "--bg2": string; "--bg3": string; "--b1": string; "--b2": string; "--t1": string; "--t2": string; "--t3": string; "--crimson": string; "--crimson-dim": string; ... 5 more ...; "--accent": string; }; }; "cyber-dark": { ...; }; "midnight...'.
+src/lib/persist.ts(5,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+src/lib/scrapers/LinkedInScraper.ts(52,5): error TS6133: 'keyword' is declared but its value is never read.
+src/lib/scrapers/LinkedInScraper.ts(53,5): error TS6133: 'industry' is declared but its value is never read.
+src/lib/scrapers/LinkedInScraper.ts(54,5): error TS6133: 'limit' is declared but its value is never read.
+src/lib/storage.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+src/lib/supabase.tsx(2,48): error TS6133: 'useEffect' is declared but its value is never read.
+src/lib/supabase.tsx(2,59): error TS6133: 'useState' is declared but its value is never read.
+src/lib/SupabaseAuthContext.tsx(39,21): error TS6133: 'setAuthError' is declared but its value is never read.
+src/lib/supabaseClient.ts(66,13): error TS6133: 'target' is declared but its value is never read.
+src/lib/supabaseClient.ts(66,27): error TS6133: 'receiver' is declared but its value is never read.
+src/lib/supabaseClient.ts(80,9): error TS6133: 'target' is declared but its value is never read.
+src/lib/supabaseClient.ts(80,23): error TS6133: 'receiver' is declared but its value is never read.
+src/main.tsx(4,27): error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.
+src/main.tsx(7,34): error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.
+src/pages/auth/AuthCallback.tsx(11,42): error TS6133: 'event' is declared but its value is never read.
+src/pages/auth/Login.tsx(4,24): error TS1149: File name 'D:/dev/LifeApp/src/components/ui/button.tsx' differs from already included file name 'D:/dev/LifeApp/src/components/ui/Button.tsx' only in casing.
+  The file is in the program because:
+    Matched by include pattern 'src/**/*.tsx' in 'D:/dev/LifeApp/tsconfig.json'
+    Imported via "../../components/ui/button" from file 'D:/dev/LifeApp/src/pages/auth/Login.tsx'
+    Imported via "./Button" from file 'D:/dev/LifeApp/src/components/ui/index.ts'
+src/pages/auth/Login.tsx(9,63): error TS6133: 'isLoadingAuth' is declared but its value is never read.
+src/pages/auth/Logout.tsx(8,19): error TS6133: 'isLoadingAuth' is declared but its value is never read.
+src/pages/communications/CommunicationsPanel.tsx(12,27): error TS6133: 'Users' is declared but its value is never read.
+src/pages/communications/CommunicationsPanel.tsx(98,7): error TS6133: 'electron' is declared but its value is never read.
+src/pages/contacts/ContactsPanel.tsx(553,9): error TS6133: 'userEmail' is declared but its value is never read.
+src/pages/contacts/ContactsPanel.tsx(795,11): error TS6133: 'contactId' is declared but its value is never read.
+src/pages/contacts/ContactsPanel.tsx(826,18): error TS6133: 'reconcileBucket' is declared but its value is never read.
+src/pages/crm/CRMPanel.tsx(720,9): error TS6133: 'userEmail' is declared but its value is never read.
+src/pages/crm/CRMPanel.tsx(1008,11): error TS6133: 'contactId' is declared but its value is never read.
+src/pages/crm/CRMPanel.tsx(1038,18): error TS6133: 'reconcileBucket' is declared but its value is never read.
+src/pages/dashboard/_components/AiMoneyTips.tsx(3,27): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+src/pages/dashboard/_components/AiMoneyTips.tsx(4,25): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+src/pages/dashboard/_components/BrowserArea.tsx(2,10): error TS6133: 'Search' is declared but its value is never read.
+src/pages/dashboard/_components/CalendarModule.tsx(1,58): error TS6133: 'Loader2' is declared but its value is never read.
+src/pages/dashboard/_components/CalendarModule.tsx(1,67): error TS6133: 'CheckCircle2' is declared but its value is never read.
+src/pages/dashboard/_components/CalendarModule.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/CalendarModule.tsx(47,20): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/pages/dashboard/_components/CalendarModule.tsx(50,6): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/pages/dashboard/_components/CalendarModule.tsx(111,53): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/pages/dashboard/_components/CalendarModule.tsx(111,56): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/pages/dashboard/_components/CalendarModule.tsx(156,37): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/pages/dashboard/_components/FinancialStats.tsx(3,3): error TS6133: 'TrendingDown' is declared but its value is never read.
+src/pages/dashboard/_components/FinancialStats.tsx(4,3): error TS6133: 'DollarSign' is declared but its value is never read.
+src/pages/dashboard/_components/FinancialStats.tsx(5,3): error TS6133: 'CreditCard' is declared but its value is never read.
+src/pages/dashboard/_components/LeadsModule.tsx(2,28): error TS6133: 'MoreVertical' is declared but its value is never read.
+src/pages/dashboard/_components/LeadsModule.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/LeadsModule.tsx(4,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+src/pages/dashboard/_components/LeadsModule.tsx(46,33): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/pages/dashboard/_components/LeadsModule.tsx(84,30): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/pages/dashboard/_components/LeadsModule.tsx(155,27): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/pages/dashboard/_components/LifeHacks.tsx(3,27): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+src/pages/dashboard/_components/LifeHacks.tsx(4,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/LifeHacks.tsx(42,23): error TS7006: Parameter 'hack' implicitly has an 'any' type.
+src/pages/dashboard/_components/LifeHacks.tsx(42,29): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/pages/dashboard/_components/MusicPlayer.tsx(76,5): error TS6133: 'next' is declared but its value is never read.
+src/pages/dashboard/_components/MusicPlayer.tsx(77,5): error TS6133: 'previous' is declared but its value is never read.
+src/pages/dashboard/_components/MusicPlayer.tsx(79,5): error TS6133: 'seek' is declared but its value is never read.
+src/pages/dashboard/_components/MusicPlayer.tsx(80,5): error TS6133: 'setPlaylist' is declared but its value is never read.
+src/pages/dashboard/_components/MusicPlayer.tsx(81,5): error TS6133: 'shuffle' is declared but its value is never read.
+src/pages/dashboard/_components/MusicPlayer.tsx(82,5): error TS6133: 'loopMode' is declared but its value is never read.
+src/pages/dashboard/_components/MusicPlayer.tsx(83,5): error TS6133: 'toggleLoop' is declared but its value is never read.
+src/pages/dashboard/_components/MusicPlayer.tsx(142,13): error TS6133: 'progress' is declared but its value is never read.
+src/pages/dashboard/_components/NotesModule.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/NotesModule.tsx(30,15): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/pages/dashboard/_components/NotesModule.tsx(42,15): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/pages/dashboard/_components/NotesModule.tsx(42,31): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/pages/dashboard/_components/NotesModule.tsx(64,21): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/pages/dashboard/_components/QuickLinks.tsx(3,36): error TS2307: Cannot find module '@/lib/usePersistentState.ts' or its corresponding type declarations.
+src/pages/dashboard/_components/QuickLinks.tsx(15,15): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/pages/dashboard/_components/QuickLinks.tsx(23,41): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/pages/dashboard/_components/QuickLinks.tsx(23,57): error TS7006: Parameter 'x' implicitly has an 'any' type.
+src/pages/dashboard/_components/QuickLinks.tsx(35,25): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/pages/dashboard/_components/RoiAnalysis.tsx(2,21): error TS6133: 'TrendingUp' is declared but its value is never read.
+src/pages/dashboard/_components/SocialAnalytics.tsx(1,10): error TS6133: 'Share2' is declared but its value is never read.
+src/pages/dashboard/_components/SocialAnalytics.tsx(1,18): error TS6133: 'TrendingUp' is declared but its value is never read.
+src/pages/dashboard/_components/YoutubePlayer.tsx(2,60): error TS6133: 'ChevronLeft' is declared but its value is never read.
+src/pages/dashboard/_components/YoutubePlayer.tsx(119,10): error TS6133: 'formatDuration' is declared but its value is never read.
+src/pages/dashboard/Dashboard.tsx(12,3): error TS6133: 'FileText' is declared but its value is never read.
+src/pages/dashboard/Dashboard.tsx(13,3): error TS6133: 'UserPlus' is declared but its value is never read.
+src/pages/dashboard/Dashboard.tsx(15,3): error TS6133: 'Bot' is declared but its value is never read.
+src/pages/dashboard/Dashboard.tsx(22,3): error TS6133: 'Sparkles' is declared but its value is never read.
+src/pages/dashboard/Dashboard.tsx(24,3): error TS6133: 'Lightbulb' is declared but its value is never read.
+src/pages/dashboard/Dashboard.tsx(25,3): error TS6133: 'Share2' is declared but its value is never read.
+src/pages/dashboard/Dashboard.tsx(26,3): error TS6133: 'Megaphone' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(26,3): error TS6133: 'Upload' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(26,31): error TS6133: 'Calendar' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(27,16): error TS6133: 'Pencil' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(27,24): error TS6133: 'Eye' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(30,1): error TS6133: 'createClient' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(196,7): error TS6133: 'PROVIDER_COLOR' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(203,7): error TS6133: 'PROVIDER_LABEL' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(336,9): error TS6133: 'activeAccount' is declared but its value is never read.
+src/pages/email/EmailPanel.tsx(501,5): error TS6133: 'onReload' is declared but its value is never read.
+src/pages/integrations/IntegrationsPanel.tsx(3,3): error TS6133: 'Plug' is declared but its value is never read.
+src/pages/integrations/IntegrationsPanel.tsx(11,29): error TS2307: Cannot find module '../../ui/layout/PanelLayout.tsx' or its corresponding type declarations.
+src/pages/integrations/IntegrationsPanel.tsx(515,9): error TS6133: 'totalConnected' is declared but its value is never read.
+src/pages/journal/JournalPanel.tsx(12,35): error TS6133: 'Pencil' is declared but its value is never read.
+src/pages/journal/JournalPanel.tsx(12,46): error TS6133: 'Check' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(7,44): error TS6133: 'useMemo' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(7,53): error TS6133: 'useRef' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(9,39): error TS6133: 'Key' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(10,3): error TS6133: 'Eye' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(10,8): error TS6133: 'EyeOff' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(10,16): error TS6133: 'Search' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(10,24): error TS6133: 'Upload' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(10,32): error TS6133: 'Copy' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(10,38): error TS6133: 'RefreshCw' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(10,49): error TS6133: 'Download' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(10,59): error TS6133: 'X' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(11,3): error TS6133: 'Send' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(11,9): error TS6133: 'Loader2' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(11,18): error TS6133: 'CheckCircle' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(11,31): error TS6133: 'XCircle' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(11,40): error TS6133: 'Info' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(11,46): error TS6133: 'ChevronRight' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(12,3): error TS6133: 'ExternalLink' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(12,17): error TS6133: 'Trash2' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(12,25): error TS6133: 'File' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(12,31): error TS6133: 'Sparkles' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(12,41): error TS6133: 'Globe' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(13,3): error TS6133: 'UserCheck' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(13,14): error TS6133: 'Fingerprint' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(13,34): error TS6133: 'BookOpen' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(13,44): error TS6133: 'Clock' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(13,51): error TS6133: 'MapPin' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(14,3): error TS6133: 'Car' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(14,8): error TS6133: 'Users' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(14,26): error TS6133: 'Home' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(14,32): error TS6133: 'Heart' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(15,3): error TS6133: 'Phone' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(15,10): error TS6133: 'Calendar' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(15,20): error TS6133: 'AlertOctagon' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(15,34): error TS6133: 'ScrollText' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(15,46): error TS6133: 'PenTool' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(16,3): error TS6133: 'CheckSquare' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(16,16): error TS6133: 'Square' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(16,24): error TS6133: 'ChevronDown' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(16,37): error TS6133: 'ChevronUp' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(16,48): error TS6133: 'HelpCircle' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(17,3): error TS6133: 'Ban' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(17,8): error TS6133: 'FileWarning' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(17,21): error TS6133: 'Landmark' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(17,31): error TS6133: 'Building2' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(17,42): error TS6133: 'HandHeart' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(172,9): error TS6133: 'userId' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(180,10): error TS6133: 'chatError' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(183,10): error TS6133: 'screenData' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(183,22): error TS6133: 'setScreenData' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(194,9): error TS6133: 'handleSendMessage' is declared but its value is never read.
+src/pages/legal/LegalPanel.tsx(225,9): error TS6133: 'handleRegenerate' is declared but its value is never read.
+src/pages/media/MediaPanel.tsx(20,14): error TS6133: 'Eye' is declared but its value is never read.
+src/pages/media/MediaPanel.tsx(487,9): error TS6133: 'toggleVault' is declared but its value is never read.
+src/pages/music/MusicPanel.tsx(17,38): error TS6133: 'SkipBack' is declared but its value is never read.
+src/pages/music/MusicPanel.tsx(17,48): error TS6133: 'SkipForward' is declared but its value is never read.
+src/pages/music/MusicPanel.tsx(18,3): error TS6133: 'Shuffle' is declared but its value is never read.
+src/pages/music/MusicPanel.tsx(18,12): error TS6133: 'Repeat' is declared but its value is never read.
+src/pages/music/MusicPanel.tsx(18,20): error TS6133: 'Repeat1' is declared but its value is never read.
+src/pages/music/MusicPanel.tsx(18,29): error TS6133: 'Volume2' is declared but its value is never read.
+src/pages/music/MusicPanel.tsx(18,38): error TS6133: 'Volume1' is declared but its value is never read.
+src/pages/music/MusicPanel.tsx(18,47): error TS6133: 'VolumeX' is declared but its value is never read.
+src/pages/office/OfficePanel.tsx(14,52): error TS6133: 'Check' is declared but its value is never read.
+src/pages/simulators/AlternateLifeExplorer.tsx(5,10): error TS2724: '"@/contexts/WorkerContext"' has no exported member named 'useWorkerAuth'. Did you mean 'useWorker'?
+src/pages/simulators/AlternateLifeExplorer.tsx(329,9): error TS2353: Object literal may only specify known properties, and 'firebaseToken' does not exist in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/DarkCardGame.tsx(154,65): error TS6133: 'difficulty' is declared but its value is never read.
+src/pages/simulators/DarkCardGame.tsx(268,10): error TS6133: 'judging' is declared but its value is never read.
+src/pages/simulators/DarkCardGame.tsx(359,38): error TS2345: Argument of type '{ systemPrompt: string; prompt: string; }' is not assignable to parameter of type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+  Property 'accessToken' is missing in type '{ systemPrompt: string; prompt: string; }' but required in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/DarkCardGame.tsx(366,38): error TS2345: Argument of type '{ systemPrompt: string; prompt: string; }' is not assignable to parameter of type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+  Property 'accessToken' is missing in type '{ systemPrompt: string; prompt: string; }' but required in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/DarkCardGame.tsx(405,35): error TS2345: Argument of type '{ systemPrompt: string; prompt: string; }' is not assignable to parameter of type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+  Property 'accessToken' is missing in type '{ systemPrompt: string; prompt: string; }' but required in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/DreamForgeSimulator.tsx(305,21): error TS2448: Block-scoped variable 'run' used before its declaration.
+src/pages/simulators/DreamForgeSimulator.tsx(305,21): error TS2454: Variable 'run' is used before being assigned.
+src/pages/simulators/DreamForgeSimulator.tsx(327,35): error TS2345: Argument of type '{ systemPrompt: string; prompt: string; }' is not assignable to parameter of type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+  Property 'accessToken' is missing in type '{ systemPrompt: string; prompt: string; }' but required in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/EchoPersonaWeaver.tsx(362,35): error TS2353: Object literal may only specify known properties, and 'conversationHistory' does not exist in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/EchoPersonaWeaver.tsx(397,35): error TS2353: Object literal may only specify known properties, and 'conversationHistory' does not exist in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/EchoPersonaWeaver.tsx(429,35): error TS2353: Object literal may only specify known properties, and 'conversationHistory' does not exist in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/FantasyFriendSimulator.tsx(396,35): error TS2345: Argument of type '{ systemPrompt: string; prompt: string; }' is not assignable to parameter of type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+  Property 'accessToken' is missing in type '{ systemPrompt: string; prompt: string; }' but required in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/FantasyFriendSimulator.tsx(452,9): error TS2353: Object literal may only specify known properties, and 'conversationHistory' does not exist in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/simulators/FantasyFriendSimulator.tsx(486,9): error TS2353: Object literal may only specify known properties, and 'conversationHistory' does not exist in type '{ prompt: string | any[]; systemPrompt?: string | undefined; model?: string | undefined; accessToken: string; }'.
+src/pages/tasks/TasksPanel.tsx(10,58): error TS6133: 'ArrowLeft' is declared but its value is never read.
+src/pages/vault/VaultPanel.tsx(11,55): error TS6133: 'ChevronDown' is declared but its value is never read.
+src/pages/vault/VaultPanel.tsx(12,3): error TS6133: 'ChevronUp' is declared but its value is never read.
+src/pages/vault/VaultPanel.tsx(14,8): error TS2613: Module '"D:/dev/LifeApp/src/components/layout/PanelLayout"' has no default export. Did you mean to use 'import { PanelLayout } from "D:/dev/LifeApp/src/components/layout/PanelLayout"' instead?
+src/pages/vault/VaultPanel.tsx(33,11): error TS6196: 'VaultItemFull' is declared but never used.
+src/pages/vault/VaultPanel.tsx(153,10): error TS6133: 'tokenExpiresAt' is declared but its value is never read.
+src/platform/api/client.ts(69,59): error TS6133: 'onProgress' is declared but its value is never read.
+src/platform/integrations/integrationsSupabase.ts(56,3): error TS6133: 'userEmail' is declared but its value is never read.
+src/platform/llm/client.ts(82,11): error TS6133: 'messagesArg' is declared but its value is never read.
+src/platform/supabase/auth.tsx(30,21): error TS6133: 'setAuthError' is declared but its value is never read.
+src/platform/supabase/integrationsSupabase.ts(56,3): error TS6133: 'userEmail' is declared but its value is never read.
+src/probe.ts(2,33): error TS6133: 'env' is declared but its value is never read.
+src/probe.ts(2,43): error TS6133: 'ctx' is declared but its value is never read.
+src/ui/index.ts(2,15): error TS2307: Cannot find module './layout' or its corresponding type declarations.

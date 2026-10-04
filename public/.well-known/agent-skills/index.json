@@ -1,0 +1,82 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "lifeos-engineering",
+      "type": "skill-md",
+      "description": "Use when acting as the LifeOS Engineer. 7-phase protocol for building LifeOS dashboard with Vite, React, Cloudflare Workers, and Supabase.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/software-development/lifeos-engineering/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cloudflare-pages-deploy",
+      "type": "skill-md",
+      "description": "Deploy a Vite/React build to Cloudflare Pages with wrangler.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/software-development/cloudflare-pages-deploy/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "vite-react-typescript-debugging",
+      "type": "skill-md",
+      "description": "Fix TS build errors in Vite React projects.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/software-development/vite-react-typescript-debugging/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "systematic-debugging",
+      "type": "skill-md",
+      "description": "4-phase root cause debugging: understand bugs before fixing.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/software-development/systematic-debugging/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "test-driven-development",
+      "type": "skill-md",
+      "description": "TDD: enforce RED-GREEN-REFACTOR, tests before code.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/software-development/test-driven-development/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "requesting-code-review",
+      "type": "skill-md",
+      "description": "Pre-commit review: security scan, quality gates, auto-fix.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/software-development/requesting-code-review/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "supabase",
+      "type": "skill-md",
+      "description": "Use when doing ANY task involving Supabase. Triggers: Supabase database, auth, storage, edge functions.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/supabase/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "supabase-postgres-best-practices",
+      "type": "skill-md",
+      "description": "Postgres best practices maintained by Supabase, for Postgres performance, security, and reliability.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/supabase-postgres-best-practices/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "hermes-agent",
+      "type": "skill-md",
+      "description": "Use when configuring, setting up, installing, enabling, disabling, modifying, or troubleshooting Hermes Agent itself.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/autonomous-ai-agents/hermes-agent/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "hermes-local-model-availability",
+      "type": "skill-md",
+      "description": "Configure local fallback chain and model task routing for Hermes Agent.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/software-development/hermes-local-model-availability/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "plan",
+      "type": "skill-md",
+      "description": "Write a markdown plan to .hermes/plans/; no execution.",
+      "url": "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/skills/software-development/plan/SKILL.md",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

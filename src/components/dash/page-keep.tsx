@@ -31,7 +31,7 @@ export function PageKeep({ page, children }: { page: string; children: ReactNode
       const saved = readAll()[page] || {};
       const fields = [...root.querySelectorAll("input, textarea")] as Array<HTMLInputElement | HTMLTextAreaElement>;
       fields.forEach((el, index) => {
-        if (!keepable(el) || el.dataset.kept === "1") return;
+        if (el.dataset.keep === "off" || !keepable(el) || el.dataset.kept === "1") return;
         const value = saved[fieldKey(el, index)];
         el.dataset.kept = "1";
         if (value == null || el.value === value || el.value) return;

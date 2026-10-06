@@ -1,14 +1,14 @@
 export type Note = { id: string; title: string; body: string };
 export type Task = { id: string; title: string; done: boolean };
-export type Lead = { id: string; name: string; source: string; status: string };
+export type Lead = { id: string; name: string; source: string; status: string; url?: string; note?: string };
 export type Notif = { id: string; text: string; source: string; seen: boolean };
 export type AgentJob = { id: string; agent: string; task: string; active: boolean };
-export type Account = { id: string; name: string; balance: number; prior: number };
+export type Account = { id: string; name: string; balance: number; prior: number; kind?: string; institution?: string; last4?: string };
 export type Product = { id: string; name: string; cost: number; revenue: number };
-export type Expense = { id: string; name: string; amount: number; paid: boolean; fixed: boolean };
-export type WeekEvent = { id: string; day: number; title: string; date?: string };
+export type Expense = { id: string; name: string; amount: number; paid: boolean; fixed: boolean; category?: string };
+export type WeekEvent = { id: string; day: number; title: string; date?: string; start?: string; end?: string; where?: string; who?: string; remind?: boolean };
 export type QuickLink = { id: string; label: string; href: string };
-export type Track = { id: string; title: string; url: string };
+export type Track = { id: string; title: string; url: string; artist: string; album: string; playlist: string; page: string; art: string };
 export type Series = { id: string; label: string; points: number[] };
 
 export type Board = {
@@ -80,9 +80,9 @@ export const emptyBoard = (): Board => ({
   ],
 });
 
-function arr<T>(value: unknown, map: (row: unknown) => T | null): T[] {
+function arr<T>(value: unknown, map: (row: unknown) => T | null, max = 80): T[] {
   if (!Array.isArray(value)) return [];
-  return value.map(map).filter((row): row is T => row !== null).slice(0, 80);
+  return value.map(map).filter((row): row is T => row !== null).slice(0, max);
 }
 
 function text(value: unknown, max: number) {
@@ -104,7 +104,9 @@ export function sanitizeBoard(input: unknown): Board {
     notes: arr(raw.notes, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as Note;
-      return { id: text(r.id, 40) || crypto.randomUUID(), title: text(r.title, 80), body: text(r.body, 4000) };
+      const title = text(r.title, 80);
+      const office = title.startsWith("Doc ·") || title.startsWith("Sheet ·");
+      return { id: text(r.id, 40) || crypto.randomUUID(), title, body: text(r.body, office ? 20000 : 4000) };
     }),
     tasks: arr(raw.tasks, (row) => {
       if (!row || typeof row !== "object") return null;
@@ -114,13 +116,17 @@ export function sanitizeBoard(input: unknown): Board {
     leads: arr(raw.leads, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as Lead;
+      const name = text(r.name, 120);
+      if (!name) return null;
       return {
         id: text(r.id, 40) || crypto.randomUUID(),
-        name: text(r.name, 80),
-        source: text(r.source, 60),
+        name,
+        source: text(r.source, 80),
         status: text(r.status, 40) || "New",
+        url: text(r.url, 400),
+        note: text(r.note, 400),
       };
-    }),
+    }, 200),
     notifs: arr(raw.notifs, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as Notif;
@@ -139,6 +145,9 @@ export function sanitizeBoard(input: unknown): Board {
         name: text(r.name, 40),
         balance: num(r.balance, -1_000_000, 10_000_000, 0),
         prior: num(r.prior, -1_000_000, 10_000_000, 0),
+        kind: text((r as Account).kind, 24),
+        institution: text((r as Account).institution, 40),
+        last4: text((r as Account).last4, 4).replace(/\D/g, ""),
       };
     }),
     products: arr(raw.products, (row) => {
@@ -162,17 +171,25 @@ export function sanitizeBoard(input: unknown): Board {
         amount: num(r.amount, 0, 1_000_000, 0),
         paid: Boolean(r.paid),
         fixed: Boolean(r.fixed),
+        category: text((r as Expense).category, 24),
       };
     }),
     events: arr(raw.events, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as WeekEvent;
       const date = text(r.date, 10);
+      const start = text(r.start, 5);
+      const end = text(r.end, 5);
       return {
         id: text(r.id, 40) || crypto.randomUUID(),
         day: num(r.day, 0, 6, 0),
         title: text(r.title, 80),
         ...( /^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {} ),
+        ...( /^\d{2}:\d{2}$/.test(start) ? { start } : {} ),
+        ...( /^\d{2}:\d{2}$/.test(end) ? { end } : {} ),
+        ...( text(r.where, 80) ? { where: text(r.where, 80) } : {} ),
+        ...( text(r.who, 80) ? { who: text(r.who, 80) } : {} ),
+        ...( r.remind ? { remind: true } : {} ),
       };
     }),
     links: arr(raw.links, (row) => {
@@ -185,10 +202,21 @@ export function sanitizeBoard(input: unknown): Board {
     tracks: arr(raw.tracks, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as Track;
-      const url = text(r.url, 300);
+      const url = text(r.url, 400);
+      const page = text(r.page, 400);
       if (url && !/^https?:\/\//i.test(url)) return null;
-      return { id: text(r.id, 40) || crypto.randomUUID(), title: text(r.title, 80), url };
-    }),
+      if (!url && !/^https?:\/\//i.test(page)) return null;
+      return {
+        id: text(r.id, 40) || crypto.randomUUID(),
+        title: text(r.title, 120),
+        url,
+        artist: text(r.artist, 80),
+        album: text(r.album, 80),
+        playlist: text(r.playlist, 40) || "Library",
+        page,
+        art: text(r.art, 400),
+      };
+    }, 400),
     social: series(raw.social, base.social),
     marketing: series(raw.marketing, base.marketing),
   };
@@ -233,6 +261,15 @@ export function insights(board: Board) {
     board.notes.length ? `Newest note: ${board.notes[0].title || "Untitled"}.` : "No notes yet. A note gives Erebus something personal to use.",
   ];
 }
+
+export const LIFE_HACKS = [
+  { title: "2-Minute Rule", body: "If it takes under two minutes, do it now." },
+  { title: "Pay Yourself First", body: "Move 10% aside before any other spend." },
+  { title: "Batch Email", body: "Open mail at three set times, not all day." },
+  { title: "48-Hour Cart", body: "Wait two days on anything that is not a bill or a job." },
+  { title: "3 Big Rocks", body: "Three tasks finish the day. The rest can wait." },
+  { title: "Mirror Test", body: "If you would not say it in person, do not send it." },
+];
 
 export function lifeHacks(board: Board) {
   const hacks = [

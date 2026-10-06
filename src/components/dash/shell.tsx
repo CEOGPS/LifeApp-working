@@ -2,8 +2,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { PageKeep } from "./page-keep";
 import { onSoundChange, playTone, setMuted, setVolume, soundPrefs } from "./sound";
+import { applyMotion } from "./app-settings";
+import { AgentFloat } from "./dock";
+import { stopCut, togglePause, usePlayer } from "./player";
 import {
   Bell,
+  BarChart3,
   Bot,
   Briefcase,
   CalendarDays,
@@ -12,7 +16,6 @@ import {
   FileText,
   FolderKanban,
   Images,
-  Image as ImageIcon,
   Landmark,
   LayoutDashboard,
   Library,
@@ -24,13 +27,11 @@ import {
   Music,
   NotebookPen,
   Plug,
-  Scale,
   Search,
   Settings,
   Share2,
+  Sparkles,
   Target,
-  Terminal,
-  Upload,
   Users,
 } from "lucide-react";
 
@@ -44,18 +45,18 @@ export const NAV = [
   { slug: "omnisearch", label: "OmniSearch", icon: Search },
   { slug: "social", label: "Social", icon: Share2 },
   { slug: "marketing", label: "Marketing", icon: Megaphone },
+  { slug: "analytics", label: "Analytics", icon: BarChart3 },
   { slug: "leads", label: "Leads", icon: Target },
   { slug: "creator", label: "Creator", icon: Clapperboard },
   { slug: "music-einstein", label: "Music Einstein", icon: Music },
+  { slug: "lucid", label: "Lucid", icon: Sparkles },
   { slug: "music", label: "Music", icon: Library },
   { slug: "media", label: "Media", icon: Images },
   { slug: "office", label: "Office", icon: FileText },
   { slug: "finance", label: "Finance", icon: Landmark },
   { slug: "projects", label: "Projects", icon: FolderKanban },
   { slug: "maps", label: "Maps", icon: Map },
-  { slug: "legal", label: "Legal", icon: Scale },
   { slug: "journal", label: "Journal", icon: NotebookPen },
-  { slug: "terminal", label: "Terminal", icon: Terminal },
   { slug: "simulators", label: "Simulators", icon: Dices },
   { slug: "vault", label: "Vault", icon: Lock },
   { slug: "ai-hub", label: "AI Hub", icon: Bot },
@@ -70,9 +71,28 @@ export function isPanel(slug: string): slug is Exclude<PanelSlug, "dashboard"> {
 }
 
 function readImage(file: File, onDone: (value: string) => void) {
-  if (file.size > 900_000) return;
   const reader = new FileReader();
-  reader.onload = () => onDone(String(reader.result || ""));
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const width = Math.max(1, Math.min(img.width, 1600));
+      const height = Math.max(1, Math.round(img.height * (width / img.width)));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, width, height);
+      let quality = 0.72;
+      let data = canvas.toDataURL("image/jpeg", quality);
+      while (data.length > 160_000 && quality > 0.42) {
+        quality -= 0.08;
+        data = canvas.toDataURL("image/jpeg", quality);
+      }
+      onDone(data);
+    };
+    img.src = String(reader.result || "");
+  };
   reader.readAsDataURL(file);
 }
 
@@ -98,10 +118,12 @@ export function Shell({
   const [spot, setSpot] = useState({ x: -200, y: -200 });
   const [sound, setSound] = useState({ muted: false, volume: 0.7 });
   const page = NAV.find((item) => item.slug === active)?.label || "Dashboard";
+  const playing = usePlayer();
 
   useEffect(() => {
     setCollapsed(localStorage.getItem("lifeos.nav") === "1");
     setSound(soundPrefs());
+    applyMotion();
     return onSoundChange(() => setSound(soundPrefs()));
   }, []);
 
@@ -189,21 +211,32 @@ export function Shell({
             </label>
           </header>
           <div className="relative h-28 overflow-hidden border-b border-white/5">
-            {banner ? <img src={banner} alt="" className="h-full w-full object-cover" /> : (
-              <div className="grid-bg flex h-full items-center justify-center gap-3">
-                <ImageIcon size={18} className="text-white/15" />
-                <span className="font-display text-xs tracking-[0.2em] text-white/20">UPLOAD BANNER IMAGE</span>
-                <Upload size={14} className="text-white/15" />
-              </div>
-            )}
+            <img src={banner || "/banner.png"} alt="" className="h-full w-full object-cover" />
             <label className="absolute inset-0 cursor-pointer">
               <input type="file" accept="image/*" className="sr-only" style={{ caretColor: "transparent" }} onChange={(event) => { const file = event.target.files?.[0]; if (file) readImage(file, onBanner); }} />
             </label>
             <p className="pointer-events-none absolute top-3 right-4 hidden font-mono text-[10px] text-green md:block">{status}</p>
           </div>
-          <div className="px-4 py-4"><PageKeep page={active}>{children}</PageKeep></div>
+          <div className={`px-4 py-4 ${playing.track ? "pb-24" : ""}`}><PageKeep page={active}>{children}</PageKeep></div>
         </div>
       </div>
+      {playing.track ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/85 px-4 py-2 backdrop-blur" data-sound="off">
+          <div className="mx-auto flex max-w-5xl items-center gap-3">
+            {playing.track.art ? <img src={playing.track.art} alt="" className="h-10 w-10 rounded-lg object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-lg bg-white/10 text-white/40">♪</span>}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm">{playing.track.title}</p>
+              <p className="truncate text-[11px] text-white/40">{playing.track.artist}</p>
+            </div>
+            <button type="button" className="quiet is-on" onClick={togglePause}>{playing.paused ? "Play" : "Pause"}</button>
+            <button type="button" className="link-remove" onClick={stopCut}>Stop</button>
+          </div>
+          {!playing.track.url && playing.track.page.includes("open.spotify.com/") ? (
+            <iframe title={playing.track.title} className="mx-auto mt-2 h-20 w-full max-w-5xl rounded-xl" src={`${playing.track.page.replace("open.spotify.com/", "open.spotify.com/embed/")}?autoplay=1`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" />
+          ) : null}
+        </div>
+      ) : null}
+      <AgentFloat />
     </div>
   );
 }

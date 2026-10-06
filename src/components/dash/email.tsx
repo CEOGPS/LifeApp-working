@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { newId, type EmailCampaign, type EmailDomain, type MailFolder, type Memory } from "./memory";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { newId, type EmailCampaign, type EmailDomain, type MailFolder, type MailItem, type Memory } from "./memory";
+import { fmtDate } from "./format";
+import { GMAIL_ACCOUNT } from "@/lib/lifeos/oauth";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
 type Tab = "Inbox" | "Campaigns" | "Analytics" | "Verification" | "DNS" | "Lists";
@@ -53,14 +55,24 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
   const [selector, setSelector] = useState("lifeos");
   const [domainId, setDomainId] = useState(hub.domains[0]?.id || "");
   const [listForm, setListForm] = useState({ name: "", description: "", people: "" });
+  const [listPick, setListPick] = useState({ city: "", company: "", kind: "any" });
   const [listQuery, setListQuery] = useState("");
+  const [compose, setCompose] = useState(false);
 
   const account = hub.accounts.find((row) => row.id === accountId) || null;
-  const rows = data.mail.filter((row) => {
+  const rows = useMemo(() => data.mail.filter((row) => {
     const inFolder = folder === "starred" ? row.starred && row.folder !== "trash" : row.folder === folder;
     const q = search.toLowerCase();
     return inFolder && (!q || `${row.title} ${row.body} ${row.to} ${row.from}`.toLowerCase().includes(q));
-  });
+  }), [data.mail, folder, search]);
+  const counts = useMemo(() => {
+    const map: Record<Folder, number> = { inbox: 0, starred: 0, sent: 0, drafts: 0, spam: 0, archive: 0, trash: 0 };
+    for (const row of data.mail) {
+      map[row.folder] += 1;
+      if (row.starred && row.folder !== "trash") map.starred += 1;
+    }
+    return map;
+  }, [data.mail]);
   const open = data.mail.find((row) => row.id === openId) || null;
   const domain = hub.domains.find((row) => row.id === domainId) || hub.domains[0] || null;
   const totals = useMemo(() => hub.campaigns.reduce((sum, row) => ({
@@ -89,6 +101,70 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
     setOpenId(null);
     setFolder(next);
   }
+
+  function reply(row: MailItem, forward = false) {
+    setCompose(true);
+    setOpenId(null);
+    setTo(forward ? "" : (row.from || row.to));
+    setSubject(`${forward ? "Fwd" : "Re"}: ${row.title.replace(/^(Re|Fwd):\s*/i, "")}`);
+    setBody(`\n\n--- ${forward ? "Forwarded" : "On"} ${fmtDate(row.at)} ---\n${row.body}`);
+  }
+
+  async function pullMail() {
+    setBusy("pull");
+    try {
+      const { pullInbox } = await import("@/lib/lifeos/env-keys");
+      const { readOauth } = await import("@/lib/lifeos/oauth");
+      const google = readOauth().find((row) => row.provider === "google");
+      const key = data.keys.find((row) => row.name === "Nylas" && row.value)?.value || "";
+      const result = await pullInbox({ data: { nylasKey: key, googleToken: google?.token || "" } });
+      const incoming = Array.isArray(result.messages) ? result.messages : [];
+      update((prev) => {
+        const have = new Set(prev.mail.map((row) => row.id));
+        const fresh = incoming.filter((row) => !have.has(row.id)).map((row) => ({
+          id: row.id,
+          title: row.title,
+          body: row.body,
+          at: row.at,
+          folder: row.folder,
+          to: row.to,
+          from: row.from,
+          starred: row.starred,
+        }));
+        const known = new Set(prev.emailHub.accounts.map((row) => row.email.toLowerCase()));
+        const accounts = result.accounts.filter((row) => row.email && !known.has(row.email.toLowerCase())).map((row) => ({
+          id: newId(),
+          email: row.email,
+          name: row.name || row.email,
+          provider: row.provider,
+        }));
+        return {
+          ...prev,
+          mail: fresh.length ? [...fresh, ...prev.mail] : prev.mail,
+          emailHub: accounts.length ? { ...prev.emailHub, accounts: [...accounts, ...prev.emailHub.accounts] } : prev.emailHub,
+        };
+      });
+      setNote(result.text || (incoming.length ? "Mail pulled." : "No mail came back."));
+    } catch {
+      setNote("Could not pull mail.");
+    } finally { setBusy(""); }
+  }
+
+  const pulled = useRef(false);
+  useEffect(() => {
+    const existing = data.emailHub.accounts.find((row) => row.email.toLowerCase() === GMAIL_ACCOUNT);
+    if (!existing) {
+      const id = newId();
+      update((prev) => ({
+        ...prev,
+        emailHub: { ...prev.emailHub, accounts: [{ id, email: GMAIL_ACCOUNT, name: "chrisgr33ninc", provider: "gmail" }, ...prev.emailHub.accounts.filter((row) => row.email.toLowerCase() !== GMAIL_ACCOUNT)] },
+      }));
+      setAccountId(id);
+    } else if (!accountId) setAccountId(existing.id);
+    if (pulled.current) return;
+    pulled.current = true;
+    void pullMail();
+  }, []);
 
   function setHub(recipe: (prev: Memory["emailHub"]) => Memory["emailHub"]) {
     update((prev) => ({ ...prev, emailHub: recipe(prev.emailHub) }));
@@ -175,79 +251,88 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
 
   return (
     <div className="grid gap-4">
-      <div className="dock-bar flex flex-wrap gap-3">
-        {TABS.map((name) => <button key={name} type="button" className={tab === name ? "on" : ""} onClick={() => { setTab(name); setNote(""); }}>{name}</button>)}
+      <div className="flex flex-wrap gap-4">
+        {TABS.map((name) => <button key={name} type="button" className={`quiet ${tab === name ? "is-on" : ""}`} onClick={() => { setTab(name); setNote(""); }}>{name}</button>)}
       </div>
       {note ? <p className="text-ember text-xs">{note}</p> : null}
 
       {tab === "Inbox" ? (
-        <div className="grid gap-4 lg:grid-cols-[11rem_1fr]">
-          <section className="module-card grid content-start gap-4 p-3">
-            <div>
-              <p className="module-title mb-2">Accounts</p>
-              {hub.accounts.map((row) => (
-                <button key={row.id} type="button" className={`block w-full py-1 text-left text-sm ${accountId === row.id ? "text-blue-2" : ""}`} onClick={() => setAccountId(row.id)}>{row.name}</button>
+        <div className="grid min-h-[36rem] gap-3 lg:grid-cols-[13rem_16rem_1fr]">
+          <section className="module-card h-fit p-3">
+            <p className="text-sm">Accounts</p>
+            {hub.accounts.map((row) => (
+              <button key={row.id} type="button" className={`menu ${accountId === row.id ? "is-on" : ""}`} onClick={() => setAccountId(row.id)}>{row.name}</button>
+            ))}
+            <form className="mt-3 grid gap-2" onSubmit={(event) => {
+              event.preventDefault();
+              const email = accountForm.email.trim();
+              if (!email.includes("@")) return;
+              const row = { id: newId(), email, name: accountForm.name.trim() || email, provider: accountForm.provider };
+              setHub((prev) => ({ ...prev, accounts: [row, ...prev.accounts] }));
+              setAccountId(row.id);
+              setAccountForm({ email: "", name: "", provider: "gmail" });
+            }}>
+              <input className={field} placeholder="name@mail.com" value={accountForm.email} onChange={(event) => setAccountForm({ ...accountForm, email: event.target.value })} />
+              <select className={field} value={accountForm.provider} onChange={(event) => setAccountForm({ ...accountForm, provider: event.target.value as typeof accountForm.provider })}>
+                <option value="gmail">Gmail</option>
+                <option value="outlook">Outlook</option>
+                <option value="yahoo">Yahoo</option>
+                <option value="imap">IMAP</option>
+              </select>
+              <button type="submit" className="quiet is-on">Add account</button>
+            </form>
+            <div className="mt-4">
+              {FOLDERS.map((item) => (
+                <button key={item.id} type="button" className={`menu ${folder === item.id ? "is-on" : ""}`} onClick={() => { setFolder(item.id); setOpenId(null); setCompose(false); }}>{item.label}<span className="ml-2 text-white/35">{counts[item.id] || ""}</span></button>
               ))}
-              <form className="mt-2 grid gap-2" onSubmit={(event) => {
-                event.preventDefault();
-                const email = accountForm.email.trim();
-                if (!email.includes("@")) return;
-                const row = { id: newId(), email, name: accountForm.name.trim() || email, provider: accountForm.provider };
-                setHub((prev) => ({ ...prev, accounts: [row, ...prev.accounts] }));
-                setAccountId(row.id);
-                setAccountForm({ email: "", name: "", provider: "gmail" });
-              }}>
-                <input className={field} placeholder="name@mail.com" value={accountForm.email} onChange={(event) => setAccountForm({ ...accountForm, email: event.target.value })} />
-                <select className={field} value={accountForm.provider} onChange={(event) => setAccountForm({ ...accountForm, provider: event.target.value as typeof accountForm.provider })}>
-                  <option value="gmail">Gmail</option>
-                  <option value="outlook">Outlook</option>
-                  <option value="yahoo">Yahoo</option>
-                  <option value="imap">IMAP</option>
-                </select>
-                <button type="submit" className="bg-blue">Add account</button>
-              </form>
-            </div>
-            <div className="dock-bar flex flex-col items-start">
-              {FOLDERS.map((item) => {
-                const count = item.id === "starred" ? data.mail.filter((row) => row.starred && row.folder !== "trash").length : data.mail.filter((row) => row.folder === item.id).length;
-                return <button key={item.id} type="button" className={folder === item.id ? "on" : ""} onClick={() => { setFolder(item.id); setOpenId(null); }}>{item.label} {count || ""}</button>;
-              })}
             </div>
           </section>
-          <section className="module-card p-4">
-            <input className={field} placeholder="Search mail" value={search} onChange={(event) => setSearch(event.target.value)} />
-            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_15rem]">
-              {open ? (
-                <div>
-                  <p className="text-sm">{open.title}</p>
-                  <p className="text-xs text-white/45">{open.from || "Local"} → {open.to || "No recipient"}</p>
-                  <p className="mt-3 whitespace-pre-wrap text-sm">{open.body}</p>
-                  <div className="dock-bar mt-4 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => update((prev) => ({ ...prev, mail: prev.mail.map((row) => row.id === open.id ? { ...row, starred: !row.starred } : row) }))}>{open.starred ? "Unstar" : "Star"}</button>
-                    <button type="button" onClick={() => move(open.id, "archive")}>Archive</button>
-                    <button type="button" onClick={() => move(open.id, "spam")}>Spam</button>
-                    <button type="button" onClick={() => move(open.id, "inbox")}>Inbox</button>
-                    <button type="button" onClick={() => move(open.id, "trash")}>Trash</button>
-                  </div>
-                </div>
-              ) : (
-                <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); saveMail("sent"); }}>
-                  <input className={field} placeholder="To" value={to} onChange={(event) => setTo(event.target.value)} />
-                  <input className={field} placeholder="Subject" value={subject} onChange={(event) => setSubject(event.target.value)} />
-                  <textarea className="min-h-36 rounded-2xl border border-line bg-black/40 px-3 py-2 text-sm" style={{ caretColor: "transparent" }} placeholder="Message" value={body} onChange={(event) => setBody(event.target.value)} />
-                  <div className="flex gap-2">
-                    <button type="submit" className="bg-blue">Send</button>
-                    <button type="button" className="bg-blue" onClick={() => saveMail("drafts")}>Save draft</button>
-                  </div>
-                </form>
-              )}
-              <ul className="grid content-start">
-                {rows.map((row) => (
-                  <li key={row.id}><button type="button" className="w-full py-2 text-left text-sm" onClick={() => setOpenId(row.id)}><span className="block truncate">{row.starred ? "★ " : ""}{row.title}</span><span className="block truncate text-xs text-white/40">{row.to || row.body}</span></button></li>
-                ))}
-                {rows.length === 0 ? <li className="text-sm text-white/40">Nothing in {folder}.</li> : null}
-              </ul>
+          <section className="module-card h-fit p-3">
+            <div className="mb-2 flex gap-3">
+              <button type="button" className="quiet is-on" onClick={() => { setCompose(true); setOpenId(null); }}>Compose</button>
+              <button type="button" className="quiet" disabled={busy === "pull"} onClick={() => void pullMail()}>{busy === "pull" ? "Pulling" : `Pull ${GMAIL_ACCOUNT}`}</button>
             </div>
+            <input className={field} placeholder="Search mail" value={search} onChange={(event) => setSearch(event.target.value)} />
+            <ul className="mt-2">
+              {rows.map((row) => (
+                <li key={row.id}>
+                  <button type="button" className={`menu ${openId === row.id ? "is-on" : ""}`} onClick={() => { setOpenId(row.id); setCompose(false); }}>
+                    <span className="block truncate">{row.starred ? "★ " : ""}{row.title}</span>
+                    <span className="block truncate text-white/40">{row.from || row.to || row.body.slice(0, 80)}</span>
+                  </button>
+                </li>
+              ))}
+              {rows.length === 0 ? <li className="px-1 py-2 text-sm text-white/40">Nothing in {folder}.</li> : null}
+            </ul>
+          </section>
+          <section className="module-card p-4">
+            {compose ? (
+              <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); saveMail("sent"); setCompose(false); }}>
+                <input className={field} placeholder="To" value={to} onChange={(event) => setTo(event.target.value)} />
+                <input className={field} placeholder="Subject" value={subject} onChange={(event) => setSubject(event.target.value)} />
+                <textarea className="min-h-64 rounded-2xl border border-line bg-black/40 px-3 py-2 text-base" placeholder="Message" value={body} onChange={(event) => setBody(event.target.value)} />
+                <div className="flex gap-4">
+                  <button type="submit" className="quiet is-on">Send</button>
+                  <button type="button" className="quiet" onClick={() => { saveMail("drafts"); setCompose(false); }}>Save draft</button>
+                  <button type="button" className="quiet" onClick={() => setCompose(false)}>Close</button>
+                </div>
+              </form>
+            ) : open ? (
+              <div>
+                <p className="text-xl">{open.title}</p>
+                <p className="mt-1 text-sm text-white/50">{open.from || "Local"} → {open.to || "No recipient"} · {fmtDate(open.at)}</p>
+                <p className="mt-4 whitespace-pre-wrap text-base leading-7">{open.body}</p>
+                <div className="mt-4 flex flex-wrap gap-4">
+                  <button type="button" className="quiet" onClick={() => reply(open)}>Reply</button>
+                  <button type="button" className="quiet" onClick={() => reply(open, true)}>Forward</button>
+                  <button type="button" className="quiet" onClick={() => update((prev) => ({ ...prev, mail: prev.mail.map((row) => row.id === open.id ? { ...row, starred: !row.starred } : row) }))}>{open.starred ? "Unstar" : "Star"}</button>
+                  <button type="button" className="quiet" onClick={() => move(open.id, "archive")}>Archive</button>
+                  <button type="button" className="quiet" onClick={() => move(open.id, "spam")}>Spam</button>
+                  <button type="button" className="quiet" onClick={() => move(open.id, "inbox")}>Inbox</button>
+                  <button type="button" className="link-remove" onClick={() => move(open.id, "trash")}>Trash</button>
+                </div>
+              </div>
+            ) : <p className="text-base text-white/45">Select a message, or compose one.</p>}
           </section>
         </div>
       ) : null}
@@ -265,15 +350,15 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
             </div>
             <div className="flex gap-2">
               <input className={field} placeholder="Subject" value={campaign.subject} onChange={(event) => setCampaign({ ...campaign, subject: event.target.value })} />
-              <button type="button" className="bg-blue" disabled={busy === "subject"} onClick={() => void writeSubject()}>Subject</button>
+              <button type="button" className="quiet" disabled={busy === "subject"} onClick={() => void writeSubject()}>Subject</button>
             </div>
             <textarea className="min-h-36 rounded-2xl border border-line bg-black/40 px-3 py-2 text-sm" style={{ caretColor: "transparent" }} placeholder="Body" value={campaign.body} onChange={(event) => setCampaign({ ...campaign, body: event.target.value })} />
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="bg-blue" disabled={busy === "body"} onClick={() => void writeBody()}>Write body</button>
-              <button type="button" className="bg-blue" onClick={() => storeCampaign("draft")}>Save draft</button>
+            <div className="flex flex-wrap gap-4">
+              <button type="button" className="quiet" disabled={busy === "body"} onClick={() => void writeBody()}>Write body</button>
+              <button type="button" className="quiet" onClick={() => storeCampaign("draft")}>Save draft</button>
               <input className={field + " max-w-48"} type="datetime-local" value={campaign.when} onChange={(event) => setCampaign({ ...campaign, when: event.target.value })} />
-              <button type="button" className="bg-blue" onClick={() => storeCampaign("scheduled")}>Schedule</button>
-              <button type="button" className="bg-blue" onClick={() => storeCampaign("sent")}>Send</button>
+              <button type="button" className="quiet" onClick={() => storeCampaign("scheduled")}>Schedule</button>
+              <button type="button" className="quiet is-on" onClick={() => storeCampaign("sent")}>Send</button>
             </div>
             <ul className="mt-2">{hub.campaigns.map((row) => <li key={row.id} className="flex justify-between gap-3 py-1 text-sm"><span>{row.name}</span><span className="text-white/45">{row.status}</span></li>)}</ul>
           </section>
@@ -328,13 +413,13 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
           }}>
             <input className={field + " max-w-xs"} placeholder="yourdomain.com" value={domainName} onChange={(event) => setDomainName(event.target.value)} />
             <input className={field + " max-w-32"} placeholder="selector" value={selector} onChange={(event) => setSelector(event.target.value)} />
-            <button type="submit" className="bg-blue">Add domain</button>
+            <button type="submit" className="quiet is-on">Add domain</button>
           </form>
           {hub.domains.map((row) => (
             <div key={row.id} className="border-t border-white/10 pt-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span>{row.domain}</span>
-                <button type="button" className="bg-blue" disabled={busy === row.id} onClick={() => void check(row)}>{busy === row.id ? "Checking" : "Check DNS"}</button>
+                <button type="button" className="quiet" disabled={busy === row.id} onClick={() => void check(row)}>{busy === row.id ? "Checking" : "Check DNS"}</button>
               </div>
               <p className="mt-1 text-xs text-white/50">SPF {row.spf ? "found" : "missing"} · DKIM {row.dkim ? "found" : "missing"} · DMARC {row.dmarc ? "found" : "missing"}{row.checkedAt ? ` · ${new Date(row.checkedAt).toLocaleString()}` : ""}</p>
             </div>
@@ -346,10 +431,10 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
         <section className="module-card grid gap-3 p-4 text-sm">
           {!domain ? <p className="text-white/40">Add a domain in Verification first.</p> : (
             <>
-              <div className="dock-bar flex flex-wrap gap-3">{hub.domains.map((row) => <button key={row.id} type="button" className={domain.id === row.id ? "on" : ""} onClick={() => setDomainId(row.id)}>{row.domain}</button>)}</div>
-              <p>SPF <button type="button" className="dock-bar" onClick={() => copy("v=spf1 include:_spf.google.com include:sendgrid.net ~all")}>Copy</button></p>
+              <div className="flex flex-wrap gap-4">{hub.domains.map((row) => <button key={row.id} type="button" className={`quiet ${domain.id === row.id ? "is-on" : ""}`} onClick={() => setDomainId(row.id)}>{row.domain}</button>)}</div>
+              <p>SPF <button type="button" className="quiet" onClick={() => copy("v=spf1 include:_spf.google.com include:sendgrid.net ~all")}>Copy</button></p>
               <code className="block truncate text-xs text-white/60">v=spf1 include:_spf.google.com include:sendgrid.net ~all</code>
-              <p>DKIM name {domain.selector}._domainkey <button type="button" className="dock-bar" onClick={() => copy(`v=DKIM1; k=rsa; p= <generate this key at your mail host>`)}>Copy</button></p>
+              <p>DKIM name {domain.selector}._domainkey <button type="button" className="quiet" onClick={() => copy(`v=DKIM1; k=rsa; p= <generate this key at your mail host>`)}>Copy</button></p>
               <label className="block text-xs text-white/50">DMARC
                 <select className={field + " mt-1"} value={domain.policy} onChange={(event) => setHub((prev) => ({ ...prev, domains: prev.domains.map((row) => row.id === domain.id ? { ...row, policy: event.target.value as EmailDomain["policy"] } : row) }))}>
                   <option value="none">none</option>
@@ -371,28 +456,45 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
             event.preventDefault();
             if (!listForm.name.trim()) return;
             const own = addresses(listForm.people);
-            const fromContacts = data.contacts.map((row) => row.email.toLowerCase()).filter((row) => row.includes("@"));
-            setHub((prev) => ({ ...prev, lists: [{ id: newId(), name: listForm.name.trim(), description: listForm.description.trim(), subscribers: [...new Set([...own, ...fromContacts])] }, ...prev.lists] }));
+            setHub((prev) => ({ ...prev, lists: [{ id: newId(), name: listForm.name.trim(), description: listForm.description.trim(), subscribers: [...new Set(own)] }, ...prev.lists] }));
             setListForm({ name: "", description: "", people: "" });
             setNote("List saved.");
           }}>
             <input className={field} placeholder="List name" value={listForm.name} onChange={(event) => setListForm({ ...listForm, name: event.target.value })} />
             <input className={field} placeholder="What this list is for" value={listForm.description} onChange={(event) => setListForm({ ...listForm, description: event.target.value })} />
-            <textarea className="min-h-20 rounded-2xl border border-line bg-black/40 px-3 py-2 text-sm" style={{ caretColor: "transparent" }} placeholder="Paste emails. Contacts already on the board are added too." value={listForm.people} onChange={(event) => setListForm({ ...listForm, people: event.target.value })} />
-            <button type="submit" className="bg-blue">Save list</button>
+            <textarea className="min-h-20 rounded-2xl border border-line bg-black/40 px-3 py-2 text-sm" placeholder="Paste emails, or fill from contacts below." value={listForm.people} onChange={(event) => setListForm({ ...listForm, people: event.target.value })} />
+            <div className="flex flex-wrap gap-2">
+              <input className={field + " max-w-40"} placeholder="City" value={listPick.city} onChange={(event) => setListPick({ ...listPick, city: event.target.value })} />
+              <input className={field + " max-w-40"} placeholder="Company" value={listPick.company} onChange={(event) => setListPick({ ...listPick, company: event.target.value })} />
+              {["any", "personal", "crm"].map((kind) => <button key={kind} type="button" className={`quiet ${listPick.kind === kind ? "is-on" : ""}`} onClick={() => setListPick({ ...listPick, kind })}>{kind}</button>)}
+              <button type="button" className="quiet" onClick={() => {
+                const city = listPick.city.trim().toLowerCase();
+                const company = listPick.company.trim().toLowerCase();
+                const found = data.contacts.filter((row) => {
+                  if (!row.email.includes("@")) return false;
+                  if (listPick.kind !== "any" && row.kind !== listPick.kind) return false;
+                  if (city && !row.city.toLowerCase().includes(city)) return false;
+                  if (company && !`${row.company} ${row.name}`.toLowerCase().includes(company)) return false;
+                  return true;
+                }).map((row) => row.email.toLowerCase());
+                setListForm({ ...listForm, people: [...new Set(found)].join("\n") });
+                setNote(found.length ? `${found.length} contacts matched.` : "No contacts matched those filters.");
+              }}>Fill from contacts</button>
+            </div>
+            <button type="submit" className="quiet is-on">Save list</button>
           </form>
           {hub.lists.filter((row) => `${row.name} ${row.description}`.toLowerCase().includes(listQuery.toLowerCase())).map((row) => (
             <div key={row.id} className="flex items-start justify-between gap-3 border-t border-white/10 pt-3 text-sm">
               <div><p>{row.name} <span className="text-white/40">{row.subscribers.length}</span></p><p className="text-xs text-white/45">{row.description}</p></div>
-              <div className="dock-bar flex gap-3">
-                <button type="button" onClick={() => {
+              <div className="flex gap-4">
+                <button type="button" className="quiet" onClick={() => {
                   const csv = ["email", ...row.subscribers].join("\n");
                   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
                   const link = document.createElement("a");
                   link.href = url; link.download = `${row.name}.csv`; link.click();
                   URL.revokeObjectURL(url);
                 }}>Export</button>
-                <button type="button" onClick={() => setHub((prev) => ({ ...prev, lists: prev.lists.filter((item) => item.id !== row.id) }))}>Delete</button>
+                <button type="button" className="link-remove" onClick={() => setHub((prev) => ({ ...prev, lists: prev.lists.filter((item) => item.id !== row.id) }))}>Delete</button>
               </div>
             </div>
           ))}

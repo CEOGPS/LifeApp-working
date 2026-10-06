@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PanelSlugRouteImport } from './routes/panel/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiWebhooksFacebookRouteImport } from './routes/api/webhooks/facebook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksFacebookRoute = ApiWebhooksFacebookRouteImport.update({
+  id: '/api/webhooks/facebook',
+  path: '/api/webhooks/facebook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,21 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/panel/$slug' | '/api/auth/$'
+  fullPaths:
+    '/' | '/login' | '/panel/$slug' | '/api/auth/$' | '/api/webhooks/facebook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/panel/$slug' | '/api/auth/$'
-  id: '__root__' | '/' | '/login' | '/panel/$slug' | '/api/auth/$'
+  to: '/' | '/login' | '/panel/$slug' | '/api/auth/$' | '/api/webhooks/facebook'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/panel/$slug'
+    | '/api/auth/$'
+    | '/api/webhooks/facebook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +83,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PanelSlugRoute: typeof PanelSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiWebhooksFacebookRoute: typeof ApiWebhooksFacebookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/facebook': {
+      id: '/api/webhooks/facebook'
+      path: '/api/webhooks/facebook'
+      fullPath: '/api/webhooks/facebook'
+      preLoaderRoute: typeof ApiWebhooksFacebookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +131,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PanelSlugRoute: PanelSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiWebhooksFacebookRoute: ApiWebhooksFacebookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

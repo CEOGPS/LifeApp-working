@@ -9,6 +9,7 @@ export const SIMS = [
   "Fantasy Friend",
   "Narrative Conflict",
   "Shadow Budget",
+  "Random Joy",
   "Life RPG",
   "Compliment Cannon",
   "Smart Browser",
@@ -60,6 +61,9 @@ export function runSim(name: string, data: Memory): string {
   }
   if (name === "Shadow Budget") {
     return `Net ${fmtMoney(net)}. Unpaid: ${unpaid.map((row) => `${row.name} ${fmtMoney(row.amount)}`).join(", ") || "none"}.`;
+  }
+  if (name === "Random Joy") {
+    return "Pick a mood and spin. The idea is written only after you do.";
   }
   if (name === "Life RPG") {
     return open.length || done.length

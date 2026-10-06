@@ -1,15 +1,17 @@
-const SUPABASE = "https://mhvcdstgkyplhzjptgfr.supabase.co";
-const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odmNkc3Rna3lwbGh6anB0Z2ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDE3NzYsImV4cCI6MjA5NDI3Nzc3Nn0.DrwY7_a6OyNdKtA5UB62qrWkiaFe9xcAHLqXdfzf8W4";
+export const SUPABASE = "https://mhvcdstgkyplhzjptgfr.supabase.co";
+export const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odmNkc3Rna3lwbGh6anB0Z2ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDE3NzYsImV4cCI6MjA5NDI3Nzc3Nn0.DrwY7_a6OyNdKtA5UB62qrWkiaFe9xcAHLqXdfzf8W4";
 const STORE = "lifeos.oauth";
 const VERIFIER = "lifeos.pkce";
 
-export type OauthProvider = "google" | "facebook" | "spotify";
+export const GMAIL_ACCOUNT = "chrisgr33ninc@gmail.com";
+export type OauthProvider = "google" | "discord" | "facebook" | "spotify";
 export type OauthSession = { provider: OauthProvider; name: string; email: string; token: string };
 
 const SCOPES: Record<OauthProvider, string> = {
-  google: "openid email profile https://www.googleapis.com/auth/calendar.readonly",
-  facebook: "email public_profile",
-  spotify: "user-read-email user-read-private user-top-read user-read-currently-playing",
+  google: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly",
+  discord: "identify email guilds",
+  facebook: "email public_profile pages_show_list pages_messaging pages_read_engagement pages_manage_posts instagram_basic instagram_content_publish",
+  spotify: "user-read-email user-read-private user-top-read user-read-recently-played user-read-currently-playing playlist-read-private user-library-read",
 };
 
 function b64url(bytes: Uint8Array) {
@@ -32,6 +34,11 @@ function saveOauth(row: OauthSession) {
   localStorage.setItem(STORE, JSON.stringify([row, ...rows]));
 }
 
+export function disconnectOauth(provider: OauthProvider) {
+  const rows = readOauth().filter((item) => item.provider !== provider);
+  localStorage.setItem(STORE, JSON.stringify(rows));
+}
+
 export async function startOAuth(provider: OauthProvider) {
   const settings = await fetch(`${SUPABASE}/auth/v1/settings`, { headers: { apikey: ANON } }).then((response) => response.json()).catch(() => null) as { external?: Record<string, boolean> } | null;
   if (settings?.external && settings.external[provider] === false) {
@@ -48,6 +55,10 @@ export async function startOAuth(provider: OauthProvider) {
   url.searchParams.set("scopes", SCOPES[provider]);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "s256");
+  if (provider === "google") {
+    url.searchParams.set("login_hint", GMAIL_ACCOUNT);
+    url.searchParams.set("prompt", "consent select_account");
+  }
   window.location.assign(url.toString());
 }
 
@@ -68,11 +79,16 @@ export async function finishOAuth(): Promise<OauthSession | null> {
   window.history.replaceState({}, "", next);
   if (!response.ok || !body.provider_token) return null;
   const raw = body.user?.app_metadata?.provider;
-  const provider: OauthProvider = raw === "facebook" || raw === "spotify" ? raw : "google";
+  const provider: OauthProvider = raw === "discord" || raw === "facebook" || raw === "spotify" ? raw : "google";
+  const email = body.user?.email || "";
+  if (provider === "google" && email.toLowerCase() !== GMAIL_ACCOUNT) {
+    sessionStorage.removeItem(VERIFIER);
+    return { provider, name: "", email, token: "" };
+  }
   const session: OauthSession = {
     provider,
     name: body.user?.user_metadata?.full_name || body.user?.user_metadata?.name || "",
-    email: body.user?.email || "",
+    email,
     token: body.provider_token,
   };
   saveOauth(session);

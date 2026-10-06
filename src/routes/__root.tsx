@@ -1,6 +1,7 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { FacebookSdk } from "@/components/dash/facebook";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -30,6 +31,7 @@ export const Route = createRootRoute({
       <body>
         <PreviewHostBridge />
         <AuthProvider>
+          <FacebookSdk />
           <Outlet />
         </AuthProvider>
         <Scripts />

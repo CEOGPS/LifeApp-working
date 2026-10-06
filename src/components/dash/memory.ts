@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { emptyBoard, sanitizeBoard, type Board } from "@/lib/lifeos/board";
+import { fmtDateInput, fmtPhone } from "./format";
 
 export type Contact = {
   id: string;
+  firstName: string;
+  lastName: string;
   name: string;
   company: string;
   email: string;
@@ -11,6 +14,19 @@ export type Contact = {
   kind: "personal" | "crm";
   avatar: string;
   stage: string;
+  deal: string;
+  note: string;
+  birthday: string;
+  address: string;
+  state: string;
+  zip: string;
+  emails: string[];
+  phones: string[];
+  websites: string[];
+  socials: string[];
+  jobTitle: string;
+  source: string;
+  tag: string;
 };
 
 export type Entry = { id: string; title: string; body: string; at: string };
@@ -46,10 +62,48 @@ export type EmailDomain = {
   checkedAt: string;
 };
 export type EmailHub = { accounts: EmailAccount[]; lists: EmailList[]; campaigns: EmailCampaign[]; domains: EmailDomain[] };
-export type ChatLine = { id: string; who: string; text: string; mine: boolean };
-export type SongIdea = { id: string; title: string; note: string };
-export type Idea = { id: string; title: string; note: string; approved: boolean };
+export type ChatLine = { id: string; who: string; text: string; mine: boolean; platform?: string };
+export type SongIdea = { id: string; title: string; note: string; lyrics?: string; liked?: boolean; pub?: boolean; cover?: string; audio?: string; video?: string };
+export type Idea = {
+  id: string;
+  title: string;
+  note: string;
+  approved: boolean;
+  status: "new" | "approved" | "ready" | "running" | "paused" | "dropped";
+  source: string;
+  effort: "low" | "medium";
+  email: string;
+  funding: string;
+  log: string;
+};
+export type Deal = {
+  id: string;
+  ideaId: string;
+  client: string;
+  email: string;
+  phone: string;
+  status: "lead" | "proposed" | "active" | "paid" | "closed";
+  amount: number;
+  paid: boolean;
+  next: string;
+};
 export type KeyRow = { id: string; name: string; value: string };
+export type SocialAccount = {
+  id: "instagram" | "facebook" | "x" | "tiktok" | "linkedin" | "youtube" | "reddit" | "snapchat";
+  name: string;
+  handle: string;
+  bio: string;
+  followers: number;
+  following: number;
+  likes: number;
+  comments: number;
+  views: number;
+  connected: boolean;
+  history: number[];
+};
+export type SocialPost = { id: string; text: string; platforms: SocialAccount["id"][]; at: string; scheduled: string; sent: string };
+export type StatRow = { id: string; label: string; value: number; points: number[] };
+export type GroupSource = { id: string; label: string; url: string };
 
 export type Memory = Board & {
   contacts: Contact[];
@@ -62,9 +116,14 @@ export type Memory = Board & {
   media: Entry[];
   songs: SongIdea[];
   ideas: Idea[];
+  deals: Deal[];
   keys: KeyRow[];
   query: string;
   emailHub: EmailHub;
+  socialAccounts: SocialAccount[];
+  socialPosts: SocialPost[];
+  stats: StatRow[];
+  groups: GroupSource[];
 };
 
 const KEY = "lifeos.shell.v1";
@@ -72,6 +131,8 @@ const BACKUP = "lifeos.shell.backup";
 const VAULT_KEY = "lifeos.vault.v1";
 const AT = "lifeos.savedAt";
 const DEVICE = "lifeos.device";
+const BANNER_KEY = "lifeos.banner";
+const LOGO_KEY = "lifeos.logo";
 
 function id() {
   return crypto.randomUUID();
@@ -97,11 +158,16 @@ export function seed(): Memory {
     media: [],
     songs: [],
     ideas: [
-      { id: "idea-1", title: "Local listing photos", note: "Offer a same-week photo pack to businesses already in Leads.", approved: false },
+      { id: "idea-1", title: "Local listing photos", note: "", approved: false, status: "new", source: "Manual", effort: "low", email: "", funding: "", log: "Offer a same-week photo pack to businesses already in Leads." },
     ],
+    deals: [],
     keys: [],
     query: "",
     emailHub: { accounts: [], lists: [], campaigns: [], domains: [] },
+    socialAccounts: [],
+    socialPosts: [],
+    stats: [],
+    groups: [],
   };
 }
 
@@ -187,26 +253,58 @@ export function sanitizeMemory(input: unknown): Memory {
   const base = seed();
   const board = sanitizeBoard(input);
   const raw = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
-  const list = <T,>(value: unknown, map: (row: unknown) => T | null) =>
-    Array.isArray(value) ? value.map(map).filter((row): row is T => row !== null).slice(0, 200) : [];
+  const list = <T,>(value: unknown, map: (row: unknown) => T | null, keep: "head" | "tail" = "head", max = 200) => {
+    const rows = Array.isArray(value) ? value.map(map).filter((row): row is T => row !== null) : [];
+    return keep === "tail" ? rows.slice(-max) : rows.slice(0, max);
+  };
+  const texts = (value: unknown, max = 12) => (Array.isArray(value) ? value : []).map((item) => String(item || "").trim().slice(0, 160)).slice(0, max);
   return {
     ...board,
     contacts: list(raw.contacts, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as Contact;
+      const emails = texts(r.emails);
+      const email = emails.find((item) => item.includes("@")) || (String(r.email || "").includes("@") ? String(r.email).slice(0, 120) : "");
+      if (email && !emails.includes(email)) emails.unshift(email);
+      const phones = texts(r.phones).map((item) => fmtPhone(item));
+      const phone = fmtPhone(phones.find((item) => /\d/.test(item)) || String(r.phone || ""));
+      if (phone && !phones.includes(phone)) phones.unshift(phone);
+      const firstName = String(r.firstName || "").slice(0, 60);
+      const lastName = String(r.lastName || "").slice(0, 60);
+      const combined = `${firstName} ${lastName}`.trim();
+      const name = combined || String(r.name || "").slice(0, 80);
       return {
         id: String(r.id || id()).slice(0, 40),
-        name: String(r.name || "").slice(0, 80),
+        firstName: firstName || name.split(" ").slice(0, -1).join(" ") || name,
+        lastName: lastName || (name.includes(" ") ? name.split(" ").slice(-1).join(" ") : ""),
+        name,
         company: String(r.company || "").slice(0, 80),
-        email: String(r.email || "").slice(0, 120),
-        phone: String(r.phone || "").slice(0, 40),
+        email,
+        phone,
         city: String(r.city || "").slice(0, 60),
         kind: r.kind === "crm" ? "crm" : "personal",
         avatar: String(r.avatar || "").slice(0, 500),
         stage: String(r.stage || "New").slice(0, 40),
+        deal: String(r.deal || "").slice(0, 20),
+        note: String(r.note || "").slice(0, 2000),
+        birthday: fmtDateInput(String(r.birthday || "")).slice(0, 20),
+        address: String(r.address || "").slice(0, 160),
+        state: String(r.state || "").slice(0, 40),
+        zip: String(r.zip || "").slice(0, 12),
+        emails,
+        phones,
+        websites: texts(r.websites),
+        socials: texts(r.socials),
+        jobTitle: String(r.jobTitle || "").slice(0, 80),
+        source: String(r.source || "").slice(0, 80),
+        tag: String(r.tag || "").slice(0, 40),
       };
-    }),
-    journal: list(raw.journal, entry),
+    }, "head", 100000),
+    journal: list(raw.journal, (row) => {
+      const item = entry(row);
+      if (!item) return null;
+      return { ...item, body: String((row as Entry).body || "").slice(0, 100_000) };
+    }, "head", 500),
     mail: list(raw.mail, mailItem),
     thread: list(raw.thread, (row) => {
       if (!row || typeof row !== "object") return null;
@@ -216,25 +314,65 @@ export function sanitizeMemory(input: unknown): Memory {
         who: String(r.who || "Nyx").slice(0, 40),
         text: String(r.text || "").slice(0, 1000),
         mine: Boolean(r.mine),
+        platform: String((r as { platform?: string }).platform || "").slice(0, 20),
       };
-    }),
+    }, "tail"),
     projects: list(raw.projects, entry),
     vault: list(raw.vault, entry),
     legal: list(raw.legal, entry),
-    media: list(raw.media, entry),
+    media: list(raw.media, (row) => {
+      const item = entry(row);
+      if (!item || !row || typeof row !== "object") return null;
+      return { ...item, body: String((row as Entry).body || "").slice(0, 1_500_000) };
+    }, "head", 400),
     songs: list(raw.songs, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as SongIdea;
-      return { id: String(r.id || id()).slice(0, 40), title: String(r.title || "").slice(0, 80), note: String(r.note || "").slice(0, 500) };
+      return {
+        id: String(r.id || id()).slice(0, 40),
+        title: String(r.title || "").slice(0, 80),
+        note: String(r.note || "").slice(0, 240),
+        lyrics: String(r.lyrics || "").slice(0, 4000),
+        liked: Boolean(r.liked),
+        pub: Boolean(r.pub),
+        cover: String(r.cover || "").slice(0, 2000),
+        audio: /^https?:\/\//i.test(String(r.audio || "")) ? String(r.audio).slice(0, 2000) : String(r.audio || "").startsWith("data:audio") ? String(r.audio).slice(0, 300000) : "",
+        video: String(r.video || "").slice(0, 2000),
+      };
     }),
     ideas: list(raw.ideas, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as Idea;
       return {
         id: String(r.id || id()).slice(0, 40),
-        title: String(r.title || "").slice(0, 80),
+        title: String(r.title || "").slice(0, 160),
         note: String(r.note || "").slice(0, 500),
-        approved: Boolean(r.approved),
+        approved: Boolean(r.approved) || ["approved", "ready", "running", "paused"].includes(String(r.status)),
+        status: ["new", "approved", "ready", "running", "paused", "dropped"].includes(String(r.status)) ? r.status : r.approved ? "approved" : "new",
+        source: String(r.source || "Manual").slice(0, 40),
+        effort: r.effort === "medium" ? "medium" : "low",
+        email: String(r.email || "").slice(0, 120),
+        funding: String(r.funding || "").slice(0, 80),
+        log: String(r.log || "").slice(0, 2000),
+      };
+    }),
+    deals: list(raw.deals, (row) => {
+      if (!row || typeof row !== "object") return null;
+      const r = row as Deal;
+      const client = String(r.client || "").trim().slice(0, 80);
+      if (!client) return null;
+      const amount = Math.round((Number(r.amount) || 0) * 100) / 100;
+      const status = ["lead", "proposed", "active", "paid", "closed"].includes(String(r.status)) ? r.status : "lead";
+      return {
+        id: String(r.id || id()).slice(0, 40),
+        ideaId: String(r.ideaId || "").slice(0, 40),
+        client,
+        email: String(r.email || "").slice(0, 120),
+        phone: fmtPhone(String(r.phone || "")).slice(0, 20),
+        status,
+        amount: Math.min(1_000_000, Math.max(0, amount)),
+        paid: Boolean(r.paid) || status === "paid",
+        next: String(r.next || "").slice(0, 160),
       };
     }),
     keys: list(raw.keys, (row) => {
@@ -244,6 +382,51 @@ export function sanitizeMemory(input: unknown): Memory {
     }),
     query: String(raw.query || "").slice(0, 120),
     emailHub: hub(raw.emailHub),
+    socialAccounts: list(raw.socialAccounts, (row) => {
+      if (!row || typeof row !== "object") return null;
+      const r = row as SocialAccount;
+      const ids = ["instagram", "facebook", "x", "tiktok", "linkedin", "youtube", "reddit", "snapchat"] as const;
+      if (!ids.includes(r.id)) return null;
+      const history = (Array.isArray(r.history) ? r.history : []).map((point) => Number(point) || 0).filter((point) => point >= 0).slice(-12);
+      return {
+        id: r.id,
+        name: String(r.name || r.id).slice(0, 40),
+        handle: String(r.handle || "").slice(0, 80),
+        bio: String(r.bio || "").slice(0, 240),
+        followers: Math.max(0, Number(r.followers) || 0),
+        following: Math.max(0, Number(r.following) || 0),
+        likes: Math.max(0, Number(r.likes) || 0),
+        comments: Math.max(0, Number(r.comments) || 0),
+        views: Math.max(0, Number(r.views) || 0),
+        connected: Boolean(r.connected),
+        history,
+      };
+    }, "head", 8),
+    socialPosts: list(raw.socialPosts, (row) => {
+      if (!row || typeof row !== "object") return null;
+      const r = row as SocialPost;
+      const ids = ["instagram", "facebook", "x", "tiktok", "linkedin", "youtube", "reddit", "snapchat"] as const;
+      const platforms = (Array.isArray(r.platforms) ? r.platforms : []).filter((item): item is SocialAccount["id"] => ids.includes(item as SocialAccount["id"])).slice(0, 8);
+      const text = String(r.text || "").slice(0, 2000);
+      if (!text) return null;
+      return { id: String(r.id || id()).slice(0, 40), text, platforms, at: String(r.at || "").slice(0, 40), scheduled: String(r.scheduled || "").slice(0, 40), sent: String(r.sent || "").slice(0, 120) };
+    }, "head", 80),
+    stats: list(raw.stats, (row) => {
+      if (!row || typeof row !== "object") return null;
+      const r = row as StatRow;
+      const label = String(r.label || "").slice(0, 60);
+      if (!label) return null;
+      const points = (Array.isArray(r.points) ? r.points : []).map((point) => Number(point) || 0).slice(-14);
+      return { id: String(r.id || id()).slice(0, 40), label, value: Number(r.value) || points.at(-1) || 0, points };
+    }, "head", 24),
+    groups: list(raw.groups, (row) => {
+      if (!row || typeof row !== "object") return null;
+      const r = row as GroupSource;
+      const url = String(r.url || "").trim().slice(0, 240);
+      if (!/^https?:\/\/(www\.)?facebook\.com\/groups\/[^/?#]+/i.test(url)) return null;
+      const slug = url.split("/groups/")[1]?.split(/[/?#]/)[0] || "";
+      return { id: String(r.id || slug).slice(0, 40), label: String(r.label || slug).slice(0, 80), url: url.split("?")[0] };
+    }, "head", 40),
   };
 }
 
@@ -271,14 +454,93 @@ function read(): Memory {
     const next = raw ? sanitizeMemory(JSON.parse(raw)) : seed();
     const vault = readVault();
     if (vault.length) next.vault = vault;
+    if (!next.banner) next.banner = localStorage.getItem(BANNER_KEY) || "";
+    if (!next.logo) next.logo = localStorage.getItem(LOGO_KEY) || "";
     return next;
   } catch {
     return seed();
   }
 }
 
+const CONTACTS_DB = "lifeos-contacts";
+
+function contactDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(CONTACTS_DB, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("rows")) request.result.createObjectStore("rows");
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function loadContactRows(): Promise<Contact[]> {
+  if (typeof indexedDB === "undefined") return [];
+  const database = await contactDb();
+  return new Promise((resolve, reject) => {
+    const request = database.transaction("rows", "readonly").objectStore("rows").get("all");
+    request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result as Contact[] : []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function saveContactRows(rows: Contact[]) {
+  if (typeof indexedDB === "undefined") return;
+  void contactDb().then((database) => new Promise<void>((resolve, reject) => {
+    const tx = database.transaction("rows", "readwrite");
+    tx.objectStore("rows").put(rows, "all");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  })).catch(() => undefined);
+}
+
+const MEDIA_DB = "lifeos-media";
+
+function mediaDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(MEDIA_DB, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("rows")) request.result.createObjectStore("rows");
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function loadMediaRows(): Promise<Entry[]> {
+  if (typeof indexedDB === "undefined") return [];
+  const database = await mediaDb();
+  return new Promise((resolve, reject) => {
+    const request = database.transaction("rows", "readonly").objectStore("rows").get("all");
+    request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result as Entry[] : []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function saveMediaRows(rows: Entry[]) {
+  if (typeof indexedDB === "undefined") return;
+  void mediaDb().then((database) => new Promise<void>((resolve, reject) => {
+    const tx = database.transaction("rows", "readwrite");
+    tx.objectStore("rows").put(rows, "all");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  })).catch(() => undefined);
+}
+
+function mergeMedia(local: Entry[], stored: Entry[]) {
+  const map = new Map<string, Entry>();
+  for (const row of stored) map.set(row.id, row);
+  for (const row of local) {
+    const previous = map.get(row.id);
+    if (!previous || row.body.length >= previous.body.length) map.set(row.id, row);
+  }
+  return [...map.values()];
+}
+
 let memory = seed();
 let statusText = "This browser";
+if (typeof window !== "undefined") window.addEventListener("pagehide", () => { saveContactRows(memory.contacts); saveMediaRows(memory.media); });
 let hydrated = false;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
 const listeners = new Set<() => void>();
@@ -303,11 +565,24 @@ export function bootMemory() {
 }
 
 function rememberLocal() {
-  localStorage.setItem(VAULT_KEY, JSON.stringify(memory.vault));
-  localStorage.setItem(KEY, JSON.stringify(memory));
-  const backup = { ...memory, keys: [], vault: [] };
-  localStorage.setItem(BACKUP, JSON.stringify(backup));
-  localStorage.setItem(AT, String(Date.now()));
+  saveContactRows(memory.contacts);
+  saveMediaRows(memory.media);
+  try { if (memory.banner) localStorage.setItem(BANNER_KEY, memory.banner); } catch { /* banner stays in the cloud copy */ }
+  try { if (memory.logo) localStorage.setItem(LOGO_KEY, memory.logo); } catch { /* logo stays in the cloud copy */ }
+  const board = {
+    ...memory,
+    contacts: [] as Contact[],
+    media: memory.media.map((row) => ({ ...row, body: row.body.startsWith("data:") ? "" : row.body.slice(0, 2000) })),
+  };
+  try {
+    localStorage.setItem(VAULT_KEY, JSON.stringify(memory.vault));
+    localStorage.setItem(KEY, JSON.stringify(board));
+    const backup = { ...board, keys: [], vault: [] };
+    localStorage.setItem(BACKUP, JSON.stringify(backup));
+    localStorage.setItem(AT, String(Date.now()));
+  } catch {
+    statusText = "Contacts saved. The rest of the board did not fit.";
+  }
 }
 
 function schedulePush() {
@@ -323,12 +598,22 @@ function schedulePush() {
 async function pushNow() {
   try {
     const { pushBoard } = await import("@/lib/lifeos/sync");
+    const { pushCloud, pushBrand } = await import("@/lib/lifeos/board-store");
     const copy = { ...memory, keys: [], vault: [] };
     const result = await pushBoard({ data: { device: deviceId(), payload: JSON.stringify(copy) } });
+    await pushCloud(deviceId(), copy).catch(() => false);
+    await pushBrand(memory.banner, memory.logo).catch(() => false);
     if (result.at) localStorage.setItem(AT, String(result.at));
     statusText = "Synced";
   } catch {
-    statusText = "Saved on this browser";
+    try {
+      const { pushCloud, pushBrand } = await import("@/lib/lifeos/board-store");
+      const ok = await pushCloud(deviceId(), { ...memory, keys: [], vault: [] });
+      await pushBrand(memory.banner, memory.logo).catch(() => false);
+      statusText = ok ? "Synced" : "Saved on this browser";
+    } catch {
+      statusText = "Saved on this browser";
+    }
   }
   emit();
 }
@@ -336,13 +621,25 @@ async function pushNow() {
 export async function hydrateMemory() {
   bootMemory();
   try {
+    const stored = sanitizeMemory({ contacts: await loadContactRows() }).contacts;
+    if (stored.length) memory = { ...memory, contacts: unionById(memory.contacts, stored) };
+    const media = mergeMedia(memory.media, sanitizeMemory({ media: await loadMediaRows() }).media);
+    if (media.length) memory = { ...memory, media };
+  } catch { /* indexedDB unavailable */ }
+  try {
     const { pullBoard } = await import("@/lib/lifeos/sync");
-    const remote = await pullBoard({ data: deviceId() });
+    const { pullCloud, pullBrand } = await import("@/lib/lifeos/board-store");
+    const remote = await pullBoard({ data: deviceId() }).catch(() => null);
+    const cloud = await pullCloud(deviceId()).catch(() => null);
+    const brand = await pullBrand().catch(() => null);
     const localAt = Number(localStorage.getItem(AT) || 0);
-    if (remote?.payload && remote.at > localAt) {
-      const incoming = sanitizeMemory(JSON.parse(remote.payload));
-      incoming.logo = memory.logo || incoming.logo;
-      incoming.banner = memory.banner || incoming.banner;
+    const cloudAt = cloud?.at || 0;
+    const remoteAt = remote?.at || 0;
+    const newest = cloudAt > remoteAt ? { payload: JSON.stringify(cloud?.doc), at: cloudAt } : remote;
+    if (newest?.payload && newest.at > localAt) {
+      const incoming = sanitizeMemory(JSON.parse(newest.payload));
+      incoming.logo = memory.logo || incoming.logo || brand?.logo || "";
+      incoming.banner = memory.banner || incoming.banner || brand?.banner || "";
       incoming.notes = unionById(memory.notes, incoming.notes);
       incoming.tasks = unionById(memory.tasks, incoming.tasks);
       incoming.leads = unionById(memory.leads, incoming.leads);
@@ -378,6 +675,9 @@ export async function hydrateMemory() {
       rememberLocal();
       statusText = "Synced";
     } else {
+      if (brand?.banner && !memory.banner) memory = { ...memory, banner: brand.banner };
+      if (brand?.logo && !memory.logo) memory = { ...memory, logo: brand.logo };
+      if ((brand?.banner && !localStorage.getItem(BANNER_KEY)) || (brand?.logo && !localStorage.getItem(LOGO_KEY))) rememberLocal();
       statusText = "Saved on this browser";
     }
   } catch {

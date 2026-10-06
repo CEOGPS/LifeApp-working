@@ -1,12 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { Area, AreaChart, Bar, BarChart, Cell, LabelList, ResponsiveContainer, XAxis } from "recharts";
-import { band, insights, lifeHacks, moneyTips } from "@/lib/lifeos/board";
+import { band, insights, LIFE_HACKS, lifeHacks, moneyTips } from "@/lib/lifeos/board";
 import { newId, useMemory, type Memory } from "./memory";
 import { WiredPanel } from "./panels";
 import { WeatherClock } from "./weather";
 import { ErebusDock } from "./dock";
-import { MonthCalendar } from "./calendar";
+import { MonthCalendar, syncGoogleEvent } from "./calendar";
 import { fmtMoney, fmtTime } from "./format";
+import { YoutubeBox } from "./media-desk";
+import { playCut, stopCut, togglePause, usePlayer } from "./player";
 import { NAV } from "./shell";
 
 function PageHead({ title }: { title: string }) {
@@ -21,11 +24,12 @@ function PageHead({ title }: { title: string }) {
   );
 }
 
-function Card({ title, children }: { title: string; children: ReactNode }) {
+function Card({ title, to, children }: { title: string; to?: string; children: ReactNode }) {
   return (
     <section className="module-card flex flex-col">
       <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
         <h2 className="module-title">{title}</h2>
+        {to ? <Link to="/panel/$slug" params={{ slug: to }} className="ml-auto text-sm text-blue-2">Open</Link> : null}
       </div>
       <div className="p-4">{children}</div>
     </section>
@@ -57,11 +61,51 @@ function Field({
   );
 }
 
+function QuickLinks({
+  links,
+  onAdd,
+  onRemove,
+}: {
+  links: { id: string; label: string; href: string }[];
+  onAdd: (label: string, href: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  return (
+    <>
+      <form
+        className="grid gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const label = name.trim();
+          let href = url.trim();
+          if (!label || !href) return;
+          if (!/^https?:\/\//i.test(href)) href = `https://${href}`;
+          onAdd(label.slice(0, 60), href);
+          setName("");
+          setUrl("");
+        }}
+      >
+        <input className="min-h-11 rounded-lg border border-line bg-ink px-3 text-sm" style={{ caretColor: "transparent" }} placeholder="Name" value={name} onChange={(event) => setName(event.target.value)} />
+        <input className="min-h-11 rounded-lg border border-line bg-ink px-3 text-sm" style={{ caretColor: "transparent" }} placeholder="URL" value={url} onChange={(event) => setUrl(event.target.value)} />
+        <button type="submit" className="min-h-11 bg-blue text-sm">Save</button>
+      </form>
+      {links.map((row) => (
+        <div key={row.id} className="mt-2 flex items-center gap-2">
+          <a className="min-h-11 flex-1 truncate text-sm text-blue-2" href={row.href} target="_blank" rel="noreferrer">{row.label}</a>
+          <button type="button" className="link-remove" onClick={() => onRemove(row.id)}>Remove</button>
+        </div>
+      ))}
+    </>
+  );
+}
+
 function Add({ label, onAdd }: { label: string; onAdd: (value: string) => void }) {
   const [value, setValue] = useState("");
   return (
     <form
-      className="flex gap-2"
+      className="flex items-center gap-2"
       onSubmit={(event) => {
         event.preventDefault();
         const next = value.trim();
@@ -149,13 +193,13 @@ function GlowArea({ rows, color }: { rows: { name: string; value: number }[]; co
 
 export function Dashboard() {
   const { data, update } = useMemory();
+  const playing = usePlayer();
   const [now, setNow] = useState("Atlanta");
   const [weather, setWeather] = useState("Atlanta");
   const [draft, setDraft] = useState("");
   const [live, setLive] = useState("Calendar uses the Google connection when this app is opened from Grok.");
   const [noteTitle, setNoteTitle] = useState("");
   const [noteBody, setNoteBody] = useState("");
-  const [video, setVideo] = useState("atlanta skyline");
   const [billName, setBillName] = useState("");
   const [bill, setBill] = useState("");
   const money = data.accounts.map((row) => ({ name: row.name, value: row.balance }));
@@ -197,16 +241,19 @@ export function Dashboard() {
   return (
     <div className="grid gap-4">
       <PageHead title="Cagednreality" />
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem_minmax(0,1fr)]">
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem_minmax(0,1.15fr)]">
       <div className="order-2 flex flex-col gap-4 xl:order-1">
         <Card title="Time & Weather">
           <WeatherClock />
         </Card>
         <Card title="Quick Links">
-          <Add label="https:// link" onAdd={(href) => { if (!/^https?:\/\//i.test(href)) return; update((prev) => ({ ...prev, links: [{ id: newId(), label: href.replace(/^https?:\/\//, "").slice(0, 40), href }, ...prev.links] })); }} />
-          {data.links.map((row) => <a key={row.id} className="mt-2 block min-h-11 text-sm text-blue-2" href={row.href} target="_blank" rel="noreferrer">{row.label}</a>)}
+          <QuickLinks
+            links={data.links.filter((row) => !/^(Listing|Spotify|Image) ·/.test(row.label))}
+            onAdd={(label, href) => update((prev) => ({ ...prev, links: [{ id: newId(), label, href }, ...prev.links] }))}
+            onRemove={(id) => update((prev) => ({ ...prev, links: prev.links.filter((row) => row.id !== id) }))}
+          />
         </Card>
-        <Card title="Notes">
+        <Card title="Notes" to="office">
           <div className="mb-2 flex flex-col gap-1">
             {data.notes.map((row) => (
               <button key={row.id} type="button" className="min-h-11 truncate text-left text-sm text-blue-2" onClick={() => { setNoteTitle(row.title); setNoteBody(row.body); }}>{row.title || "Untitled"}</button>
@@ -218,17 +265,23 @@ export function Dashboard() {
             <button type="submit" className="min-h-11 bg-blue text-sm">Save note</button>
           </form>
         </Card>
-        <Card title="Tasks">
+        <Card title="Tasks" to="projects">
           <Add label="New task" onAdd={(title) => update((prev) => ({ ...prev, tasks: [{ id: newId(), title, done: false }, ...prev.tasks] }))} />
           <ul className="mt-2">{data.tasks.map((row) => (
             <li key={row.id}><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={row.done} onChange={() => update((prev) => ({ ...prev, tasks: prev.tasks.map((item) => item.id === row.id ? { ...item, done: !item.done } : item) }))} /><span className={row.done ? "text-muted line-through" : ""}>{row.title}</span></label></li>
           ))}</ul>
         </Card>
-        <Card title="Calendar">
+        <Card title="Calendar" to="calendar">
           <p className="mb-2 text-xs text-muted">{live}</p>
-          <MonthCalendar events={data.events} onAdd={(date, day, title) => update((prev) => ({ ...prev, events: [...prev.events, { id: newId(), day, date, title }] }))} />
+          <MonthCalendar events={data.events} onAdd={(date, day, title, start) => {
+            const id = newId();
+            update((prev) => ({ ...prev, events: [...prev.events, { id, day, date, title, start }] }));
+            void syncGoogleEvent("create", { date, title, start, end: "10:00" }).then((result) => {
+              if (result.ok && result.id) update((prev) => ({ ...prev, events: prev.events.map((item) => item.id === id ? { ...item, id: result.id } : item) }));
+            });
+          }} />
         </Card>
-        <Card title="Budget & Expenses">
+        <Card title="Budget & Expenses" to="finance">
           <GlowArea rows={budget.map((row) => ({ name: row.name, value: Math.abs(row.value) }))} color="rgba(52, 211, 153, 0.55)" />
           {data.expenses.map((row) => (
             <button key={row.id} type="button" className="flex w-full items-center justify-between gap-2 text-sm" onClick={() => update((prev) => ({ ...prev, expenses: prev.expenses.map((item) => item.id === row.id ? { ...item, paid: !item.paid } : item) }))}>
@@ -242,29 +295,31 @@ export function Dashboard() {
               <span className={row.paid ? "text-green" : "glow-amber"}>{row.paid ? "Paid" : "Due"}</span>
             </button>
           ))}
-          <form className="mt-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const amount = Number(bill); if (!billName.trim() || !Number.isFinite(amount)) return; update((prev) => ({ ...prev, expenses: [{ id: newId(), name: billName.trim(), amount, paid: false, fixed: true }, ...prev.expenses] })); setBillName(""); setBill(""); }}>
+          <form className="mt-3 flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); const amount = Number(bill); if (!billName.trim() || !Number.isFinite(amount)) return; update((prev) => ({ ...prev, expenses: [{ id: newId(), name: billName.trim(), amount, paid: false, fixed: true }, ...prev.expenses] })); setBillName(""); setBill(""); }}>
             <input className="min-h-11 flex-1 rounded-lg border border-line bg-ink px-3 text-sm" style={{ caretColor: "transparent" }} placeholder="Bill" value={billName} onChange={(event) => setBillName(event.target.value)} />
             <input className="min-h-11 w-24 rounded-lg border border-line bg-ink px-3 text-sm" style={{ caretColor: "transparent" }} placeholder="Amount" value={bill} onChange={(event) => setBill(event.target.value)} />
             <button type="submit" className="min-h-11 bg-blue px-3 text-sm">Add</button>
           </form>
         </Card>
-        <Card title="AI Money Tips">{moneyTips(data).map((tip) => <p key={tip} className="text-sm">{tip}</p>)}</Card>
-        <Card title="Life Hacks">{lifeHacks(data).map((tip) => <p key={tip} className="text-sm">{tip}</p>)}</Card>
-        <Card title="Leads">
+        <Card title="AI Money Tips" to="finance">{moneyTips(data).map((tip) => <p key={tip} className="text-sm">{tip}</p>)}</Card>
+        <Card title="Life Hacks">{[...lifeHacks(data), ...LIFE_HACKS.map((row) => `${row.title}. ${row.body}`)].map((tip) => <p key={tip} className="text-sm">{tip}</p>)}</Card>
+        <Card title="Leads" to="leads">
           {data.leads.map((row) => <p key={row.id} className="min-h-11 text-sm">{row.name} <span className="text-ember">{row.status}</span></p>)}
         </Card>
-        <Card title="Social Analytics">
-          {data.social.map((row) => <p key={row.id} className="min-h-11 text-sm">{row.label} <span className="text-muted">{row.points.at(-1)}</span></p>)}
+        <Card title="Social Analytics" to="social">
+          {(data.socialAccounts.length ? data.socialAccounts : []).map((row) => (
+            <p key={row.id} className="min-h-11 text-sm">{row.name} <span className="text-muted">{row.followers.toLocaleString()} followers{row.views ? ` · ${row.views.toLocaleString()} views` : ""}</span></p>
+          ))}
+          {data.socialPosts[0] ? <p className="text-sm text-muted">{data.socialPosts[0].sent ? `Sent · ${data.socialPosts[0].sent}` : "Draft"} · {data.socialPosts[0].text.slice(0, 80)}</p> : null}
+          {!data.socialAccounts.length ? data.social.map((row) => <p key={row.id} className="min-h-11 text-sm">{row.label} <span className="text-muted">{row.points.at(-1)}</span></p>) : null}
         </Card>
       </div>
 
       <div className="order-1 xl:sticky xl:top-2 xl:order-2 xl:self-start">
-        <Card title="Erebus">
-          <ErebusDock data={data} update={update} />
-        </Card>
+        <ErebusDock data={data} update={update} />
       </div>
 
-      <div className="order-3 flex flex-col gap-4">
+      <div className="order-3 flex min-w-0 flex-col gap-4">
         <Card title="Notifications">
           {data.notifs.map((row) => (
             <button key={row.id} type="button" className="flex min-h-11 w-full items-start gap-2 py-1 text-left text-sm" onClick={() => update((prev) => ({ ...prev, notifs: prev.notifs.map((item) => item.id === row.id ? { ...item, seen: true } : item) }))}>
@@ -274,14 +329,23 @@ export function Dashboard() {
           ))}
         </Card>
         <Card title="YouTube Player">
-          <Add label="Search YouTube" onAdd={setVideo} />
-          <iframe title="Video" className="mt-3 aspect-video w-full rounded-xl" src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(video)}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+          <YoutubeBox apiKey={data.keys.find((row) => row.name === "YouTube")?.value || ""} />
         </Card>
-        <Card title="AI Insights">{insights(data).map((tip) => <p key={tip} className="text-sm">{tip}</p>)}</Card>
-        <Card title="Music Player">
-          {data.tracks[0]?.url ? <audio className="w-full" controls src={data.tracks[0].url} /> : <p className="text-sm text-muted">Add a track on the Music page.</p>}
+        <Card title="AI Insights" to="finance">{insights(data).map((tip) => <p key={tip} className="text-sm">{tip}</p>)}</Card>
+        <Card title="Music Player" to="music">
+          <p className="truncate text-sm">{playing.track?.title || data.tracks[0]?.title || "Nothing playing"}</p>
+          <p className="truncate text-[11px] text-white/40">{playing.track?.artist || data.tracks[0]?.artist || "Music keeps playing when you leave this page."}</p>
+          <div className="mt-2 flex gap-3">
+            <button type="button" className="quiet is-on" onClick={() => {
+              if (playing.track) { togglePause(); return; }
+              const row = data.tracks.find((item) => item.url || item.page);
+              if (!row) return;
+              playCut({ id: row.id, title: row.title, artist: row.artist, album: row.album, url: row.url, page: row.page, art: row.art }, data.tracks.map((item) => ({ id: item.id, title: item.title, artist: item.artist, album: item.album, url: item.url, page: item.page, art: item.art })));
+            }}>{playing.track && !playing.paused ? "Pause" : "Play"}</button>
+            {playing.track ? <button type="button" className="link-remove" onClick={stopCut}>Stop</button> : null}
+          </div>
         </Card>
-        <Card title="Financial Stats">
+        <Card title="Financial Stats" to="finance">
           <GlowBars rows={money} />
           {data.accounts.map((row) => (
             <label key={row.id} className="mt-2 flex items-center justify-between gap-2 text-sm">
@@ -295,7 +359,7 @@ export function Dashboard() {
           ))}
           <div className="mt-2"><Add label="New account" onAdd={(name) => update((prev) => ({ ...prev, accounts: [...prev.accounts, { id: newId(), name, balance: 0, prior: 0 }] }))} /></div>
         </Card>
-        <Card title="ROI & Volume">
+        <Card title="ROI & Volume" to="finance">
           <GlowBars rows={data.products.map((row) => ({ name: row.name, value: row.revenue - row.cost }))} />
           {data.products.map((row) => (
             <div key={row.id} className="mt-2 grid grid-cols-[1fr_5rem_5rem] items-center gap-2 text-sm">
@@ -314,7 +378,7 @@ export function Dashboard() {
           ))}
           <div className="mt-2"><Add label="New product" onAdd={(name) => update((prev) => ({ ...prev, products: [...prev.products, { id: newId(), name, cost: 0, revenue: 0 }] }))} /></div>
         </Card>
-        <Card title="Credit Scores">
+        <Card title="Credit Scores" to="finance">
           <div className="mb-3 grid grid-cols-2 gap-2">
             <label className="text-sm text-muted">FICO
               <input className="mt-1 w-full rounded-full border border-line bg-ink px-3 py-1 text-sm text-fg" style={{ caretColor: "transparent" }} value={data.fico} onChange={(event) => { const fico = Number(event.target.value); if (Number.isFinite(fico)) update((prev) => ({ ...prev, fico })); }} />
@@ -333,21 +397,26 @@ export function Dashboard() {
             ))}
           </div>
         </Card>
-        <Card title="Marketing & Web Analytics">
-          {data.marketing.map((row) => (
+        <Card title="Marketing & Web Analytics" to="analytics">
+          {data.stats.length ? data.stats.map((row) => (
+            <div key={row.id} className="mb-3">
+              <p className="text-sm">{row.label} <span className="text-muted">{row.value.toLocaleString()}</span></p>
+              <GlowArea rows={(row.points.length ? row.points : [row.value]).map((value, index) => ({ name: String(index + 1), value }))} color="rgba(176, 107, 255, 0.55)" />
+            </div>
+          )) : data.marketing.map((row) => (
             <div key={row.id} className="mb-3">
               <p className="text-sm">{row.label}</p>
               <GlowArea rows={row.points.map((value, index) => ({ name: String(index + 1), value }))} color="rgba(176, 107, 255, 0.55)" />
             </div>
           ))}
         </Card>
-        <Card title="Browser">
+        <Card title="Browser" to="omnisearch">
           <Add label="Search the web" onAdd={(query) => update((prev) => ({ ...prev, query }))} />
           {data.query ? <a className="mt-2 inline-flex min-h-11 items-center text-sm text-blue-2" href={`https://duckduckgo.com/?q=${encodeURIComponent(data.query)}`} target="_blank" rel="noreferrer">Open {data.query}</a> : <p className="text-sm text-muted">Search opens in the browser.</p>}
         </Card>
       </div>
     </div>
-    <Card title="AI Task Monitor">
+    <Card title="AI Task Monitor" to="ai-hub">
       {data.jobs.map((row) => (
         <button key={row.id} type="button" className="flex min-h-11 w-full items-center justify-between gap-2 text-left text-sm" onClick={() => update((prev) => ({ ...prev, jobs: prev.jobs.map((item) => item.id === row.id ? { ...item, active: !item.active } : item) }))}>
           <span>{row.agent}: {row.task}</span>

@@ -1,12 +1,177 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { adoptDevice, deviceId, newId, sanitizeMemory, type Contact, type Memory } from "./memory";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { newId, type Contact, type Memory } from "./memory";
 import { moneyTips } from "@/lib/lifeos/board";
-import { MonthCalendar } from "./calendar";
+import { CalendarDesk } from "./calendar";
 import { EmailDesk } from "./email";
-import { fmtDate, fmtMoney, fmtPhone } from "./format";
-import { CrmDesk, HubDesk, JournalDesk, LegalDesk, MapsDesk, MediaDesk, MessagesDesk, MusicDesk, OfficeDesk, ProjectsDesk, SearchDesk, SimDesk, TerminalDesk, VaultDesk } from "./suite";
+import { fmtDate, fmtDateInput, fmtMoney, fmtPhone, fmtTime } from "./format";
+import { Area, AreaChart, Bar, BarChart, Cell, LabelList, ResponsiveContainer, XAxis } from "recharts";
+import { HubDesk, JournalDesk, MapsDesk, MediaDesk, MessagesDesk, MusicDesk, OfficeDesk, ProjectsDesk, SearchDesk, SimDesk, VaultDesk } from "./suite";
+import { SocialDesk } from "./social-desk";
+import { CreatorDesk } from "./creator-desk";
+import { EinsteinDesk } from "./einstein-desk";
+import { IntegrationsDesk } from "./integrations-desk";
+import { FinanceDesk } from "./finance-desk";
+import { MarketingDesk } from "./marketing-desk";
+import { AnalyticsDesk } from "./analytics-desk";
+import { SettingsDesk } from "./settings-desk";
+import { pushNotice } from "./app-settings";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
+
+const SOURCES = [
+  { id: "nextdoor", label: "Nextdoor" },
+  { id: "facebook", label: "Facebook groups" },
+  { id: "craigslist", label: "Craigslist" },
+  { id: "reddit", label: "Reddit" },
+  { id: "offerup", label: "OfferUp" },
+];
+const DEFAULT_GROUPS = [
+  { id: "connectionsllc", label: "Connections LLC", url: "https://www.facebook.com/groups/connectionsllc" },
+  { id: "2021408511473331", label: "2021408511473331", url: "https://www.facebook.com/groups/2021408511473331" },
+  { id: "537846923790610", label: "537846923790610", url: "https://www.facebook.com/groups/537846923790610" },
+  { id: "536595090120155", label: "536595090120155", url: "https://www.facebook.com/groups/536595090120155" },
+  { id: "958327068681121", label: "958327068681121", url: "https://www.facebook.com/groups/958327068681121" },
+];
+
+function LeadsDesk({ data, update }: { data: Memory; update: Update }) {
+  const [service, setService] = useState("");
+  const [city, setCity] = useState("");
+  const [sources, setSources] = useState<string[]>(SOURCES.map((row) => row.id));
+  const [groupUrl, setGroupUrl] = useState("");
+  const [groupName, setGroupName] = useState("");
+  const [posts, setPosts] = useState<{ title: string; url: string; snippet: string; source: string }[]>([]);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [who, setWho] = useState("");
+  const [referral, setReferral] = useState("");
+
+  useEffect(() => {
+    if (data.groups.length) return;
+    update((prev) => prev.groups.length ? prev : { ...prev, groups: DEFAULT_GROUPS });
+  }, [data.groups.length, update]);
+
+  async function search() {
+    if (!service.trim()) { setNote("Type the service."); return; }
+    setBusy(true);
+    setNote("Searching public posts…");
+    const { findCommunity } = await import("@/lib/lifeos/sync");
+    const result = await findCommunity({ data: { service, city, sources, groups: data.groups } });
+    setPosts(result.posts);
+    setNote(result.note || `${result.posts.length} public posts.`);
+    setBusy(false);
+  }
+
+  function saveLead(row: { title: string; url: string; snippet: string; source: string }) {
+    update((prev) => prev.leads.some((item) => item.url === row.url) ? prev : {
+      ...prev,
+      leads: [{ id: newId(), name: row.title, source: row.source, status: "New", url: row.url, note: row.snippet }, ...prev.leads],
+    });
+    pushNotice("leads", row.source, row.title);
+    setNote("Saved to leads.");
+  }
+
+  function saveReferral(event: FormEvent) {
+    event.preventDefault();
+    if (!name.trim()) return;
+    const line = [fmtPhone(phone), who.trim() ? `Referred by ${who.trim()}` : "", referral.trim()].filter(Boolean).join(" · ");
+    update((prev) => ({ ...prev, leads: [{ id: newId(), name: name.trim(), source: "Referral", status: "New", url: "", note: line }, ...prev.leads] }));
+    pushNotice("leads", "Referral", name.trim());
+    setName("");
+    setPhone("");
+    setWho("");
+    setReferral("");
+    setNote("Referral saved.");
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div>
+        <h1 className="text-2xl">Leads</h1>
+        <p className="text-sm text-white/50">Public posts from people asking for a service. Leave the city blank for a national Nextdoor and Craigslist search. Private group posts stay behind Facebook’s login.</p>
+      </div>
+      <section className="module-card p-4">
+        <div className="flex flex-wrap gap-2">
+          <input className="h-9 min-w-40 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" value={service} placeholder="Service, such as plumber or marketing" onChange={(event) => setService(event.target.value)} />
+          <input className="h-9 w-44 rounded-full border border-line bg-black/40 px-3 text-sm" value={city} placeholder="City, blank = national" onChange={(event) => setCity(event.target.value)} />
+          <button type="button" className="bg-blue" disabled={busy} onClick={() => void search()}>{busy ? "Searching" : "Search"}</button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-3">
+          {SOURCES.map((row) => (
+            <button key={row.id} type="button" className={`quiet ${sources.includes(row.id) ? "is-on" : ""}`} onClick={() => setSources((prev) => prev.includes(row.id) ? prev.filter((id) => id !== row.id) : [...prev, row.id])}>{row.label}</button>
+          ))}
+        </div>
+        {note ? <p className="mt-3 text-sm text-white/50">{note}</p> : null}
+        <div className="mt-3 grid gap-3">
+          {posts.map((row) => (
+            <article key={row.url} className="border-b border-white/10 pb-3">
+              <p className="text-sm">{row.title}</p>
+              <p className="text-[11px] text-white/40">{row.source}</p>
+              {row.snippet ? <p className="mt-1 text-sm text-white/60">{row.snippet}</p> : null}
+              <div className="mt-2 flex gap-4">
+                <a className="text-sm text-blue-2" href={row.url} target="_blank" rel="noreferrer">Open</a>
+                <button type="button" className="link-add" onClick={() => saveLead(row)}>Save</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="module-card p-4">
+        <p className="module-title">Facebook groups</p>
+        <ul className="mt-3">
+          {data.groups.map((row) => (
+            <li key={row.id} className="flex items-center justify-between gap-3 border-b border-white/10 py-2 text-sm">
+              <a className="truncate text-blue-2" href={row.url} target="_blank" rel="noreferrer">{row.label}</a>
+              <button type="button" className="link-remove" onClick={() => update((prev) => ({ ...prev, groups: prev.groups.filter((item) => item.id !== row.id) }))}>Remove</button>
+            </li>
+          ))}
+        </ul>
+        <form className="mt-3 flex flex-wrap gap-2" onSubmit={(event) => {
+          event.preventDefault();
+          const url = groupUrl.trim().split("?")[0];
+          const slug = url.split("/groups/")[1]?.split(/[/?#]/)[0] || "";
+          if (!/^https?:\/\/(www\.)?facebook\.com\/groups\//i.test(url) || !slug) { setNote("Paste a facebook.com/groups link."); return; }
+          update((prev) => prev.groups.some((item) => item.url.includes(`/groups/${slug}`)) ? prev : { ...prev, groups: [...prev.groups, { id: slug.slice(0, 40), label: groupName.trim() || slug, url }] });
+          setGroupUrl("");
+          setGroupName("");
+        }}>
+          <input className="h-9 min-w-40 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" value={groupName} placeholder="Group name" onChange={(event) => setGroupName(event.target.value)} />
+          <input className="h-9 min-w-56 flex-[2] rounded-full border border-line bg-black/40 px-3 text-sm" value={groupUrl} placeholder="https://www.facebook.com/groups/…" onChange={(event) => setGroupUrl(event.target.value)} />
+          <button type="submit" className="bg-blue">Add group</button>
+        </form>
+      </section>
+      <section className="module-card p-4">
+        <p className="module-title">Referral</p>
+        <form className="mt-3 grid gap-2 sm:grid-cols-2" onSubmit={saveReferral}>
+          <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-sm" value={name} placeholder="Name" onChange={(event) => setName(event.target.value)} />
+          <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-sm" value={phone} placeholder="Phone" onChange={(event) => setPhone(event.target.value)} />
+          <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-sm" value={who} placeholder="Referred by" onChange={(event) => setWho(event.target.value)} />
+          <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-sm" value={referral} placeholder="What they need" onChange={(event) => setReferral(event.target.value)} />
+          <button type="submit" className="bg-blue sm:col-span-2 sm:w-fit">Save referral</button>
+        </form>
+      </section>
+      <section className="module-card p-4">
+        <p className="module-title">Saved</p>
+        <ul className="mt-3">
+          {data.leads.map((row) => (
+            <li key={row.id} className="border-b border-white/10 py-2 text-sm">
+              <span>{row.name}</span>
+              <span className="ml-2 text-white/40">{row.source}</span>
+              {row.note ? <span className="mt-1 block text-white/50">{row.note}</span> : null}
+              {row.url ? <a className="text-blue-2" href={row.url} target="_blank" rel="noreferrer">Open</a> : null}
+              <span className="ml-3">
+                {["New", "Warm", "Closed"].map((status) => (
+                  <button key={status} type="button" className={`ml-2 ${row.status === status ? "text-green" : "text-white/40"}`} onClick={() => update((prev) => ({ ...prev, leads: prev.leads.map((item) => item.id === row.id ? { ...item, status } : item) }))}>{status}</button>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -25,9 +190,9 @@ function Field({ label, value, onChange, area }: { label: string; value: string;
     <label className="block text-sm text-muted">
       {label}
       {area ? (
-        <textarea className={`${className} min-h-24`} style={{ caretColor: "transparent" }} value={value} onChange={(event) => onChange(event.target.value)} />
+        <textarea className={`${className} min-h-24`} value={value} onChange={(event) => onChange(event.target.value)} />
       ) : (
-        <input className={className} style={{ caretColor: "transparent" }} value={value} onChange={(event) => onChange(event.target.value)} />
+        <input className={className} value={value} onChange={(event) => onChange(event.target.value)} />
       )}
     </label>
   );
@@ -53,91 +218,541 @@ function people(kind: "personal" | "crm", data: Memory, update: Update) {
   };
 }
 
+function splitCsv(line: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (quoted) {
+      if (char === '"') {
+        if (line[index + 1] === '"') {
+          current += '"';
+          index += 1;
+        } else quoted = false;
+      } else current += char;
+    } else if (char === '"') quoted = true;
+    else if (char === ",") {
+      cells.push(current.trim());
+      current = "";
+    } else current += char;
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function parts(value: string) {
+  return value.split("|").map((part) => part.trim()).filter(Boolean);
+}
+
+function values(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return input.map((item) => {
+    if (typeof item === "string") return item.trim();
+    if (item && typeof item === "object") {
+      const row = item as { value?: unknown; platform?: unknown };
+      const value = String(row.value || "").trim();
+      const platform = String(row.platform || "").trim();
+      return platform && value ? `${platform}: ${value}` : value;
+    }
+    return "";
+  }).filter(Boolean);
+}
+
+function readMeta(raw: string): Record<string, unknown> {
+  let text = raw.trim();
+  if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1).replace(/""/g, '"');
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start >= 0 && end > start) text = text.slice(start, end + 1);
+  if (!text.startsWith("{")) return {};
+  try {
+    let parsed = JSON.parse(text) as unknown;
+    if (typeof parsed === "string") parsed = JSON.parse(parsed) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function dig(value: unknown, keys: string[], depth = 0): string[] {
+  if (depth > 5 || value == null) return [];
+  if (Array.isArray(value)) return value.flatMap((item) => dig(item, keys, depth + 1));
+  if (typeof value !== "object") return [];
+  const found: string[] = [];
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    const norm = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (keys.includes(norm)) {
+      if (typeof child === "string" || typeof child === "number") found.push(String(child));
+      else {
+        const listed = values(Array.isArray(child) ? child : []);
+        found.push(...(listed.length ? listed : dig(child, keys, depth + 1)));
+      }
+    } else found.push(...dig(child, keys, depth + 1));
+  }
+  return found.map((item) => item.trim()).filter(Boolean);
+}
+
+function jsonBits(raw: string, key: string) {
+  return [...raw.matchAll(new RegExp(`"${key}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, "gi"))].map((match) => match[1].replace(/\\"/g, '"').replace(/\\n/g, "\n").trim()).filter(Boolean);
+}
+
 function parseCsv(text: string, kind: "personal" | "crm"): Contact[] {
   const lines = text.split(/\r?\n/).filter((line) => line.trim());
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map((cell) => cell.trim().toLowerCase().replace(/["']/g, ""));
-  const pick = (cells: string[], names: string[]) => {
-    const index = headers.findIndex((header) => names.includes(header));
-    return index >= 0 ? (cells[index] || "").replace(/^"|"$/g, "").trim() : "";
+  const headers = splitCsv(lines[0]).map((cell) => cell.toLowerCase().replace(/[^a-z0-9_]+/g, ""));
+  const gather = (cells: string[], test: (header: string) => boolean) => {
+    const found: string[] = [];
+    headers.forEach((header, index) => {
+      const value = (cells[index] || "").trim();
+      if (test(header) && value) found.push(value);
+    });
+    return found;
   };
-  return lines.slice(1, 201).map((line) => {
-    const cells = line.split(",");
-    const first = pick(cells, ["first_name", "firstname"]);
-    const last = pick(cells, ["last_name", "lastname"]);
-    const named = pick(cells, ["name", "full_name", "fullname"]);
+  return lines.slice(1).map((line) => {
+    let cells = splitCsv(line);
+    const metaIndex = headers.indexOf("metadata");
+    if (metaIndex >= 0 && cells.length > headers.length) {
+      const extra = cells.length - headers.length;
+      cells = [...cells.slice(0, metaIndex), cells.slice(metaIndex, metaIndex + extra + 1).join(","), ...cells.slice(metaIndex + extra + 1)];
+    }
+    const metaRaw = (cells[metaIndex] || "").trim();
+    const meta = readMeta(metaRaw);
+    const emails = [...new Set([
+      ...gather(cells, (header) => header.includes("email")).flatMap(parts),
+      ...dig(meta, ["email", "emails", "emailaddress"]),
+      ...jsonBits(metaRaw, "email"),
+      ...(line.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []),
+    ].map((item) => item.trim()).filter((item) => item.includes("@")))];
+    const phones = [...new Set([
+      ...gather(cells, (header) => header.includes("phone") || header.includes("mobile")).flatMap(parts),
+      ...dig(meta, ["phone", "phones", "phonenumber", "mobile"]),
+      ...jsonBits(metaRaw, "phone"),
+    ].map((item) => fmtPhone(item)).filter((item) => /\d/.test(item)))];
+    const websites = [...new Set([...gather(cells, (header) => header.includes("website") || header === "url").flatMap(parts), ...dig(meta, ["website", "websites", "url"]), ...jsonBits(metaRaw, "website")])];
+    const socials = [...new Set([...gather(cells, (header) => header.includes("social")).flatMap(parts), ...dig(meta, ["social", "socials"])])];
+    const linkedin = gather(cells, (header) => header.includes("linkedin"))[0] || dig(meta, ["linkedin", "linkedinurl"])[0] || "";
+    if (linkedin && !socials.some((item) => item.includes(linkedin))) socials.push(`LinkedIn: ${linkedin}`);
+    const first = gather(cells, (header) => header === "firstname" || header === "first_name" || header === "first")[0] || dig(meta, ["firstname"])[0] || "";
+    const last = gather(cells, (header) => header === "lastname" || header === "last_name" || header === "last")[0] || dig(meta, ["lastname"])[0] || "";
+    const named = gather(cells, (header) => header === "fullname" || header === "name" || header === "contactname" || header === "displayname")[0] || "";
+    const firstName = first || (named.includes(" ") ? named.split(" ").slice(0, -1).join(" ") : named);
+    const lastName = last || (named.includes(" ") ? named.split(" ").slice(-1).join(" ") : "");
+    const company = gather(cells, (header) => header.includes("company") || header.includes("organization"))[0] || dig(meta, ["company", "organization"])[0] || jsonBits(metaRaw, "company")[0] || "";
+    const city = gather(cells, (header) => header === "city" || header.endsWith("city"))[0] || dig(meta, ["city"])[0] || jsonBits(metaRaw, "city")[0] || "";
+    const address = gather(cells, (header) => header === "address" || header === "street" || header.endsWith("street"))[0] || dig(meta, ["address", "street"])[0] || jsonBits(metaRaw, "address")[0] || "";
+    const state = gather(cells, (header) => header === "state" || header.endsWith("region"))[0] || dig(meta, ["state"])[0] || jsonBits(metaRaw, "state")[0] || "";
+    const zip = gather(cells, (header) => header === "zip" || header.includes("postal"))[0] || dig(meta, ["zip", "postal", "postalcode"])[0] || jsonBits(metaRaw, "zip")[0] || "";
+    const note = gather(cells, (header) => header === "notes" || header === "note")[0] || dig(meta, ["notes", "note"])[0] || jsonBits(metaRaw, "notes")[0] || "";
+    const birthday = fmtDateInput(gather(cells, (header) => header.includes("birth"))[0] || dig(meta, ["birthday", "birthdate"])[0] || jsonBits(metaRaw, "birthday")[0] || "");
+    const avatar = gather(cells, (header) => header.includes("avatar") || header.includes("image") || header.includes("photo") || header.includes("picture"))[0] || dig(meta, ["imageupload", "avatar", "photourl", "picture"])[0] || "";
+    const jobTitle = gather(cells, (header) => header === "jobtitle" || header === "job_title" || header === "title")[0] || dig(meta, ["jobtitle", "title"])[0] || "";
     return {
       id: newId(),
-      name: named || `${first} ${last}`.trim(),
-      company: pick(cells, ["company", "organization"]),
-      email: pick(cells, ["email", "e-mail"]),
-      phone: pick(cells, ["phone", "phone_number", "mobile"]),
-      city: pick(cells, ["city", "address"]),
-      avatar: pick(cells, ["avatar", "avatar_url", "image", "photo"]),
-      stage: pick(cells, ["stage", "status"]) || "New",
+      name: `${firstName} ${lastName}`.trim() || emails[0] || phones[0] || "",
+      firstName,
+      lastName,
+      company,
+      email: emails[0] || "",
+      phone: phones[0] || "",
+      city,
+      avatar,
+      stage: gather(cells, (header) => header === "stage" || header === "status")[0] || dig(meta, ["stage"])[0] || "New",
+      deal: (gather(cells, (header) => header === "deal" || header === "value" || header === "amount")[0] || dig(meta, ["value", "deal"])[0] || "").replace(/[^0-9.]/g, ""),
+      note,
+      birthday,
+      address,
+      state,
+      zip,
+      emails,
+      phones,
+      websites,
+      socials,
+      jobTitle,
+      source: gather(cells, (header) => header === "source")[0] || dig(meta, ["source"])[0] || "",
+      tag: gather(cells, (header) => header === "tag")[0] || dig(meta, ["tag"])[0] || "",
       kind,
     };
-  }).filter((row) => row.name);
+  }).filter((row) => row.name || row.email || row.phone);
+}
+
+const PEOPLE_STAGES = ["New", "Contacted", "Qualified", "Proposal", "Won", "Lost"];
+const BLANK = { firstName: "", lastName: "", name: "", company: "", email: "", phone: "", city: "", avatar: "", stage: "New", deal: "", note: "", birthday: "", address: "", state: "", zip: "", emails: [] as string[], phones: [] as string[], websites: [] as string[], socials: [] as string[], jobTitle: "", source: "", tag: "" };
+
+const SOCIALS = ["Instagram", "Facebook", "X", "TikTok", "LinkedIn", "YouTube", "Snapchat", "WhatsApp", "Telegram", "Threads", "Pinterest", "Other"];
+
+function splitSocial(value: string) {
+  const raw = value.trim();
+  if (!raw) return { platform: "Other", handle: "" };
+  const known = SOCIALS.find((item) => item !== "Other" && raw.toLowerCase().startsWith(`${item.toLowerCase()}:`));
+  if (known) return { platform: known, handle: raw.slice(known.length + 1).trim() };
+  const lower = raw.toLowerCase();
+  const hosts: [string, string][] = [["instagram.com", "Instagram"], ["facebook.com", "Facebook"], ["fb.com", "Facebook"], ["twitter.com", "X"], ["x.com", "X"], ["tiktok.com", "TikTok"], ["linkedin.com", "LinkedIn"], ["youtube.com", "YouTube"], ["snapchat.com", "Snapchat"], ["wa.me", "WhatsApp"], ["whatsapp", "WhatsApp"], ["t.me", "Telegram"], ["threads.net", "Threads"], ["pinterest.com", "Pinterest"]];
+  const host = hosts.find(([site]) => lower.includes(site));
+  if (host) return { platform: host[1], handle: raw };
+  const hinted = SOCIALS.find((item) => item !== "Other" && lower.includes(item.toLowerCase()));
+  if (hinted) return { platform: hinted, handle: raw.replace(/^[^:]+:\s*/, "") };
+  return { platform: "Other", handle: raw };
+}
+
+function Socials({ rows, onChange }: { rows: string[]; onChange: (rows: string[]) => void }) {
+  const list = rows.length ? rows : [""];
+  const write = (index: number, platform: string, handle: string) => {
+    const next = [...list];
+    next[index] = `${platform}: ${handle.trim()}`;
+    onChange(next);
+  };
+  return (
+    <div className="md:col-span-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted">Social accounts</span>
+        <button type="button" className="link-add" onClick={() => onChange([...list, ""])}>Add</button>
+      </div>
+      {list.map((row, index) => {
+        const { platform, handle } = splitSocial(row);
+        return (
+          <div key={`social-${index}`} className="mt-1 flex gap-2">
+            <select className="h-8 w-36 shrink-0 rounded-full border border-line bg-black/40 px-2 text-sm" value={platform} aria-label="Social platform" onChange={(event) => write(index, event.target.value, handle)}>
+              {SOCIALS.map((item) => <option key={item}>{item}</option>)}
+            </select>
+            <input className="h-8 min-w-0 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" value={handle} placeholder="@username or profile URL" onChange={(event) => write(index, platform, event.target.value)} />
+            <button type="button" className="link-remove" onClick={() => onChange(list.filter((_, itemIndex) => itemIndex !== index))}>Remove</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Repeat({ label, rows, onChange, placeholder }: { label: string; rows: string[]; onChange: (rows: string[]) => void; placeholder: string }) {
+  return (
+    <div className="md:col-span-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted">{label}</span>
+        <button type="button" className="link-add" onClick={() => onChange([...rows, ""])}>Add</button>
+      </div>
+      {rows.map((row, index) => (
+        <div key={`${label}-${index}`} className="mt-1 flex gap-2">
+          <input className="h-8 min-w-0 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" value={row} placeholder={placeholder} onChange={(event) => onChange(rows.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} />
+          <button type="button" className="link-remove" onClick={() => onChange(rows.filter((_, itemIndex) => itemIndex !== index))}>Remove</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type Kin = { relation: string; birthday: string; phone: string; email: string; connect: number; support: number; notes: string };
+
+function readKin(body: string): Kin {
+  const blank: Kin = { relation: "", birthday: "", phone: "", email: "", connect: 5, support: 5, notes: "" };
+  try {
+    const parsed = JSON.parse(body) as Partial<Kin>;
+    return { ...blank, ...parsed, connect: Number(parsed.connect) || 5, support: Number(parsed.support) || 5 };
+  } catch {
+    return { ...blank, notes: body };
+  }
+}
+
+function FamilyShelf({ data, update }: { data: Memory; update: Update }) {
+  const people = data.notes.filter((row) => row.title.startsWith("Family · "));
+  const [name, setName] = useState("");
+  const [relation, setRelation] = useState("");
+  const [tip, setTip] = useState("");
+
+  function saveMember() {
+    const who = name.trim();
+    if (!who) return;
+    const title = `Family · ${who}`;
+    const body = JSON.stringify({ relation: relation.trim(), birthday: "", phone: "", email: "", connect: 5, support: 5, notes: "" } satisfies Kin);
+    update((prev) => ({ ...prev, notes: [{ id: newId(), title, body }, ...prev.notes.filter((row) => row.title !== title)] }));
+    setName("");
+    setRelation("");
+  }
+
+  async function coach(title: string, body: string) {
+    const kin = readKin(body);
+    setTip("Reading the profile…");
+    const { askNyx } = await import("@/lib/lifeos/sync");
+    const result = await askNyx({
+      data: {
+        name: "Kranos",
+        prompt: "Give three specific things Chris can do this week for this family member. Use only the profile. Do not invent events.",
+        facts: `${title}. Relation ${kin.relation || "unknown"}. Birthday ${kin.birthday || "unknown"}. Notes ${kin.notes || "none"}. Connection ${kin.connect}/10. Support ${kin.support}/10.`,
+        question: "What should he do this week?",
+      },
+    });
+    setTip(result.text || "No tip came back.");
+  }
+
+  return (
+    <section className="module-card mb-4 p-4">
+      <h2 className="text-lg">Family</h2>
+      <p className="text-sm text-white/45">Household profiles stay on the board with your notes. They are not CRM leads.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <input className="h-8 min-w-36 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" placeholder="Name" value={name} onChange={(event) => setName(event.target.value)} />
+        <input className="h-8 w-36 rounded-full border border-line bg-black/40 px-3 text-sm" placeholder="Relation" value={relation} onChange={(event) => setRelation(event.target.value)} />
+        <button type="button" className="quiet is-on" onClick={saveMember}>Add</button>
+      </div>
+      <div className="mt-3 grid gap-2">
+        {people.map((row) => {
+          const kin = readKin(row.body);
+          return (
+            <div key={row.id} className="border-b border-white/10 py-2 text-sm">
+              <p>{row.title.replace("Family · ", "")} <span className="text-white/40">{kin.relation}</span></p>
+              <p className="text-white/50">Connect {kin.connect}/10 · Support {kin.support}/10{kin.birthday ? ` · ${kin.birthday}` : ""}</p>
+              <button type="button" className="quiet mt-1" onClick={() => void coach(row.title, row.body)}>Tips</button>
+              <button type="button" className="link-remove ml-3" onClick={() => update((prev) => ({ ...prev, notes: prev.notes.filter((item) => item.id !== row.id) }))}>Remove</button>
+            </div>
+          );
+        })}
+        {!people.length ? <p className="text-sm text-white/40">No family profiles yet.</p> : null}
+      </div>
+      {tip ? <p className="mt-3 whitespace-pre-wrap text-sm text-white/70">{tip}</p> : null}
+    </section>
+  );
 }
 
 function Contacts({ kind, data, update }: { kind: "personal" | "crm"; data: Memory; update: Update }) {
   const book = people(kind, data, update);
+  const rows = useMemo(() => data.contacts.filter((row) => row.kind === kind), [data.contacts, kind]);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
-  const [form, setForm] = useState({ name: "", company: "", email: "", phone: "", city: "", avatar: "", stage: "New" });
+  const [pageSize, setPageSize] = useState(50);
+  const [sort, setSort] = useState("name");
+  const [page, setPage] = useState(0);
+  const [stage, setStage] = useState("All");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [mode, setMode] = useState<"view" | "edit" | "new">("view");
+  const [form, setForm] = useState(BLANK);
+  const [importNote, setImportNote] = useState("");
   const set = (key: keyof typeof form) => (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
-  const rows = book.rows.filter((row) => `${row.name} ${row.company} ${row.email}`.toLowerCase().includes(q.toLowerCase()));
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let next = rows.filter((row) => !needle || `${row.name} ${row.firstName} ${row.lastName} ${row.company} ${row.email} ${row.phone} ${row.city}`.toLowerCase().includes(needle));
+    if (kind === "crm" && stage !== "All") next = next.filter((row) => row.stage === stage);
+    next = [...next].sort((a, b) => {
+      if (sort === "company") return (a.company || "").localeCompare(b.company || "");
+      if (sort === "name-desc") return (b.name || b.email || b.phone || "").localeCompare(a.name || a.email || a.phone || "");
+      return (a.name || a.email || a.phone || "").localeCompare(b.name || b.email || b.phone || "");
+    });
+    return next;
+  }, [rows, q, kind, stage, sort]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount - 1);
+  const slice = filtered.slice(safePage * pageSize, safePage * pageSize + pageSize);
+  const open = rows.find((row) => row.id === selected) || null;
+  const hot = rows.filter((row) => row.stage === "Qualified" || row.stage === "Proposal" || Number(row.deal) > 0).length;
+  const pipeline = rows.reduce((sum, row) => sum + (Number(row.deal) || 0), 0);
+
+  function exportCsv() {
+    const header = "first_name,last_name,company,emails,phones,address,city,state,zip,birthday,avatar,stage,deal,websites,socials,notes\n";
+    const body = filtered.map((row) => [row.firstName, row.lastName, row.company, row.emails.join("|"), row.phones.join("|"), row.address, row.city, row.state, row.zip, row.birthday, row.avatar, row.stage, row.deal, row.websites.join("|"), row.socials.join("|"), row.note].map((cell) => /[",\n]/.test(cell) ? `"${cell.replaceAll('"', '""')}"` : cell).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([header + body], { type: "text/csv" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${kind}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function beginNew() {
+    setMode("new");
+    setSelected(null);
+    setForm(BLANK);
+  }
+
+  function saveForm() {
+    const firstName = form.firstName.trim();
+    const lastName = form.lastName.trim();
+    const emails = form.emails.map((item) => item.trim()).filter((item) => item.includes("@"));
+    const phones = form.phones.map((item) => item.trim()).filter((item) => /\d/.test(item));
+    const next = { ...form, firstName, lastName, name: `${firstName} ${lastName}`.trim(), emails, phones, websites: form.websites.map((item) => item.trim()).filter(Boolean), socials: form.socials.map((item) => item.trim()).filter(Boolean), email: emails[0] || "", phone: phones[0] || "", deal: kind === "crm" ? form.deal : "" };
+    if (!next.name) return;
+    if (mode === "edit" && selected) {
+      update((prev) => ({ ...prev, contacts: prev.contacts.map((item) => item.id === selected ? { ...item, ...next, kind } : item) }));
+      setMode("view");
+      return;
+    }
+    const id = newId();
+    book.add({ ...next, id, kind });
+    setSelected(id);
+    setMode("view");
+    setForm(BLANK);
+  }
+
   return (
-    <div className="grid gap-4">
-      <Card title={kind === "crm" ? "CRM" : "Contacts"}>
-        <div className="flex flex-wrap items-center gap-2">
-          <input className="min-h-11 min-w-40 flex-1 rounded-lg border border-line bg-ink px-3 text-sm" style={{ caretColor: "transparent" }} value={q} placeholder="Search" onChange={(event) => setQ(event.target.value)} />
-          <label className="min-h-11 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-blue-2">
-            Import CSV
-            <input type="file" accept=".csv,text/csv" className="sr-only" onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (!file) return;
-              void file.text().then((text) => update((prev) => ({ ...prev, contacts: [...parseCsv(text, kind), ...prev.contacts] })));
-            }} />
-          </label>
-          <button type="button" className="min-h-11 rounded-lg border border-line px-3 text-sm" onClick={() => {
-            const header = "name,company,email,phone,city,avatar,stage\n";
-            const body = rows.map((row) => [row.name, row.company, row.email, row.phone, row.city, row.avatar, row.stage].join(",")).join("\n");
-            const url = URL.createObjectURL(new Blob([header + body], { type: "text/csv" }));
+    <div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <input className="h-8 min-w-48 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" data-keep="off" value={q} placeholder={kind === "crm" ? "Search name, email, phone, company" : "Search contacts"} onChange={(event) => { setQ(event.target.value); setPage(0); }} />
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <select className="h-7 w-24 rounded-full border border-line bg-black/40 px-2 text-xs" value={pageSize} aria-label="Page size" onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }}>
+            {[25, 50, 100, 200].map((size) => <option key={size} value={size}>{size} / page</option>)}
+          </select>
+          <select className="h-7 w-32 rounded-full border border-line bg-black/40 px-2 text-xs" value={sort} aria-label="Sort" onChange={(event) => { setSort(event.target.value); setPage(0); }}>
+            <option value="name">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+            <option value="company">Company</option>
+          </select>
+          <button type="button" className="quiet" onClick={() => {
+            const headers = ["first_name", "last_name", "company", "job_title", "email", "email_2", "phone", "phone_2", "address", "city", "state", "zip", "birthday", "avatar", "website", "linkedin", "socials", "notes"];
+            const sample = ["Jane", "Doe", "Acme", "Owner", "jane@acme.com", "", "14045551212", "", "1 Main St", "Atlanta", "GA", "30301", "01/15/1990", "", "https://acme.com", "", "Instagram: @jane", "Met at the shop"];
+            if (kind === "crm") {
+              headers.push("stage", "deal", "source", "tag");
+              sample.push("New", "1000", "Referral", "Hot");
+            }
+            const csv = `${headers.join(",")}\n${sample.join(",")}\n`;
+            const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
             const link = document.createElement("a");
             link.href = url;
-            link.download = `${kind}.csv`;
+            link.download = kind === "crm" ? "crm-template.csv" : "contacts-template.csv";
             link.click();
             URL.revokeObjectURL(url);
-          }}>Export</button>
-          <button type="button" className="min-h-11 rounded-lg border border-line px-3 text-sm text-muted" onClick={book.removeAll}>Delete all</button>
+          }}>Template</button>
+          <button type="button" className="quiet" onClick={() => fileRef.current?.click()}>Import</button>
+          <input ref={fileRef} type="file" accept=".csv,text/csv" className="sr-only" onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            void file.text().then((text) => {
+              const incoming = parseCsv(text, kind);
+              const keyOf = (row: Contact) => `${row.kind}|${(row.name || "").toLowerCase()}|${(row.email || "").toLowerCase()}|${row.phone}`;
+              let added = 0;
+              update((prev) => {
+                const seen = new Set(prev.contacts.map(keyOf));
+                const fresh = incoming.filter((row) => {
+                  const key = keyOf(row);
+                  if (seen.has(key)) return false;
+                  seen.add(key);
+                  return true;
+                });
+                added = fresh.length;
+                return { ...prev, contacts: [...fresh, ...prev.contacts] };
+              });
+              setImportNote(`Added ${added.toLocaleString()} of ${incoming.length.toLocaleString()} into ${kind === "crm" ? "CRM" : "Contacts"}.`);
+            });
+            event.target.value = "";
+          }} />
+          <button type="button" className="quiet" onClick={exportCsv}>Export</button>
+          <button type="button" className="danger" onClick={() => { if (rows.length && window.confirm(`Delete all ${rows.length} ${kind === "crm" ? "CRM leads" : "contacts"}? This cannot be undone.`)) book.removeAll(); }}>Delete all</button>
+          <button type="button" className="bg-blue" onClick={beginNew}>{kind === "crm" ? "New lead" : "New contact"}</button>
         </div>
-        <form className="mt-3 grid gap-2 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (!form.name.trim()) return; book.add({ ...form, id: newId(), kind }); setForm({ name: "", company: "", email: "", phone: "", city: "", avatar: "", stage: "New" }); }}>
-          <Field label="Name" value={form.name} onChange={set("name")} />
-          <Field label="Company" value={form.company} onChange={set("company")} />
-          <Field label="Email" value={form.email} onChange={set("email")} />
-          <Field label="Phone" value={form.phone} onChange={(value) => set("phone")(fmtPhone(value))} />
-          <Field label="City" value={form.city} onChange={set("city")} />
-          <Field label="Image URL" value={form.avatar} onChange={set("avatar")} />
-          {kind === "crm" ? <Field label="Stage" value={form.stage} onChange={set("stage")} /> : null}
-          <button type="submit" className="min-h-11 rounded-lg bg-blue text-sm">Save contact</button>
-        </form>
-      </Card>
-      <div className="grid gap-3 md:grid-cols-2">
-        {rows.map((row) => (
-          <article key={row.id} className="module-card flex gap-3 p-4">
-            {row.avatar ? <img src={row.avatar} alt="" className="h-14 w-14 rounded-full object-cover" /> : <div className="grid h-14 w-14 place-items-center rounded-full bg-ink text-blue-2">{row.name.slice(0, 1)}</div>}
-            <div className="min-w-0 text-sm">
-              <p>{row.name}</p>
-              <p className="text-muted">{[row.company, row.email, fmtPhone(row.phone), row.city, kind === "crm" ? row.stage : ""].filter(Boolean).join(" · ")}</p>
-              <div className="mt-2 flex flex-wrap gap-3">
-                {row.phone ? <a className="min-h-11 text-green" href={`tel:${row.phone}`}>Call</a> : null}
-                {row.phone ? <a className="min-h-11 text-blue-2" href={`sms:${row.phone}`}>Text</a> : null}
-                {row.email ? <a className="min-h-11 text-blue-2" href={`mailto:${row.email}`}>Email</a> : null}
-                <button type="button" className="min-h-11 text-muted" onClick={() => book.remove(row.id)}>Remove</button>
+      </div>
+      {importNote ? <p className="mb-3 text-sm text-white/50">{importNote}</p> : null}
+      {kind === "personal" ? <FamilyShelf data={data} update={update} /> : null}
+      {kind === "crm" ? (
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          <div className="module-card p-3 text-center"><p className="text-[10px] tracking-widest text-white/40">LEADS</p><p className="text-lg">{rows.length.toLocaleString()}</p></div>
+          <div className="module-card p-3 text-center"><p className="text-[10px] tracking-widest text-white/40">HOT</p><p className="text-lg text-ember">{hot}</p></div>
+          <div className="module-card p-3 text-center"><p className="text-[10px] tracking-widest text-white/40">PIPELINE</p><p className="text-lg text-green">{fmtMoney(pipeline)}</p></div>
+        </div>
+      ) : null}
+      {kind === "crm" ? (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] tracking-widest text-white/40">STAGE</span>
+          {["All", ...PEOPLE_STAGES].map((name) => (
+            <button key={name} type="button" className={`quiet ${stage === name ? "is-on" : ""}`} onClick={() => { setStage(name); setPage(0); }}>{name}</button>
+          ))}
+        </div>
+      ) : null}
+      <div className="mb-3 flex items-center gap-3 text-sm text-white/50">
+        <button type="button" className="quiet" disabled={safePage === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}>Prev</button>
+        <span>Page {safePage + 1} of {pageCount} · {slice.length.toLocaleString()} on this page · {filtered.length.toLocaleString()} match · {rows.length.toLocaleString()} {kind === "crm" ? "CRM" : "personal"}</span>
+        {(q || stage !== "All") && filtered.length !== rows.length ? <button type="button" className="quiet" onClick={() => { setQ(""); setStage("All"); setPage(0); }}>Clear filter</button> : null}
+        <button type="button" className="quiet" disabled={safePage >= pageCount - 1} onClick={() => setPage((value) => value + 1)}>Next</button>
+      </div>
+      <div className="grid min-h-[32rem] gap-4 lg:grid-cols-[20rem_1fr]">
+        <aside className="module-card h-[36rem] space-y-2 overflow-y-auto p-2">
+          {slice.length === 0 ? <p className="p-4 text-sm text-white/40">{rows.length === 0 ? "None yet." : `None of the ${rows.length.toLocaleString()} match this search.`}</p> : null}
+          {slice.map((row) => (
+            <div key={row.id} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 ${selected === row.id ? "border-[oklch(0.72_0.14_220/45%)] bg-[oklch(0.68_0.15_230/16%)]" : "border-white/10 bg-black/30"}`} onClick={() => { setSelected(row.id); setMode("view"); }}>
+              {row.avatar && !row.avatar.startsWith("data:") ? <img src={row.avatar} alt="" className="h-8 w-8 rounded-full object-cover" /> : <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-[11px]">{(row.name || row.email || "?").slice(0, 2).toUpperCase()}</div>}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">{row.name || "No name"}</p>
+                <p className="truncate text-[11px] text-blue-2">{[row.phone ? fmtPhone(row.phone) : "", row.email, row.company].filter(Boolean).join(" · ") || "—"}</p>
+              </div>
+              {kind === "crm" ? <span className="text-[10px] text-blue-2">{row.stage}</span> : null}
+            </div>
+          ))}
+        </aside>
+        <section className="module-card p-4">
+          {mode === "new" || mode === "edit" ? (
+            <form className="grid gap-2 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); saveForm(); }}>
+              <Field label="First name" value={form.firstName} onChange={set("firstName")} />
+              <Field label="Last name" value={form.lastName} onChange={set("lastName")} />
+              <Field label="Company" value={form.company} onChange={set("company")} />
+              <Repeat label="Phones" rows={form.phones} placeholder="1(000) 000-0000" onChange={(rows) => setForm((prev) => ({ ...prev, phones: rows.map((item) => fmtPhone(item)) }))} />
+              <Repeat label="Emails" rows={form.emails} placeholder="name@email.com" onChange={(rows) => setForm((prev) => ({ ...prev, emails: rows }))} />
+              <Field label="Birthday" value={form.birthday} onChange={(value) => set("birthday")(fmtDateInput(value))} />
+              <Field label="Street" value={form.address} onChange={set("address")} />
+              <Field label="City" value={form.city} onChange={set("city")} />
+              <Field label="State" value={form.state} onChange={set("state")} />
+              <Field label="ZIP" value={form.zip} onChange={set("zip")} />
+              <Field label="Image URL" value={form.avatar} onChange={set("avatar")} />
+              <Repeat label="Websites" rows={form.websites} placeholder="https://" onChange={(rows) => setForm((prev) => ({ ...prev, websites: rows }))} />
+              <Socials rows={form.socials} onChange={(rows) => setForm((prev) => ({ ...prev, socials: rows }))} />
+              {kind === "crm" ? <Field label="Job title" value={form.jobTitle} onChange={set("jobTitle")} /> : null}
+              {kind === "crm" ? <Field label="Source" value={form.source} onChange={set("source")} /> : null}
+              {kind === "crm" ? <Field label="Tag" value={form.tag} onChange={set("tag")} /> : null}
+              {kind === "crm" ? <Field label="Stage" value={form.stage} onChange={set("stage")} /> : null}
+              {kind === "crm" ? <Field label="Deal" value={form.deal} onChange={(value) => set("deal")(value.replace(/[^0-9.]/g, ""))} /> : null}
+              <Field label="Notes" value={form.note} onChange={set("note")} area />
+              <div className="flex gap-2">
+                <button type="submit" className="bg-blue">Save</button>
+                <button type="button" className="quiet" onClick={() => setMode("view")}>Cancel</button>
+              </div>
+            </form>
+          ) : open ? (
+            <div>
+              <header className="mb-4 flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {open.avatar ? <img src={open.avatar} alt="" className="h-16 w-16 rounded-2xl object-cover" /> : <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white/10 text-lg">{(open.name || "?").slice(0, 1)}</div>}
+                  <div>
+                    <h2 className="text-xl">{open.name}</h2>
+                    <p className="text-sm text-white/50">{[open.jobTitle, open.company].filter(Boolean).join(" · ") || (kind === "crm" ? "CRM" : "Personal")}</p>
+                    <p className="mt-1 text-sm text-blue-2">{open.phones.filter((item) => /\d/.test(item)).map((item) => fmtPhone(item)).join(" · ") || "No phone"}</p>
+                    <p className="text-sm text-blue-2">{open.emails.filter((item) => item.includes("@")).join(" · ") || "No email"}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button type="button" className="quiet" onClick={() => { setForm({ firstName: open.firstName, lastName: open.lastName, name: open.name, company: open.company, email: open.email, phone: open.phone, city: open.city, avatar: open.avatar, stage: open.stage, deal: open.deal, note: open.note, birthday: open.birthday, address: open.address, state: open.state, zip: open.zip, emails: open.emails.length ? open.emails : [""], phones: open.phones.length ? open.phones : [""], websites: open.websites, socials: open.socials, jobTitle: open.jobTitle, source: open.source, tag: open.tag }); setMode("edit"); }}>Edit</button>
+                  <button type="button" className="quiet" onClick={() => { update((prev) => ({ ...prev, contacts: prev.contacts.map((item) => item.id === open.id ? { ...item, kind: kind === "crm" ? "personal" : "crm" } : item) })); setSelected(null); }}>{kind === "crm" ? "Make personal" : "Make CRM"}</button>
+                  <button type="button" className="link-remove" onClick={() => { book.remove(open.id); setSelected(null); }}>Delete</button>
+                </div>
+              </header>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/10 p-4 text-sm">
+                  <p className="mb-2 text-[10px] tracking-widest text-blue-2">CONTACT</p>
+                  <p>{[open.address, open.city, open.state, open.zip].filter(Boolean).join(", ") || "No address"}</p>
+                  <p className="mt-2 text-white/60">{open.birthday ? `Birthday ${open.birthday}` : "No birthday"}</p>
+                  {open.websites.filter(Boolean).map((site) => <p key={site} className="mt-2 truncate text-blue-2">{site}</p>)}
+                  {open.socials.filter(Boolean).map((row) => {
+                    const social = splitSocial(row);
+                    return <p key={row} className="mt-1 text-white/75">{social.platform}: {social.handle}</p>;
+                  })}
+                </div>
+                {kind === "crm" ? (
+                  <div className="rounded-xl border border-white/10 p-4 text-sm">
+                    <p className="mb-2 text-[10px] tracking-widest text-blue-2">DEAL</p>
+                    <p>{open.stage || "New"}{open.deal ? ` · ${fmtMoney(Number(open.deal) || 0)}` : ""}</p>
+                    <p className="mt-2 text-white/60">{[open.source, open.tag].filter(Boolean).join(" · ") || "No source"}</p>
+                    <p className="mt-3 whitespace-pre-wrap text-white/75">{open.note || "No notes."}</p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-white/10 p-4 text-sm">
+                    <p className="mb-2 text-[10px] tracking-widest text-blue-2">NOTES</p>
+                    <p className="whitespace-pre-wrap text-white/75">{open.note || "No notes."}</p>
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 flex gap-4">
+                {open.phone ? <a className="text-sm text-blue-2" href={`tel:${open.phone.replace(/\D/g, "")}`}>Call</a> : null}
+                {open.phone ? <a className="text-sm text-blue-2" href={`sms:${open.phone.replace(/\D/g, "")}`}>Text</a> : null}
+                {open.email ? <a className="text-sm text-blue-2" href={`mailto:${open.email}`}>Email</a> : null}
               </div>
             </div>
-          </article>
-        ))}
+          ) : (
+            <p className="grid h-full place-items-center text-sm tracking-widest text-white/30">{kind === "crm" ? "SELECT A LEAD OR CLICK NEW LEAD" : "SELECT A CONTACT OR CLICK NEW CONTACT"}</p>
+          )}
+        </section>
       </div>
     </div>
   );
@@ -145,10 +760,81 @@ function Contacts({ kind, data, update }: { kind: "personal" | "crm"; data: Memo
 
 const TOOLS = ["SEO Tools", "Site Audit", "Rank Tracking", "Keyword Tool", "Competitor Analysis", "Marketing Automation", "Content Creation", "Customer Intelligence", "Digital Assets", "AI Lead Generator", "Lead Tracker", "Business Listings"];
 const SIMS = ["Alternate Life", "Dream Forge", "Echo Persona", "Fantasy Friend", "Narrative Conflict", "Shadow Budget", "Life RPG", "Compliment Cannon", "Smart Browser", "Life Audit"];
-const SERVICES = ["NVIDIA", "ElevenLabs", "Stripe", "Luma", "Nylas", "YouTube", "OpenAI", "Anthropic", "xAI", "Telegram", "Google Maps", "Supabase", "SendGrid", "Brevo", "Spotify", "Replicate"];
+const SERVICES = ["NVIDIA", "ElevenLabs", "Stripe", "Luma", "Nylas", "YouTube", "OpenAI", "Anthropic", "xAI", "Telegram", "Google Maps", "Supabase", "SendGrid", "Brevo", "Spotify", "Replicate", "Facebook App ID"];
 const PLATFORMS = ["Instagram", "Facebook", "TikTok", "X", "LinkedIn", "YouTube"];
 const JOURNAL_TEMPLATES = ["Morning pages", "Win and miss", "Decision log"];
-const REPAIR = ["Bring card utilization under 30%", "Stop new late payments", "Dispute inaccurate collections", "Ask for a limit increase on a clean card"];
+function band(score: number) {
+  if (score >= 800) return "Great";
+  if (score >= 740) return "Good";
+  if (score >= 670) return "Fair";
+  return "Poor";
+}
+
+function roi(cost: number, revenue: number) {
+  if (!cost) return revenue > 0 ? "—" : "0%";
+  return `${Math.round(((revenue - cost) / cost) * 100)}%`;
+}
+
+const GLOW = ["rgba(176, 107, 255, 0.45)", "rgba(45, 212, 191, 0.42)", "rgba(52, 211, 153, 0.4)", "rgba(176, 107, 255, 0.28)"];
+const CREDIT_LEVELS = [
+  { label: "Poor", color: "#f43f5e", min: 300, max: 579 },
+  { label: "Fair", color: "#fb923c", min: 580, max: 669 },
+  { label: "Good", color: "#2dd4bf", min: 670, max: 739 },
+  { label: "Great", color: "#34d399", min: 740, max: 850 },
+];
+
+function Bars({ rows }: { rows: { name: string; value: number }[] }) {
+  if (!rows.length) return <p className="text-sm text-muted">Nothing to chart yet.</p>;
+  return (
+    <div className="chart-glow h-32 min-w-0 overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} margin={{ top: 16, right: 4, left: 4, bottom: 0 }}>
+          <XAxis dataKey="name" tick={{ fill: "#9aa0a6", fontSize: 11 }} interval={0} />
+          <Bar dataKey="value" radius={4}>
+            {rows.map((row, index) => <Cell key={row.name} fill={GLOW[index % GLOW.length]} />)}
+            <LabelList dataKey="value" position="top" fill="#f7f7f7" fontSize={11} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function Trend({ rows }: { rows: { name: string; value: number }[] }) {
+  if (!rows.length) return null;
+  return (
+    <div className="chart-glow h-28 min-w-0 overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={rows} margin={{ top: 16, right: 8, left: 8, bottom: 0 }}>
+          <Area type="monotone" dataKey="value" stroke="rgba(176, 107, 255, 0.7)" fill="rgba(176, 107, 255, 0.16)">
+            <LabelList dataKey="value" position="top" fill="#f7f7f7" fontSize={11} />
+          </Area>
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function CreditRing({ label, score, bureau }: { label: string; score: number; bureau: string }) {
+  const level = CREDIT_LEVELS.find((row) => score >= row.min && score <= row.max);
+  const pct = Math.min(100, Math.max(0, ((score - 300) / 550) * 100));
+  const length = 2 * Math.PI * 32;
+  return (
+    <div className="flex flex-1 flex-col items-center gap-2">
+      <div className="relative h-20 w-20">
+        <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
+          <circle cx="40" cy="40" r="32" fill="none" stroke={level?.color ?? "#4fd2ff"} strokeWidth="6" strokeLinecap="round" strokeDasharray={length} strokeDashoffset={length * (1 - pct / 100)} />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-display text-sm">{score}</span>
+          <span className="text-[11px]" style={{ color: level?.color }}>{level?.label ?? band(score)}</span>
+        </div>
+      </div>
+      <p className="text-center text-xs text-muted">{label}<span className="text-ember block">{bureau}</span></p>
+    </div>
+  );
+}
 
 function Ticker() {
   const [rows, setRows] = useState<{ symbol: string; price: number; change: number }[]>([]);
@@ -190,20 +876,178 @@ async function grounded(question: string, data: Memory) {
   return "No model reply. The note was saved from what you typed.";
 }
 
+function LucidDesk({ data, update }: { data: Memory; update: Update }) {
+  const [selected, setSelected] = useState<string | null>(data.ideas.find((row) => row.status !== "dropped")?.id || null);
+  const [manual, setManual] = useState("");
+  const [client, setClient] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [amount, setAmount] = useState("");
+  const [next, setNext] = useState("");
+  const [note, setNote] = useState("");
+  const open = data.ideas.find((row) => row.id === selected) || null;
+  const live = data.ideas.filter((row) => row.status !== "dropped");
+  const clients = data.deals.filter((row) => row.ideaId === open?.id);
+  const collected = data.deals.filter((row) => row.paid).reduce((sum, row) => sum + row.amount, 0);
+  const unpaid = data.deals.filter((row) => !row.paid && row.status !== "closed").reduce((sum, row) => sum + row.amount, 0);
+
+  function patch(id: string, change: Partial<Memory["ideas"][number]>) {
+    update((prev) => ({ ...prev, ideas: prev.ideas.map((item) => item.id === id ? { ...item, ...change, approved: ["approved", "ready", "running", "paused"].includes(change.status || item.status) } : item) }));
+  }
+  function stamp(id: string, line: string) {
+    update((prev) => ({ ...prev, ideas: prev.ideas.map((item) => item.id === id ? { ...item, log: `${fmtDate(new Date())} ${fmtTime()} · ${line}\n${item.log}`.trim().slice(0, 2000) } : item) }));
+  }
+  function dollars(value: string) {
+    const amount = Number(value.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(amount) ? Math.round(amount * 100) / 100 : 0;
+  }
+  function addClient(event: FormEvent) {
+    event.preventDefault();
+    if (!open || !client.trim()) return;
+    const quoted = dollars(amount);
+    update((prev) => ({
+      ...prev,
+      deals: [{ id: newId(), ideaId: open.id, client: client.trim(), email: clientEmail.trim(), phone: fmtPhone(clientPhone), status: "lead" as const, amount: quoted, paid: false, next: next.trim() }, ...prev.deals],
+      notifs: [{ id: newId(), text: `Client ${client.trim()} added`, source: "Lucid", seen: false }, ...prev.notifs],
+    }));
+    stamp(open.id, `Client ${client.trim()} added${quoted ? ` at ${fmtMoney(quoted)}` : ""}.`);
+    setClient("");
+    setClientEmail("");
+    setClientPhone("");
+    setAmount("");
+    setNext("");
+  }
+  function draft(deal: Memory["deals"][number]) {
+    if (!open) return;
+    setNote("Writing the email. It will not be sent.");
+    const price = deal.amount ? fmtMoney(deal.amount) : "not set. Do not invent a price.";
+    void import("@/lib/lifeos/sync").then(({ askNyx }) => askNyx({ data: { name: "Lucid", prompt: "Write one short email Chris can send. Do not invent a price, a promise, or a result.", facts: `Offer: ${open.title}. Client: ${deal.client}. Quoted amount: ${price}. Next step: ${deal.next || "reply"}.`, question: "Write the email." } })).then((result) => {
+      stamp(open.id, `Draft for ${deal.client}, not sent.\n${result.text || "No draft."}`);
+      setNote("Draft saved in the log. Nothing was sent.");
+    }).catch(() => setNote("The draft did not come back."));
+  }
+
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl">Lucid</h1>
+          <p className="text-sm text-white/50">Ideas stay ideas until you approve them. Money is only what you type in.</p>
+        </div>
+        <div className="flex gap-6 text-sm">
+          <p>In hand <span className="text-green">{fmtMoney(collected)}</span></p>
+          <p>Unpaid <span className="text-white">{fmtMoney(unpaid)}</span></p>
+          <p>Clients <span className="text-white">{data.deals.length}</span></p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <input className="h-8 min-w-48 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" value={manual} placeholder="Your own offer" onChange={(event) => setManual(event.target.value)} />
+        <button type="button" className="quiet" onClick={() => {
+          if (!manual.trim()) return;
+          const id = newId();
+          update((prev) => ({ ...prev, ideas: [{ id, title: manual.trim(), note: "", approved: false, status: "new", source: "Manual", effort: "low", email: "", funding: "", log: "" }, ...prev.ideas] }));
+          setSelected(id);
+          setManual("");
+        }}>Add</button>
+        <button type="button" className="quiet is-on" onClick={() => {
+          setNote("Looking…");
+          void import("@/lib/lifeos/sync").then(({ findIdeas }) => findIdeas()).then((result) => {
+            update((prev) => {
+              const seen = new Set(prev.ideas.map((row) => row.title.toLowerCase()));
+              const fresh = result.ideas.filter((item) => !seen.has(item.title.toLowerCase()));
+              if (!fresh.length) return prev;
+              return { ...prev, ideas: [...fresh.map((item) => ({ id: newId(), title: item.title, note: item.url, approved: false, status: "new" as const, source: item.source, effort: item.effort, email: "", funding: "", log: "" })), ...prev.ideas], notifs: [{ id: newId(), text: `${fresh.length} Lucid ideas to review`, source: "Lucid", seen: false }, ...prev.notifs] };
+            });
+            setNote(result.ideas.length ? "New ideas are in the list." : "No new ideas came back.");
+          }).catch(() => setNote("The scan did not answer."));
+        }}>Find ideas</button>
+      </div>
+      {note ? <p className="text-sm text-white/50">{note}</p> : null}
+      <div className="grid items-start gap-3 lg:grid-cols-[18rem_1fr]">
+        <section className="module-card p-2">
+          {live.map((row) => (
+            <button key={row.id} type="button" className={`menu ${selected === row.id ? "is-on" : ""}`} onClick={() => setSelected(row.id)}>
+              <span className="block truncate">{row.title}</span>
+              <span className="block text-white/40">{row.status} · {fmtMoney(data.deals.filter((deal) => deal.ideaId === row.id && deal.paid).reduce((sum, deal) => sum + deal.amount, 0))}</span>
+            </button>
+          ))}
+          {!live.length ? <p className="p-3 text-sm text-white/40">No offers yet.</p> : null}
+        </section>
+        <section className="module-card p-4">
+          {open ? (
+            <div className="grid gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-white/40">{open.source} · {open.status}</p>
+                  <h2 className="text-xl">{open.title}</h2>
+                  {/^https?:\/\//.test(open.note) ? <a className="text-sm text-blue-2" href={open.note} target="_blank" rel="noreferrer">Source</a> : open.note ? <p className="text-sm text-white/50">{open.note}</p> : null}
+                </div>
+                <div className="flex gap-3">
+                  {open.status === "new" ? <button type="button" className="quiet is-on" onClick={() => { patch(open.id, { status: "approved" }); stamp(open.id, "Approved. Waiting on an email and a funding account."); }}>Approve</button> : null}
+                  {open.status === "paused" ? <button type="button" className="quiet is-on" onClick={() => patch(open.id, { status: "running" })}>Resume</button> : null}
+                  {open.status === "running" ? <button type="button" className="quiet" onClick={() => patch(open.id, { status: "paused" })}>Pause</button> : null}
+                  {open.status !== "dropped" ? <button type="button" className="link-remove" onClick={() => patch(open.id, { status: "dropped" })}>Drop</button> : null}
+                </div>
+              </div>
+              {open.status !== "new" ? (
+                <div className="grid gap-2 md:grid-cols-2">
+                  <Field label="Email for this offer" value={open.email} onChange={(value) => patch(open.id, { email: value })} />
+                  <Field label="Where the money goes" value={open.funding} onChange={(value) => patch(open.id, { funding: value })} />
+                  {open.email && open.funding && open.status === "approved" ? <button type="button" className="quiet is-on w-fit" onClick={() => { patch(open.id, { status: "running" }); stamp(open.id, `Started. Email ${open.email}. Funding ${open.funding}.`); }}>Start</button> : null}
+                  {open.status === "approved" && (!open.email || !open.funding) ? <p className="text-sm text-white/45 md:col-span-2">Add both accounts before this can start. Lucid will not send mail or move money.</p> : null}
+                </div>
+              ) : null}
+              {open.status === "running" || open.status === "paused" || open.status === "approved" ? (
+                <div>
+                  <p className="text-sm text-white/45">Clients</p>
+                  <form className="mt-2 grid gap-2 md:grid-cols-5" onSubmit={addClient}>
+                    <input className="h-8 rounded-full border border-line bg-black/40 px-3 text-sm" value={client} placeholder="Name" onChange={(event) => setClient(event.target.value)} />
+                    <input className="h-8 rounded-full border border-line bg-black/40 px-3 text-sm" value={clientEmail} placeholder="Email" onChange={(event) => setClientEmail(event.target.value)} />
+                    <input className="h-8 rounded-full border border-line bg-black/40 px-3 text-sm" value={clientPhone} placeholder="Phone" onChange={(event) => setClientPhone(fmtPhone(event.target.value))} />
+                    <input className="h-8 rounded-full border border-line bg-black/40 px-3 text-sm" value={amount} placeholder="Amount" onChange={(event) => setAmount(event.target.value)} />
+                    <button type="submit" className="quiet is-on">Add client</button>
+                    <input className="h-8 rounded-full border border-line bg-black/40 px-3 text-sm md:col-span-5" value={next} placeholder="Next step" onChange={(event) => setNext(event.target.value)} />
+                  </form>
+                  <ul className="mt-3">
+                    {clients.map((row) => (
+                      <li key={row.id} className="grid gap-2 border-b border-white/10 py-2 text-sm md:grid-cols-[1fr_auto]">
+                        <div>
+                          <p>{row.client} <span className="text-white/40">{row.paid ? "Paid" : row.status}</span></p>
+                          <p className="text-white/50">{[row.email, row.phone, row.amount ? fmtMoney(row.amount) : "No amount", row.next].filter(Boolean).join(" · ")}</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <button type="button" className="link-add" onClick={() => draft(row)}>Draft</button>
+                          {!row.paid && row.amount > 0 ? <button type="button" className="quiet is-on" onClick={() => { update((prev) => ({ ...prev, deals: prev.deals.map((item) => item.id === row.id ? { ...item, paid: true, status: "paid" } : item), notifs: [{ id: newId(), text: `${row.client} paid ${fmtMoney(row.amount)}`, source: "Lucid", seen: false }, ...prev.notifs] })); stamp(open.id, `${row.client} paid ${fmtMoney(row.amount)}.`); }}>Mark paid</button> : null}
+                        </div>
+                      </li>
+                    ))}
+                    {!clients.length ? <li className="py-2 text-sm text-white/40">No clients on this offer.</li> : null}
+                  </ul>
+                </div>
+              ) : null}
+              <p className="whitespace-pre-wrap text-sm text-white/60">{open.log || "Nothing logged."}</p>
+            </div>
+          ) : <p className="text-sm text-white/40">Pick an offer.</p>}
+        </section>
+      </div>
+    </div>
+  );
+}
+
 export function WiredPanel({ slug, data, update }: { slug: string; data: Memory; update: Update }) {
   const [draft, setDraft] = useState("");
   const [extra, setExtra] = useState("");
   const [place, setPlace] = useState("Atlanta");
   const [tool, setTool] = useState(TOOLS[0]);
-  const [code, setCode] = useState("");
-  const [playing, setPlaying] = useState(0);
   const [openVault, setOpenVault] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<{ provider: string; name: string; email: string }[]>([]);
   const [oauthNote, setOauthNote] = useState("");
-  useEffect(() => setCode(deviceId()), []);
   useEffect(() => {
-    void import("@/lib/lifeos/oauth").then(async ({ finishOAuth, readOauth }) => {
-      await finishOAuth().catch(() => null);
+    void import("@/lib/lifeos/oauth").then(async ({ finishOAuth, readOauth, GMAIL_ACCOUNT }) => {
+      const session = await finishOAuth().catch(() => null);
+      if (session?.provider === "google" && !session.token) {
+        setOauthNote(`That Google account is ${session.email || "a different mailbox"}. Connect ${GMAIL_ACCOUNT}.`);
+      }
       setAccounts(readOauth().map((row) => ({ provider: row.provider, name: row.name, email: row.email })));
     });
   }, []);
@@ -225,308 +1069,44 @@ export function WiredPanel({ slug, data, update }: { slug: string; data: Memory;
 
   if (slug === "messages") return <MessagesDesk data={data} update={update} />;
 
-  if (slug === "calendar") return (
-    <Card title="Calendar">
-      <MonthCalendar events={data.events} onAdd={(date, day, title) => {
-        update((prev) => ({
-          ...prev,
-          events: [...prev.events, { id: newId(), day, date, title }],
-          notifs: [{ id: newId(), text: `${title} on ${fmtDate(date)}`, source: "Calendar", seen: false }, ...prev.notifs],
-        }));
-        if (typeof Notification !== "undefined") {
-          if (Notification.permission === "granted") new Notification(title, { body: fmtDate(date) });
-          else if (Notification.permission === "default") void Notification.requestPermission();
-        }
-      }} />
-    </Card>
-  );
+  if (slug === "calendar") return <CalendarDesk data={data} update={update} />;
 
-  if (slug === "crm") return <div className="grid gap-4"><CrmDesk data={data} update={update} /><Contacts kind="crm" data={data} update={update} /></div>;
+  if (slug === "crm") return <Contacts kind="crm" data={data} update={update} />;
   if (slug === "contacts") return <Contacts kind="personal" data={data} update={update} />;
   if (slug === "omnisearch") return <SearchDesk data={data} update={update} />;
 
-  if (slug === "social") return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {PLATFORMS.map((name) => {
-        const latest = data.social.find((row) => row.label === name)?.points.at(-1);
-        return (
-          <Card key={name} title={name}>
-            <p className="text-3xl text-blue-2">{latest ?? "—"}</p>
-            <p className="text-sm text-muted">One saved count. No chart on social.</p>
-            <div className="mt-3"><Add label={`Log ${name}`} onAdd={(value) => {
-              const point = Number(value);
-              if (!Number.isFinite(point)) return;
-              update((prev) => {
-                const existing = prev.social.find((row) => row.label === name);
-                if (!existing) return { ...prev, social: [...prev.social, { id: newId(), label: name, points: [point] }] };
-                return { ...prev, social: prev.social.map((row) => row.label === name ? { ...row, points: [...row.points.slice(-6), point] } : row) };
-              });
-            }} /></div>
-          </Card>
-        );
-      })}
-    </div>
-  );
+  if (slug === "social") return <SocialDesk data={data} update={update} />;
 
-  if (slug === "marketing") {
-    const saved = data.notes.find((row) => row.title === `Marketing · ${tool}`);
-    return (
-      <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
-        <Card title="Tools">
-          {TOOLS.map((name) => (
-            <button key={name} type="button" className={`block min-h-11 w-full text-left text-sm ${tool === name ? "text-blue-2" : ""}`} onClick={() => { setTool(name); setExtra(data.notes.find((row) => row.title === `Marketing · ${name}`)?.body || ""); }}>{name}</button>
-          ))}
-        </Card>
-        <Card title={tool}>
-          {tool === "AI Lead Generator" || tool === "Business Listings" ? (
-            <Add label={tool === "Business Listings" ? "Business to list" : "Lead name"} onAdd={(name) => update((prev) => ({ ...prev, leads: [{ id: newId(), name, source: tool, status: "New" }, ...prev.leads] }))} />
-          ) : tool === "Lead Tracker" ? (
-            <ul>{data.leads.map((row) => <li key={row.id} className="min-h-11 text-sm">{row.name} <span className="text-muted">{row.status} · {row.source}</span></li>)}</ul>
-          ) : (
-            <form className="grid gap-2" onSubmit={(event) => {
-              event.preventDefault();
-              const title = `Marketing · ${tool}`;
-              update((prev) => ({ ...prev, notes: [{ id: saved?.id || newId(), title, body: extra }, ...prev.notes.filter((row) => row.title !== title)] }));
-            }}>
-              <Field label="Notes" value={extra} onChange={setExtra} area />
-              <button type="submit" className="min-h-11 rounded-lg bg-blue text-sm">Save {tool}</button>
-            </form>
-          )}
-          {tool === "Rank Tracking" ? (
-            <div className="mt-4">
-              {data.marketing.map((row) => <p key={row.id} className="text-sm">{row.label}: {row.points.at(-1)}</p>)}
-              <div className="mt-2"><Add label="Log site visits" onAdd={(value) => {
-                const point = Number(value);
-                if (!Number.isFinite(point)) return;
-                update((prev) => ({ ...prev, marketing: prev.marketing.map((item) => item.label === "Site visits" ? { ...item, points: [...item.points.slice(1), point] } : item) }));
-              }} /></div>
-            </div>
-          ) : null}
-        </Card>
-      </div>
-    );
-  }
+  if (slug === "marketing") return <MarketingDesk data={data} update={update} />;
 
-  if (slug === "leads") return (
-    <div className="grid gap-4">
-      <Card title="Leads">
-        <Add label="New lead" onAdd={(name) => update((prev) => ({ ...prev, leads: [{ id: newId(), name, source: "Manual", status: "New" }, ...prev.leads] }))} />
-        <ul className="mt-3">{data.leads.map((row) => (
-          <li key={row.id} className="flex min-h-11 flex-wrap items-center gap-2 text-sm">
-            <span>{row.name}</span>
-            <span className="text-muted">{row.source}</span>
-            {["New", "Warm", "Closed"].map((status) => (
-              <button key={status} type="button" className={row.status === status ? "text-green" : "text-muted"} onClick={() => update((prev) => ({ ...prev, leads: prev.leads.map((item) => item.id === row.id ? { ...item, status } : item) }))}>{status}</button>
-            ))}
-          </li>
-        ))}</ul>
-      </Card>
-      <Card title="Community">
-        <p className="text-sm text-muted">Neighborhood asks and group recommendations live with the leads. Change the source when one comes from a community.</p>
-        {data.leads.filter((row) => /community|nextdoor|group|facebook/i.test(row.source)).map((row) => <p key={row.id} className="min-h-11 text-sm">{row.name} <span className="text-muted">{row.source}</span></p>)}
-      </Card>
-      <Card title="Lucid">
-        {data.ideas.map((row) => (
-          <div key={row.id} className="border-b border-line py-3 text-sm">
-            <p>{row.title}</p>
-            <p className="text-muted">{row.note}</p>
-            <button type="button" className="mt-2 min-h-11 text-blue-2" onClick={() => update((prev) => ({ ...prev, ideas: prev.ideas.map((item) => item.id === row.id ? { ...item, approved: !item.approved } : item) }))}>{row.approved ? "Approved — you set up the accounts, then it stays on this list" : "Approve"}</button>
-          </div>
-        ))}
-        <Add label="Low-effort idea" onAdd={(title) => update((prev) => ({ ...prev, ideas: [{ id: newId(), title, note: "Approve it, then set up the accounts yourself. Lucid keeps the plan here.", approved: false }, ...prev.ideas] }))} />
-      </Card>
-    </div>
-  );
+  if (slug === "analytics") return <AnalyticsDesk data={data} update={update} />;
 
-  if (slug === "creator") return (
-    <Card title="Creator">
-      <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); if (!draft.trim()) return; update((prev) => ({ ...prev, media: [{ id: newId(), title: draft.trim(), body: extra.trim(), at: new Date().toISOString() }, ...prev.media] })); setDraft(""); setExtra(""); }}>
-        <Field label="Title" value={draft} onChange={setDraft} />
-        <Field label="Script, shot list, or edit notes" value={extra} onChange={setExtra} area />
-        <button type="submit" className="min-h-11 rounded-lg bg-blue text-sm">Save piece</button>
-      </form>
-      <ul className="mt-4 grid gap-2">{data.media.map((row) => <li key={row.id} className="text-sm"><span className="text-blue-2">{row.title}</span><span className="mt-1 block text-muted">{row.body}</span></li>)}</ul>
-    </Card>
-  );
+  if (slug === "leads") return <LeadsDesk data={data} update={update} />;
 
-  if (slug === "music-einstein") return (
-    <Card title="Music Einstein">
-      <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); if (!draft.trim()) return; update((prev) => ({ ...prev, songs: [{ id: newId(), title: draft.trim(), note: extra.trim() || "Verse / chorus / hook" }, ...prev.songs] })); setDraft(""); setExtra(""); }}>
-        <Field label="Title" value={draft} onChange={setDraft} />
-        <Field label="Key, BPM, verse, chorus, hook" value={extra} onChange={setExtra} area />
-        <button type="submit" className="min-h-11 rounded-lg bg-blue text-sm">Save song</button>
-      </form>
-      <ul className="mt-4">{data.songs.map((row) => <li key={row.id} className="min-h-11 text-sm"><span className="text-blue-2">{row.title}</span><span className="mt-1 block text-muted">{row.note}</span></li>)}</ul>
-    </Card>
-  );
+  if (slug === "creator") return <CreatorDesk data={data} update={update} />;
+
+  if (slug === "music-einstein") return <EinsteinDesk data={data} update={update} />;
+
+  if (slug === "lucid") return <LucidDesk data={data} update={update} />;
 
   if (slug === "music") return <MusicDesk data={data} update={update} />;
   if (slug === "media") return <MediaDesk data={data} update={update} />;
 
-  if (slug === "finance") return (
-    <div className="grid gap-4">
-      <Card title="Balances">
-        {data.accounts.map((row) => (
-          <label key={row.id} className="mt-2 flex items-center justify-between gap-2 text-sm">
-            <span>{row.name}</span>
-            <input className="w-28 rounded-full border border-line bg-ink px-3 py-1 text-right" style={{ caretColor: "transparent" }} value={row.balance} onChange={(event) => {
-              const balance = Number(event.target.value);
-              if (!Number.isFinite(balance)) return;
-              update((prev) => ({ ...prev, accounts: prev.accounts.map((item) => item.id === row.id ? { ...item, prior: item.balance, balance } : item) }));
-            }} />
-          </label>
-        ))}
-        <div className="mt-3"><Add label="New account" onAdd={(name) => update((prev) => ({ ...prev, accounts: [...prev.accounts, { id: newId(), name, balance: 0, prior: 0 }] }))} /></div>
-      </Card>
-      <Card title="Bills">
-        {data.expenses.map((row) => (
-          <div key={row.id} className="mt-2 flex items-center justify-between gap-2 text-sm">
-            <span>{row.name}</span>
-            <input className="w-24 rounded-full border border-line bg-ink px-2 py-1 text-right" style={{ caretColor: "transparent" }} value={row.amount} onChange={(event) => {
-              const amount = Number(event.target.value);
-              if (!Number.isFinite(amount)) return;
-              update((prev) => ({ ...prev, expenses: prev.expenses.map((item) => item.id === row.id ? { ...item, amount } : item) }));
-            }} />
-            <button type="button" className="bg-blue" onClick={() => update((prev) => ({ ...prev, expenses: prev.expenses.map((item) => item.id === row.id ? { ...item, paid: !item.paid } : item) }))}>{row.paid ? "Paid" : "Due"}</button>
-          </div>
-        ))}
-        <div className="mt-3"><Add label="New bill" onAdd={(name) => update((prev) => ({ ...prev, expenses: [{ id: newId(), name, amount: 0, paid: false, fixed: true }, ...prev.expenses] }))} /></div>
-      </Card>
-      <Card title="Products">
-        {data.products.map((row) => (
-          <div key={row.id} className="mt-2 grid grid-cols-[1fr_5rem_5rem] gap-2 text-sm">
-            <span>{row.name}</span>
-            <input className="rounded-full border border-line bg-ink px-2 py-1" style={{ caretColor: "transparent" }} value={row.cost} aria-label="Cost" onChange={(event) => { const cost = Number(event.target.value); if (Number.isFinite(cost)) update((prev) => ({ ...prev, products: prev.products.map((item) => item.id === row.id ? { ...item, cost } : item) })); }} />
-            <input className="rounded-full border border-line bg-ink px-2 py-1" style={{ caretColor: "transparent" }} value={row.revenue} aria-label="Revenue" onChange={(event) => { const revenue = Number(event.target.value); if (Number.isFinite(revenue)) update((prev) => ({ ...prev, products: prev.products.map((item) => item.id === row.id ? { ...item, revenue } : item) })); }} />
-          </div>
-        ))}
-        <div className="mt-3"><Add label="New product" onAdd={(name) => update((prev) => ({ ...prev, products: [...prev.products, { id: newId(), name, cost: 0, revenue: 0 }] }))} /></div>
-      </Card>
-      <Card title="Credit">
-        <label className="text-sm">FICO
-          <input className="mt-1 w-full rounded-full border border-line bg-ink px-3 py-1" style={{ caretColor: "transparent" }} value={data.fico} onChange={(event) => { const fico = Number(event.target.value); if (Number.isFinite(fico)) update((prev) => ({ ...prev, fico })); }} />
-        </label>
-        <label className="mt-2 block text-sm">Vantage
-          <input className="mt-1 w-full rounded-full border border-line bg-ink px-3 py-1" style={{ caretColor: "transparent" }} value={data.vantage} onChange={(event) => { const vantage = Number(event.target.value); if (Number.isFinite(vantage)) update((prev) => ({ ...prev, vantage })); }} />
-        </label>
-      </Card>
-    </div>
-  );
+  if (slug === "finance") return <FinanceDesk data={data} update={update} />;
 
   if (slug === "office") return <OfficeDesk data={data} update={update} />;
   if (slug === "projects") return <ProjectsDesk data={data} update={update} />;
   if (slug === "maps") return <MapsDesk data={data} update={update} />;
-  if (slug === "legal") return <LegalDesk data={data} update={update} />;
   if (slug === "journal") return <JournalDesk data={data} update={update} />;
 
-  if (slug === "terminal") return <TerminalDesk data={data} />;
   if (slug === "simulators") return <SimDesk data={data} update={update} />;
   if (slug === "vault") return <VaultDesk data={data} update={update} />;
 
   if (slug === "ai-hub") return <HubDesk data={data} update={update} />;
 
-  if (slug === "integrations") {
-    const rows = SERVICES.map((name) => data.keys.find((row) => row.name === name) || { id: name, name, value: "" });
-    return (
-      <Card title="Integrations">
-        <p className="text-sm text-muted">Google, Facebook, and Spotify use the Supabase login you already turned on. Nothing else on the dashboard is locked.</p>
-        <div className="dock-bar mt-3 flex flex-wrap gap-3">
-          {(["google", "facebook", "spotify"] as const).map((provider) => {
-            const account = accounts.find((row) => row.provider === provider);
-            return (
-              <button key={provider} type="button" className={account ? "on" : ""} onClick={() => void import("@/lib/lifeos/oauth").then(({ startOAuth }) => startOAuth(provider)).catch((error) => setOauthNote(error instanceof Error ? error.message : "Connect failed."))}>
-                {account ? `${provider} · ${account.email || account.name || "connected"}` : `Connect ${provider}`}
-              </button>
-            );
-          })}
-        </div>
-        {oauthNote ? <p className="text-ember mt-2 text-xs">{oauthNote}</p> : null}
-        <button type="button" className="mt-3 min-h-11 rounded-lg border border-line px-3 text-sm text-blue-2" onClick={() => {
-          void Promise.all([import("@/lib/lifeos/oauth"), import("@/lib/lifeos/env-keys")]).then(async ([{ readOauth }, { pullProvider }]) => {
-            for (const account of readOauth()) {
-              const result = await pullProvider({ data: { provider: account.provider, token: account.token } });
-              update((prev) => {
-                let next = { ...prev, notifs: [{ id: newId(), text: `${account.provider}: ${result.text}`, source: account.provider, seen: false }, ...prev.notifs] };
-                if ("events" in result && Array.isArray(result.events)) {
-                  const events = result.events.map((item) => ({ id: newId(), day: item.when ? new Date(item.when).getDay() : new Date().getDay(), date: item.when?.slice(0, 10), title: item.title }));
-                  next = { ...next, events: [...events, ...next.events] };
-                }
-                if ("tracks" in result && Array.isArray(result.tracks)) {
-                  const links = result.tracks.filter((item) => item.url).map((item) => ({ id: newId(), label: `Spotify · ${item.title}`, href: item.url }));
-                  next = { ...next, links: [...links, ...next.links] };
-                }
-                return next;
-              });
-            }
-          }).catch(() => undefined);
-        }}>Pull connected accounts</button>
-        <button type="button" className="mt-3 min-h-11 rounded-lg border border-line px-3 text-sm text-blue-2" onClick={() => {
-          void import("@/lib/lifeos/env-keys").then(async ({ pullWithKey }) => {
-            for (const row of data.keys.filter((item) => item.value)) {
-              const result = await pullWithKey({ data: { name: row.name, key: row.value } });
-              update((prev) => {
-                const note = { id: newId(), text: `${row.name}: ${result.text}`, source: row.name, seen: false };
-                let next = { ...prev, notifs: [note, ...prev.notifs] };
-                if (row.name === "Stripe" && "balance" in result && typeof result.balance === "number") {
-                  const accounts = next.accounts.some((item) => item.name === "Stripe")
-                    ? next.accounts.map((item) => item.name === "Stripe" ? { ...item, prior: item.balance, balance: result.balance as number } : item)
-                    : [{ id: newId(), name: "Stripe", balance: result.balance as number, prior: 0 }, ...next.accounts];
-                  next = { ...next, accounts };
-                }
-                if (row.name === "Nylas" && "messages" in result && Array.isArray(result.messages)) {
-                  const mail = result.messages.map((item) => ({ id: newId(), title: item.title, body: item.body, at: item.at, folder: "inbox" as const, to: "", from: "Nylas", starred: false }));
-                  next = { ...next, mail: [...mail, ...next.mail.filter((item) => item.from !== "Nylas")] };
-                }
-                if (row.name === "YouTube" && "videos" in result && Array.isArray(result.videos)) {
-                  const links = result.videos.map((item) => ({ id: newId(), label: item.title, href: item.href }));
-                  next = { ...next, links: [...links, ...next.links] };
-                }
-                return next;
-              });
-            }
-          }).catch(() => undefined);
-        }}>Pull live data</button>
-        <ul className="mt-4 grid gap-3">
-          {rows.map((row) => (
-            <li key={row.name}>
-              <Field label={row.name} value={row.value} onChange={(value) => update((prev) => {
-                const found = prev.keys.find((item) => item.name === row.name);
-                if (!found) return { ...prev, keys: [{ id: newId(), name: row.name, value }, ...prev.keys] };
-                return { ...prev, keys: prev.keys.map((item) => item.name === row.name ? { ...item, value } : item) };
-              })} />
-            </li>
-          ))}
-        </ul>
-      </Card>
-    );
-  }
+  if (slug === "integrations") return <IntegrationsDesk data={data} update={update} accounts={accounts} setAccounts={setAccounts} note={oauthNote} setNote={setOauthNote} />;
 
-  return (
-    <Card title="Settings">
-      <p className="text-sm text-muted">Notes, tasks, contacts, and the rest of the board sync with this code. Keys and the vault stay on this browser only.</p>
-      <p className="mt-2 break-all font-mono text-xs text-blue-2">{code}</p>
-      <form className="mt-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const input = event.currentTarget.elements.namedItem("code"); const next = input instanceof HTMLInputElement ? input.value : ""; if (adoptDevice(next) && input instanceof HTMLInputElement) input.value = ""; }}>
-        <input name="code" placeholder="Paste a code from another browser" className="min-h-11 flex-1 rounded-lg border border-line bg-ink px-3 text-sm" style={{ caretColor: "transparent" }} />
-        <button type="submit" className="min-h-11 rounded-lg bg-blue px-3 text-sm">Load</button>
-      </form>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" className="min-h-11 rounded-lg bg-blue px-3 text-sm" onClick={() => {
-          const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = "lifeos.json";
-          link.click();
-          URL.revokeObjectURL(url);
-        }}>Export</button>
-        <label className="min-h-11 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm">
-          Import
-          <input type="file" accept="application/json" className="sr-only" onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            void file.text().then((text) => update(() => sanitizeMemory(JSON.parse(text))));
-          }} />
-        </label>
-      </div>
-    </Card>
-  );
+  if (slug === "settings") return <SettingsDesk data={data} update={update} />;
+
+  return null;
 }

@@ -325,9 +325,19 @@ export function OfficeDesk({ data, update }: { data: Memory; update: Update }) {
         {folders.map((item) => <button key={item} type="button" className={`menu ${folder === item ? "is-on" : ""}`} onClick={() => setFolder(item)}>{item}</button>)}
         <p className="mb-1 mt-4 text-[10px] tracking-widest text-white/35">STORED FILES</p>
         {shown.map((row) => (
-          <button key={row.id} type="button" className={`menu ${openId === row.id ? "is-on" : ""}`} onClick={() => open(row)}>
-            {row.title.startsWith("Sheet") ? "Sheet" : "Doc"} · {fileName(row.title)}
-          </button>
+          <div key={row.id} className="flex items-center gap-2">
+            <button type="button" className={`menu min-w-0 flex-1 ${openId === row.id ? "is-on" : ""}`} onClick={() => open(row)}>
+              {row.title.startsWith("Sheet") || bareTitle(row.title).startsWith("Sheet") ? "Sheet" : "Doc"} · {fileName(row.title)}
+            </button>
+            <button type="button" className="quiet shrink-0" onClick={() => {
+              const sheet = bareTitle(row.title).startsWith("Sheet") || row.title.startsWith("Sheet");
+              const label = fileName(row.title) || "file";
+              if (sheet) {
+                const next = parseSheet(row.body);
+                download(`${label}.csv`, `\uFEFF${[next.cols, ...next.rows].map((line) => line.map(csvCell).join(",")).join("\n")}`, "text/csv");
+              } else download(`${label}.doc`, wordFile(label, row.body), "application/msword");
+            }}>Download</button>
+          </div>
         ))}
         {!shown.length ? <p className="text-[11px] text-white/35">Nothing filed here.</p> : null}
         <p className="mb-1 mt-4 text-[10px] tracking-widest text-white/35">DASHBOARD NOTES</p>

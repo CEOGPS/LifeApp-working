@@ -9,10 +9,11 @@ export const VOICES = [
   { name: "5z1d", id: "5z1dCJ9XLHwLPLqjq7Dz" },
   { name: "Stephanie", id: "09vslFmztgVtc8A1kDJl" },
   { name: "Jedediah", id: "Cb8NLd0sUB8jI4MW2f9M" },
+  { name: "Selected", id: "nscgRrDRVT6a2RCQs92V" },
 ] as const;
 
 const ASSIGNED: Record<string, string> = {
-  Erebus: "Cb8NLd0sUB8jI4MW2f9M",
+  Erebus: "EXAVITQu4vr4xnSDxMaL",
   Kranos: "pFZP5JQG7iQjIQuC4Bku",
   Zero: "cgSgspJ2msm6clMCkdW9",
   Inferno: "XrExE9yKIg1WjnnlVkGX",
@@ -21,6 +22,24 @@ const ASSIGNED: Record<string, string> = {
   Rage: "EXAVITQu4vr4xnSDxMaL",
   Aurora: "5z1dCJ9XLHwLPLqjq7Dz",
   Breeze: "09vslFmztgVtc8A1kDJl",
+  Wire: "uTZG99vYUBiDowASgVNz",
+  Clerk: "pFZP5JQG7iQjIQuC4Bku",
+  Closer: "cgSgspJ2msm6clMCkdW9",
+  Signal: "XrExE9yKIg1WjnnlVkGX",
+  Pulse: "Xb7hH8MSUJpSbSDYk0k2",
+  Line: "FGY2WhTYpPnrIDTdsKH5",
+  Studio: "EXAVITQu4vr4xnSDxMaL",
+  Host: "5z1dCJ9XLHwLPLqjq7Dz",
+  Scout: "09vslFmztgVtc8A1kDJl",
+  Gauge: "Cb8NLd0sUB8jI4MW2f9M",
+  Hack: "uTZG99vYUBiDowASgVNz",
+  Lens: "pFZP5JQG7iQjIQuC4Bku",
+  Sim: "cgSgspJ2msm6clMCkdW9",
+  Lead: "XrExE9yKIg1WjnnlVkGX",
+  Book: "Xb7hH8MSUJpSbSDYk0k2",
+  Telegram: "FGY2WhTYpPnrIDTdsKH5",
+  Hermes: "EXAVITQu4vr4xnSDxMaL",
+  Qwen: "5z1dCJ9XLHwLPLqjq7Dz",
 };
 
 export function voiceId(value: string) {
@@ -35,4 +54,14 @@ export function voiceName(value: string) {
 
 export function defaultVoice(agent: string) {
   return ASSIGNED[agent] || VOICES[0].id;
+}
+
+export function readClones(notes: { title: string; body: string }[]) {
+  try {
+    const parsed = JSON.parse(notes.find((row) => row.title === "Voice · Clones")?.body || "[]") as { name?: string; id?: string }[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((row) => row?.id && row?.name).map((row) => ({ name: String(row.name).slice(0, 40), id: String(row.id).slice(0, 80) }));
+  } catch {
+    return [];
+  }
 }

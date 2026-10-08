@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { EngineBar } from "./engine-bar";
 import { newId, type Memory } from "./memory";
+import { downloadFile, downloadText } from "./format";
 import { VOICES } from "./voices";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
@@ -352,6 +354,7 @@ export function CreatorDesk({ data, update }: { data: Memory; update: Update }) 
   return (
     <div className="grid gap-3">
       <StudioQueue data={data} update={update} />
+      <EngineBar panel="Creator" data={data} update={update} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl">Creator</h1>
@@ -447,6 +450,13 @@ export function CreatorDesk({ data, update }: { data: Memory; update: Update }) 
               <div className="mb-3 flex flex-wrap items-center gap-4">
                 <p className="min-w-0 flex-1 truncate text-lg">{open.title}</p>
                 {/^https?:\/\//.test(open.body) ? <a className="quiet" href={open.body} target="_blank" rel="noreferrer">Open</a> : null}
+                <button type="button" className="quiet" onClick={() => {
+                  const kind = studioOf(open.title);
+                  const base = open.title.replace(/^(Image|Video|Animate|Wan|Script|Audio) · /, "") || "file";
+                  const ext = kind === "video" || kind === "animate" || kind === "wan" ? "mp4" : kind === "audio" ? "mp3" : kind === "image" ? "png" : "txt";
+                  if (/^https?:|^data:/i.test(open.body)) downloadFile(`${base}.${ext}`, open.body);
+                  else downloadText(`${base}.txt`, open.body);
+                }}>Download</button>
                 {studioOf(open.title) === "image" && /^https:\/\//.test(open.body) ? <button type="button" className="quiet" onClick={() => { setStudio("wan"); setStill(open.body); setTitle(open.title.replace(/^Image · /, "")); }}>Move with Wan</button> : null}
                 <button type="button" className="link-remove" onClick={() => { update((prev) => ({ ...prev, media: prev.media.filter((row) => row.id !== open.id) })); setOpenId(null); }}>Remove</button>
               </div>

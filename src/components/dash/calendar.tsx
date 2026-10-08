@@ -54,7 +54,7 @@ export function MonthCalendar({ events, onAdd, onRemove, onPick, page = false, p
         <button type="button" className="quiet" onClick={() => setCursor(new Date(year, month + 1, 1))}>Next</button>
       </div>
       <div className="grid grid-cols-7 text-center text-[10px] text-white/35">
-        {HEADS.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
+        {HEADS.map((label, index) => <span key={`${label}-${index}`} className="accent-purple">{label}</span>)}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-y-1 text-center text-xs">
         {cells.map((day, index) => {
@@ -96,7 +96,7 @@ export function MonthCalendar({ events, onAdd, onRemove, onPick, page = false, p
         </form>
       </div>
       <div className="grid grid-cols-7 text-[10px] tracking-widest text-white/35">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => <span key={label} className="px-2 pb-1">{label}</span>)}
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => <span key={label} className="px-2 pb-1"><span className="accent-purple">{label[0]}</span><span className="text-white/35">{label.slice(1)}</span></span>)}
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-7 gap-1" style={{ gridTemplateRows: `repeat(${weeks}, minmax(7.5rem, 1fr))` }}>
         {cells.map((day, index) => {

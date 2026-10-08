@@ -202,9 +202,10 @@ export function sanitizeBoard(input: unknown): Board {
     tracks: arr(raw.tracks, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as Track;
-      const url = text(r.url, 400);
-      const page = text(r.page, 400);
-      if (url && !/^https?:\/\//i.test(url)) return null;
+      const url = text(r.url, 2000);
+      const page = text(r.page, 2000);
+      const local = url.startsWith("idb:");
+      if (url && !local && !/^https?:\/\//i.test(url)) return null;
       if (!url && !/^https?:\/\//i.test(page)) return null;
       return {
         id: text(r.id, 40) || crypto.randomUUID(),

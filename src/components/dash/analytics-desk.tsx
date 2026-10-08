@@ -16,8 +16,8 @@ function Spark({ points }: { points: number[] }) {
   const min = Math.min(...points);
   const max = Math.max(...points);
   const span = max - min || 1;
-  const d = points.map((value, index) => `${(index / (points.length - 1)) * 220},${36 - ((value - min) / span) * 28}`).join(" ");
-  return <svg width="220" height="40" aria-hidden><polyline points={d} fill="none" stroke="oklch(0.78 0.12 195)" strokeWidth="1.5" /></svg>;
+  const d = points.map((value, index) => `${(index / (points.length - 1)) * 96},${22 - ((value - min) / span) * 16}`).join(" ");
+  return <svg width="96" height="24" aria-hidden><polyline points={d} fill="none" stroke="oklch(0.78 0.12 195)" strokeWidth="1.5" /></svg>;
 }
 
 export function AnalyticsDesk({ data, update }: { data: Memory; update: Update }) {
@@ -33,10 +33,10 @@ export function AnalyticsDesk({ data, update }: { data: Memory; update: Update }
     saveKey(update, "Google Analytics", property.trim());
     saveKey(update, "Search Console", site.trim());
     saveKey(update, "Brilliant Site", bdSite.trim());
-    const { readOauth } = await import("@/lib/lifeos/oauth");
+    const { readOauth, freshGoogleToken } = await import("@/lib/lifeos/oauth");
     const { pullAnalytics } = await import("@/lib/lifeos/sync");
     const result = await pullAnalytics({ data: {
-      google: readOauth().find((row) => row.provider === "google")?.token || "",
+      google: await freshGoogleToken() || readOauth().find((row) => row.provider === "google")?.token || "",
       property,
       site,
       facebook: readOauth().find((row) => row.provider === "facebook")?.token || "",
@@ -65,31 +65,27 @@ export function AnalyticsDesk({ data, update }: { data: Memory; update: Update }
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl">Analytics</h1>
-          <p className="text-sm text-white/50">Website, search, and the connected social accounts. Same numbers as the home module.</p>
-        </div>
+    <div className="grid gap-2">
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="min-w-36 flex-1 text-[10px] text-white/40">GA4 property
+          <input className="mt-1 h-7 w-full rounded-full border border-line bg-black/40 px-3 text-xs" value={property} placeholder="123456789" onChange={(event) => setProperty(event.target.value)} />
+        </label>
+        <label className="min-w-36 flex-1 text-[10px] text-white/40">Search Console
+          <input className="mt-1 h-7 w-full rounded-full border border-line bg-black/40 px-3 text-xs" value={site} onChange={(event) => setSite(event.target.value)} />
+        </label>
+        <label className="min-w-36 flex-1 text-[10px] text-white/40">Brilliant Directories
+          <input className="mt-1 h-7 w-full rounded-full border border-line bg-black/40 px-3 text-xs" value={bdSite} placeholder="https://ceogps.com" onChange={(event) => setBdSite(event.target.value)} />
+        </label>
         <button type="button" className="bg-blue" disabled={busy} onClick={() => void sync()}>{busy ? "Pulling" : "Sync"}</button>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        <label className="text-[11px] text-white/40">GA4 property ID
-          <input className="mt-1 h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm" value={property} placeholder="123456789" onChange={(event) => setProperty(event.target.value)} />
-        </label>
-        <label className="text-[11px] text-white/40">Search Console site
-          <input className="mt-1 h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm" value={site} onChange={(event) => setSite(event.target.value)} />
-        </label>
-        <label className="text-[11px] text-white/40">Brilliant Directories site
-          <input className="mt-1 h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm" value={bdSite} placeholder="https://ceogps.com" onChange={(event) => setBdSite(event.target.value)} />
-        </label>
-      </div>
-      {note ? <p className="text-sm text-white/60">{note}</p> : null}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {note ? <p className="text-xs text-white/60">{note}</p> : null}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
         {data.stats.map((row) => (
-          <article key={row.id} className="module-card p-4">
-            <p className="text-[10px] tracking-widest text-white/40">{row.label}</p>
-            <p className="mt-1 text-2xl">{row.value.toLocaleString()}</p>
+          <article key={row.id} className="module-card flex items-center justify-between gap-2 px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-[10px] tracking-widest text-white/40">{row.label}</p>
+              <p className="text-lg leading-tight">{row.value.toLocaleString()}</p>
+            </div>
             <Spark points={row.points} />
           </article>
         ))}

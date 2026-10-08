@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Track } from "@/lib/lifeos/board";
 import { newId, type Memory } from "./memory";
-import { playCut, seekTo, setPlayerMuted, setPlayerRepeat, setPlayerShuffle, setPlayerVolume, step, stopCut, togglePause, usePlayer } from "./player";
+import { downloadFile } from "./format";
+import { playCut, readTrackFile, saveTrackFile, seekTo, setPlayerMuted, setPlayerRepeat, setPlayerShuffle, setPlayerVolume, step, stopCut, togglePause, usePlayer } from "./player";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
 
@@ -41,6 +42,7 @@ export function MusicDesk({ data, update }: { data: Memory; update: Update }) {
   const [showQueue, setShowQueue] = useState(false);
   const [duetOpen, setDuetOpen] = useState(false);
   const [duet, setDuet] = useState({ who: "", style: "Silly", setting: "Atlanta park", extra: "", lyrics: "" });
+  const fileRef = useRef<HTMLInputElement>(null);
   const names = [...new Set(data.tracks.map((row) => row.playlist || "Library"))];
   const made = data.songs.filter((row) => row.audio).map((row) => ({
     id: row.id, title: row.title, artist: "Music Einstein", album: row.note || "Made", url: row.audio || "", page: "", playlist: "Made", art: row.cover || "",
@@ -78,12 +80,18 @@ export function MusicDesk({ data, update }: { data: Memory; update: Update }) {
     const added: Track[] = [];
     for (const file of batch) {
       setNote(`Importing ${added.length + 1} of ${batch.length}…`);
+      const id = newId();
+      const meta = fromName(file.name);
       try {
         const url = await uploadFile(file);
-        const meta = fromName(file.name);
-        added.push({ id: newId(), title: meta.title, artist: meta.artist, album: playlist, url, page: "", playlist, art: "" });
+        added.push({ id, title: meta.title, artist: meta.artist, album: playlist, url, page: "", playlist, art: "" });
       } catch {
-        setNote(`${file.name} did not upload.`);
+        try {
+          await saveTrackFile(id, file);
+          added.push({ id, title: meta.title, artist: meta.artist, album: playlist, url: `idb:${id}`, page: "", playlist, art: "" });
+        } catch {
+          setNote(`${file.name} did not upload.`);
+        }
       }
     }
     addTracks(added);
@@ -97,7 +105,7 @@ export function MusicDesk({ data, update }: { data: Memory; update: Update }) {
   const playRows = () => { if (cuts[0]) playCut(cuts[0], cuts); };
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[13rem_1fr]" onKeyDown={(event) => {
+    <div className="grid gap-3 lg:grid-cols-[13rem_1fr]" onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }} onDrop={(event) => { event.preventDefault(); void importFiles(event.dataTransfer.files); }} onKeyDown={(event) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       if (event.code === "Space") { event.preventDefault(); togglePause(); }
       if (event.code === "ArrowRight") step(1);
@@ -128,10 +136,8 @@ export function MusicDesk({ data, update }: { data: Memory; update: Update }) {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button type="button" className="quiet is-on" onClick={playRows}>Play</button>
-              <label className="quiet is-on">
-                Import
-                <input className="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" multiple onChange={(event) => { const files = event.target.files; event.target.value = ""; void importFiles(files); }} />
-              </label>
+              <button type="button" className="quiet is-on" onClick={() => fileRef.current?.click()}>Import</button>
+              <input ref={fileRef} className="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" multiple onChange={(event) => { const files = event.target.files; event.target.value = ""; void importFiles(files); }} />
               <button type="button" className="quiet" onClick={() => void import("@/lib/lifeos/oauth").then(({ startOAuth }) => startOAuth("spotify")).catch((error: unknown) => setNote(error instanceof Error ? error.message : "Spotify did not connect."))}>Spotify</button>
             </div>
           </div>
@@ -171,6 +177,7 @@ export function MusicDesk({ data, update }: { data: Memory; update: Update }) {
                 <span className="flex items-center justify-end gap-2 truncate text-[11px] text-white/40">
                   <span className="truncate">{row.album}</span>
                   {hit ? <button type="button" className="link-add" onClick={() => saveHit(hit, "Liked")}>Like</button> : null}
+                  {saved?.url ? <button type="button" className="link-add" onClick={() => { void readTrackFile(saved.url).then((href) => downloadFile(`${saved.artist} - ${saved.title}.mp3`, href)).catch(() => setNote("That file is not on this browser.")); }}>Download</button> : null}
                   {saved && list !== "Made" ? <button type="button" className="link-remove" onClick={() => update((prev) => ({ ...prev, tracks: prev.tracks.filter((item) => item.id !== saved.id) }))}>Remove</button> : null}
                 </span>
               </div>

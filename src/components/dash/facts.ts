@@ -22,6 +22,7 @@ export function boardFacts(data: Memory, question = "") {
     `FICO ${data.fico}. Vantage ${data.vantage}.`,
     `Open tasks: ${data.tasks.filter((row) => !row.done).map((row) => row.title).join(", ") || "none"}.`,
     `Leads: ${data.leads.map((row) => `${row.name} (${row.status})`).join(", ") || "none"}.`,
+    `Remembered:\n${(data.facts || []).slice(0, 40).map((row) => `${row.source}: ${row.text}`).join("\n") || "none"}`,
   ].join("\n");
   const tokens = question.toLowerCase().split(/\W+/).filter((token) => token.length > 2);
   const ranked = data.contacts

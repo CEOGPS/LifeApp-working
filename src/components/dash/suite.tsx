@@ -4,7 +4,7 @@ import { fmtPhone } from "./format";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
 const field = "h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm";
-const SOURCES = ["Google", "Bing", "DuckDuckGo", "Brave", "Yahoo", "Wikipedia", "Reddit", "X", "LinkedIn", "Facebook", "Instagram", "YouTube", "TikTok", "Nextdoor", "Craigslist", "Yelp", "BBB", "Angi", "Thumbtack", "Google Business", "Apple Maps", "Bing Places", "Whitepages", "TruePeopleSearch", "FastPeopleSearch", "Spokeo", "Hunter", "Have I Been Pwned", "TinEye", "Google Lens", "Yandex", "GitHub", "Stack Overflow", "Product Hunt", "Crunchbase", "OpenCorporates", "SEC EDGAR", "CourtListener", "Google Patents", "Indeed", "Glassdoor", "Zillow", "Redfin", "Realtor", "Apartments", "LoopNet", "Census", "Data.gov", "OpenStreetMap", "Weather.gov"];
+const SOURCES = ["Google", "Bing", "DuckDuckGo", "Yahoo", "Wikipedia", "Reddit", "X", "LinkedIn", "Facebook", "Instagram", "YouTube", "TikTok", "Nextdoor", "Craigslist", "Yelp", "BBB", "Angi", "Thumbtack", "Google Business", "Apple Maps", "Bing Places", "Whitepages", "TruePeopleSearch", "FastPeopleSearch", "Spokeo", "Hunter", "Have I Been Pwned", "TinEye", "Google Lens", "Yandex", "GitHub", "Stack Overflow", "Product Hunt", "Crunchbase", "OpenCorporates", "SEC EDGAR", "CourtListener", "Google Patents", "Indeed", "Glassdoor", "Zillow", "Redfin", "Realtor", "Apartments", "LoopNet", "Census", "Data.gov", "OpenStreetMap", "Weather.gov"];
 
 function Box({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -15,14 +15,12 @@ function Box({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-const AGENTS = new Set(["Nyx", "Erebus", "Kranos", "Nova", "You"]);
+const AGENTS = /^(you|user|nyx|erebus|kranos|nova)$/i;
+const PLATFORMS = ["All", "SMS", "Google Voice", "Messenger", "Instagram", "WhatsApp", "Telegram", "Email"] as const;
 
-function chatPartner(line: { who: string; text: string; mine: boolean }) {
-  if (line.mine && (line.who === "You" || AGENTS.has(line.who))) {
-    const match = /^([^:]{1,40}):\s/.exec(line.text);
-    return match && !AGENTS.has(match[1]) ? match[1] : null;
-  }
-  if (AGENTS.has(line.who)) return null;
+function chatPartner(line: { who: string; text: string; mine: boolean; platform?: string }) {
+  if (line.platform === "erebus" || line.platform === "kranos") return null;
+  if (AGENTS.test(line.who) || line.who.includes("·")) return null;
   return line.who;
 }
 
@@ -43,26 +41,39 @@ export function MessagesDesk({ data, update }: { data: Memory; update: Update })
   const [who, setWho] = useState("");
   const [text, setText] = useState("");
   const [q, setQ] = useState("");
+  const [platform, setPlatform] = useState<(typeof PLATFORMS)[number]>("All");
   const [picking, setPicking] = useState(false);
+  const [whoId, setWhoId] = useState("");
   const needle = q.trim().toLowerCase();
   const conversations = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, { last: string; platform: string }>();
     for (const line of data.thread) {
       const name = chatPartner(line);
-      if (name) map.set(name, chatBody(line));
+      if (!name) continue;
+      const where = line.platform || "SMS";
+      if (platform !== "All" && where !== platform) continue;
+      map.set(name, { last: chatBody(line), platform: where });
     }
-    if (who && !map.has(who)) map.set(who, "New conversation");
+    if (who && !map.has(who)) map.set(who, { last: "New conversation", platform: platform === "All" ? "SMS" : platform });
     return [...map.entries()]
-      .map(([name, last]) => ({ name, last }))
+      .map(([name, row]) => ({ name, ...row }))
       .filter((row) => !needle || row.name.toLowerCase().includes(needle) || row.last.toLowerCase().includes(needle));
-  }, [data.thread, who, needle]);
-  const person = data.contacts.find((row) => row.name === who);
+  }, [data.thread, who, needle, platform]);
+  const person = data.contacts.find((row) => row.id === whoId) || data.contacts.find((row) => row.name === who);
   const lines = data.thread.filter((line) => chatPartner(line) === who);
-  const picks = data.contacts.filter((row) => !needle || row.name.toLowerCase().includes(needle)).slice(0, 8);
+  const picks = useMemo(() => {
+    if (!needle) return [];
+    return data.contacts.filter((row) => {
+      const hay = `${row.name} ${row.firstName} ${row.lastName} ${row.company} ${row.email} ${row.phone} ${(row.emails || []).join(" ")} ${(row.phones || []).join(" ")}`.toLowerCase();
+      return hay.includes(needle);
+    }).slice(0, 20);
+  }, [data.contacts, needle]);
 
-  function open(name: string) {
+  function open(name: string, id = "") {
     setWho(name);
+    setWhoId(id);
     setPicking(false);
+    setQ("");
   }
 
   return (
@@ -73,19 +84,28 @@ export function MessagesDesk({ data, update }: { data: Memory; update: Update })
           <button type="button" className="ml-auto bg-blue" onClick={() => setPicking((value) => !value)}>{picking ? "Close" : "New"}</button>
         </div>
         <label className="px-3 py-2">
-          <input className={field} value={q} placeholder="Search chats" onChange={(event) => setQ(event.target.value)} />
+          <input className={field} value={q} placeholder="Search chats, contacts, CRM" onChange={(event) => { setQ(event.target.value); setPicking(true); }} />
         </label>
-        {picking ? (
-          <ul className="max-h-40 overflow-y-auto border-b border-white/10 px-2 pb-2">
+        <div className="flex gap-2 overflow-x-auto px-3 pb-2">
+          {PLATFORMS.map((item) => (
+            <button key={item} type="button" className={`quiet shrink-0 ${platform === item ? "is-on" : ""}`} onClick={() => setPlatform(item)}>{item}</button>
+          ))}
+        </div>
+        {picking || needle ? (
+          <ul className="max-h-52 overflow-y-auto border-b border-white/10 px-2 pb-2">
             {picks.map((row) => (
               <li key={row.id}>
-                <button type="button" className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-white/5" onClick={() => open(row.name)}>
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs">{initials(row.name)}</span>
-                  {row.name}
+                <button type="button" className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-white/5" onClick={() => open(row.name || row.email || row.phone, row.id)}>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-xs">{initials(row.name || row.email || "?")}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{row.name || "No name"}</span>
+                    <span className="block truncate text-[11px] text-white/40">{row.kind === "crm" ? "CRM" : "Contact"} · {[fmtPhone(row.phone), row.email, row.company].filter(Boolean).join(" · ") || "No phone or email"}</span>
+                  </span>
                 </button>
               </li>
             ))}
-            {picks.length === 0 ? <li className="px-2 py-2 text-sm text-white/40">No matching contacts.</li> : null}
+            {needle && picks.length === 0 ? <li className="px-2 py-2 text-sm text-white/40">No contacts or CRM match.</li> : null}
+            {!needle && picking ? <li className="px-2 py-2 text-[11px] text-white/35">Type a name, phone, email, or company.</li> : null}
           </ul>
         ) : null}
         <ul className="min-h-0 flex-1 overflow-y-auto p-2">
@@ -95,7 +115,7 @@ export function MessagesDesk({ data, update }: { data: Memory; update: Update })
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-black/40 text-xs text-blue-2">{initials(row.name)}</span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm">{row.name}</span>
-                  <span className="block truncate text-xs text-white/40">{row.last}</span>
+                  <span className="block truncate text-xs text-white/40">{row.platform} · {row.last}</span>
                 </span>
               </button>
             </li>
@@ -112,14 +132,12 @@ export function MessagesDesk({ data, update }: { data: Memory; update: Update })
               </span>
               <span>
                 <span className="block text-sm">{who}</span>
-                <span className="block text-xs text-white/40">{person ? fmtPhone(person.phone) || person.email || "Saved contact" : "No contact card"}</span>
+                <span className="block text-xs text-white/40">{person ? [platform === "All" ? "SMS" : platform, fmtPhone(person.phone || person.phones?.find((item) => /\d/.test(item)) || "") || person.email].filter(Boolean).join(" · ") : "No saved contact"}</span>
               </span>
-              {person?.phone ? (
-                <span className="ml-auto flex gap-2">
-                  <a className="bg-blue" href={`tel:${person.phone.replace(/\D/g, "")}`}>Call</a>
-                  <a className="bg-blue" href={`sms:${person.phone.replace(/\D/g, "")}`}>Text</a>
-                </span>
-              ) : null}
+              <span className="ml-auto flex gap-3">
+                <a className="quiet is-on" href={(() => { const number = (person?.phone || person?.phones?.find((item) => /\d/.test(item)) || "").replace(/\D/g, ""); return number ? `tel:${number}` : undefined; })()}>Call</a>
+                <a className="quiet is-on" href={(() => { const number = (person?.phone || person?.phones?.find((item) => /\d/.test(item)) || "").replace(/\D/g, ""); const face = number || person?.email || ""; return face ? `facetime:${face}` : undefined; })()}>FaceTime</a>
+              </span>
             </>
           ) : <h2 className="module-title">Messages</h2>}
         </header>
@@ -132,7 +150,7 @@ export function MessagesDesk({ data, update }: { data: Memory; update: Update })
         <form className="mt-auto flex gap-2 border-t border-white/10 p-3" onSubmit={(event) => {
           event.preventDefault();
           if (!text.trim() || !who) return;
-          update((prev) => ({ ...prev, thread: [...prev.thread, { id: newId(), who, text: text.trim(), mine: true }] }));
+          update((prev) => ({ ...prev, thread: [...prev.thread, { id: newId(), who, text: text.trim(), mine: true, platform: platform === "All" ? "SMS" : platform }] }));
           setText("");
         }}>
           <input className={field} value={text} placeholder={who ? `Message ${who}` : "Choose a conversation"} disabled={!who} onChange={(event) => setText(event.target.value)} />
@@ -146,6 +164,8 @@ export function MessagesDesk({ data, update }: { data: Memory; update: Update })
 export function SearchDesk({ data, update }: { data: Memory; update: Update }) {
   const [q, setQ] = useState(data.query);
   const [kind, setKind] = useState<"web" | "phone" | "email" | "image">("web");
+  const [live, setLive] = useState<{ title: string; url: string; snippet?: string }[]>([]);
+  const [note, setNote] = useState("");
   const hits = useMemo(() => {
     const needle = q.toLowerCase();
     if (!needle) return [];
@@ -167,7 +187,16 @@ export function SearchDesk({ data, update }: { data: Memory; update: Update }) {
         : SOURCES.slice(0, 12).map((name) => [name, `https://duckduckgo.com/?q=${encodeURIComponent(`${query} site:${name.replaceAll(" ", "").toLowerCase()}`)}`] as [string, string]);
   return (
     <Box title="OmniSearch">
-      <form className="flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); update((prev) => ({ ...prev, query })); }}>
+      <form className="flex flex-wrap gap-2" onSubmit={(event) => {
+        event.preventDefault();
+        update((prev) => ({ ...prev, query }));
+        setNote("Searching…");
+        const base = data.keys.find((row) => row.name === "SearXNG")?.value || "http://127.0.0.1:8888";
+        void import("@/lib/lifeos/sync").then(({ lookup }) => lookup({ data: { query, kind, key: data.keys.find((row) => row.name === "Dogpile")?.value || "", base } })).then((result) => {
+          setLive(result.hits);
+          setNote(result.note || (result.hits.length ? "" : "No live results."));
+        }).catch(() => setNote("Search did not answer."));
+      }}>
         <input className={field} value={q} placeholder={kind === "image" ? "Image URL" : kind === "phone" ? "Phone" : kind === "email" ? "Email" : "Search"} onChange={(event) => setQ(kind === "phone" ? fmtPhone(event.target.value) : event.target.value)} />
         <button type="submit" className="bg-blue">Search</button>
       </form>
@@ -175,10 +204,12 @@ export function SearchDesk({ data, update }: { data: Memory; update: Update }) {
         {(["web", "phone", "email", "image"] as const).map((item) => <button key={item} type="button" className={kind === item ? "on" : ""} onClick={() => setKind(item)}>{item}</button>)}
       </div>
       <ul className="mt-3">{hits.map((row) => <li key={row} className="py-1 text-sm">{row}</li>)}</ul>
+      <ul className="mt-2">{live.map((row) => <li key={row.url} className="py-1 text-sm"><a className="text-blue-2" href={row.url} target="_blank" rel="noreferrer">{row.title}</a>{row.snippet ? <span className="block text-xs text-white/45">{row.snippet}</span> : null}</li>)}</ul>
+      {note ? <p className="mt-2 text-sm text-white/60">{note}</p> : null}
       <div className="mt-3 flex flex-wrap gap-2">
         {links.map(([label, href]) => <a key={label} className="text-sm text-blue-2" href={href} target="_blank" rel="noreferrer">{label}</a>)}
       </div>
-      <p className="mt-3 text-xs text-white/40">{SOURCES.length} sources. Web search opens the live index. Phone, email, and image search open the matching lookup.</p>
+      <p className="mt-3 text-xs text-white/40">SearXNG on port 8888. Brave is off. The dashboard already uses port 8080.</p>
     </Box>
   );
 }

@@ -1,65 +1,16 @@
-import { readFile } from "node:fs/promises";
 import { createServerFn } from "@tanstack/react-start";
+import { SERVICE_ENV } from "./sheet-keys";
 
-const SERVICE_ENV: Record<string, string[]> = {
-  NVIDIA: ["NVIDIA_API_KEY", "NVAPI_KEY", "VITE_NVIDIA_API_KEY"],
-  ElevenLabs: ["ELEVENLABS_API_KEY", "VITE_ELEVENLABS_API_KEY"],
-  "Cloudflare Account": ["CF_ACCOUNT_ID", "CLOUDFLARE_ACCOUNT_ID"],
-  "Cloudflare Token": ["CF_API_TOKEN", "CLOUDFLARE_API_TOKEN"],
-  Luma: ["LUMA_API_KEY", "VITE_LUMA_API_KEY"],
-  Nylas: ["NYLAS_API_KEY", "NYLAS_GRANT_KEY_CEOGPS", "NYLAS_GRANT_KEY_CAGEDNREALITY", "NYLAS_GRANT_KEY_CHRISGR33NINC"],
-  Discord: ["DISCORD_CLIENT_SECRET"],
-  Bing: ["BING_SEARCH_API_KEY", "BING_API_KEY"],
-  Brave: ["BRAVE_SEARCH_API_KEY", "BRAVE_API_KEY"],
-  Dogpile: ["DOGPILE_API_KEY"],
-  Instagram: ["INSTAGRAM_ACCESS_TOKEN", "INSTAGRAM_API_KEY"],
-  LinkedIn: ["LINKEDIN_ACCESS_TOKEN", "LINKEDIN_API_KEY"],
-  Snapchat: ["SNAPCHAT_API_KEY", "SNAPCHAT_ACCESS_TOKEN"],
-  TikTok: ["TIKTOK_ACCESS_TOKEN", "TIKTOK_API_KEY"],
-  Yahoo: ["YAHOO_API_KEY", "YAHOO_CLIENT_SECRET"],
-  Reddit: ["REDDIT_ACCESS_TOKEN", "REDDIT_API_KEY"],
-  X: ["X_ACCESS_TOKEN", "TWITTER_ACCESS_TOKEN"],
-  YouTube: ["YOUTUBE_DATA_V3_API_KEY", "VITE_YOUTUBE_API_KEY", "YOUTUBE_API_KEY"],
-  OpenAI: ["OPENAI_API_KEY", "VITE_OPENAI_API_KEY"],
-  Anthropic: ["ANTHROPIC_API_KEY"],
-  xAI: ["XAI_API_KEY", "GROK_API_KEY"],
-  Telegram: ["TELEGRAM_BOT_TOKEN"],
-  "Google Analytics": ["GA_PROPERTY_ID", "GOOGLE_ANALYTICS_PROPERTY"],
-  "Search Console": ["SEARCH_CONSOLE_SITE", "GSC_SITE_URL"],
-  "Brilliant Directories": ["BRILLIANT_API_KEY", "BD_API_KEY"],
-  "Brilliant Site": ["BRILLIANT_SITE", "BD_SITE"],
-  GoDaddy: ["GODADDY_API_KEY", "GODADDY_KEY"],
-  "GoDaddy Secret": ["GODADDY_API_SECRET", "GODADDY_SECRET"],
-  Supabase: ["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"],
-  "Facebook App ID": ["FACEBOOK_APP_ID", "VITE_FACEBOOK_APP_ID"],
-  SendGrid: ["SENDGRID_API_KEY"],
-  Brevo: ["BREVO_API_KEY"],
-  Spotify: ["SPOTIFY_CLIENT_SECRET", "SPOTIFY_CLIENT_ID"],
-  Replicate: ["REPLICATE_API_TOKEN", "VITE_REPLICATE_API_KEY"],
-};
-
-function parseEnv(text: string, into: Record<string, string>) {
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq < 1) continue;
-    const name = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
-    if (name && value && !into[name]) into[name] = value;
-  }
-}
+export { sheetKeys } from "./sheet-keys";
 
 async function envBag() {
-  const bag: Record<string, string> = {};
-  for (const path of [".env", ".env.local", ".dev.vars"]) {
-    try { parseEnv(await readFile(path, "utf8"), bag); } catch { /* missing */ }
-  }
-  for (const [name, value] of Object.entries(process.env)) {
-    if (value && !bag[name]) bag[name] = value;
-  }
-  return bag;
+  const { envBag: read } = await import("./env-bag.server");
+  return read();
+}
+
+export async function envValue(name: string) {
+  const { envValue: read } = await import("./env-bag.server");
+  return read(name);
 }
 
 export const loadEnvKeys = createServerFn({ method: "GET" }).handler(async () => {
@@ -272,18 +223,34 @@ export const connectAccount = createServerFn({ method: "POST" })
         return { ok: true as const, text: sites.length ? sites.slice(0, 4).join(" · ") : "No Search Console sites are on this Google login.", site };
       }
       if (data.service === "google-analytics") {
-        if (!data.token) return { ok: false as const, text: "Connect Google first.", site: "" };
+        if (!data.token) return { ok: false as const, text: "Connect Google first. Use chris@ceogps.com, chrisgr33ninc@gmail.com, or cagednreality@icloud.com and allow Analytics.", site: "" };
+        const property = data.key.replace(/\D/g, "");
+        if (property) {
+          const report = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${property}:runReport`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${data.token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ dateRanges: [{ startDate: "7daysAgo", endDate: "today" }], metrics: [{ name: "sessions" }] }),
+            signal: AbortSignal.timeout(10000),
+          });
+          const raw = await report.text();
+          let body: { error?: { message?: string }; rows?: unknown[] } = {};
+          try { body = raw ? JSON.parse(raw) as typeof body : {}; } catch { body = { error: { message: raw.slice(0, 180) } }; }
+          if (!report.ok) return { ok: false as const, text: body.error?.message || `Google Analytics refused property ${property} (HTTP ${report.status}).`, site: "" };
+          return { ok: true as const, text: `Connected · property ${property}`, site: property };
+        }
         const response = await fetch("https://analyticsadmin.googleapis.com/v1beta/accountSummaries", { headers: { Authorization: `Bearer ${data.token}` }, signal: AbortSignal.timeout(10000) });
-        const body = await response.json() as { accountSummaries?: { displayName?: string; propertySummaries?: { property?: string; displayName?: string }[] }[]; error?: { message?: string } };
-        if (!response.ok) return { ok: false as const, text: body.error?.message || "Google Analytics refused this login. Reconnect Google.", site: "" };
+        const raw = await response.text();
+        let body: { accountSummaries?: { displayName?: string; propertySummaries?: { property?: string; displayName?: string }[] }[]; error?: { message?: string } } = {};
+        try { body = raw ? JSON.parse(raw) as typeof body : {}; } catch { body = { error: { message: raw.slice(0, 180) } }; }
+        if (!response.ok) return { ok: false as const, text: body.error?.message || "Google Analytics refused this login. Paste the GA4 property ID, or reconnect Google and allow Analytics.", site: "" };
         const properties = (body.accountSummaries || []).flatMap((account) => account.propertySummaries || []);
         const match = properties.find((row) => /ceogps|ceo gps/i.test(row.displayName || "")) || properties[0];
         const site = (match?.property || "").replace("properties/", "");
-        return { ok: true as const, text: site ? `${match?.displayName || "Property"} · ${site}` : "No GA4 properties are on this Google login.", site };
+        return { ok: true as const, text: site ? `Connected · ${match?.displayName || "Property"} · ${site}` : "No GA4 properties are on this Google login. Paste the property ID.", site };
       }
       if (data.service === "godaddy") {
         if (!data.key) return { ok: false as const, text: "Paste the GoDaddy key.", site: "" };
-        const auth = data.secret ? `sso-key ${data.key}:${data.secret}` : `Bearer ${data.key}`;
+        const auth = data.secret ? `sso-key ${data.key}:${data.secret}` : data.key.startsWith("gd_pat_") ? `sso-key ${data.key}` : `Bearer ${data.key}`;
         const response = await fetch("https://api.godaddy.com/v1/domains?statuses=ACTIVE&limit=20", { headers: { Authorization: auth, Accept: "application/json" }, signal: AbortSignal.timeout(10000) });
         const body = await response.json() as { domain?: string }[] | { message?: string };
         if (!response.ok || !Array.isArray(body)) return { ok: false as const, text: (body as { message?: string }).message || "GoDaddy refused the key.", site: "" };
@@ -293,16 +260,125 @@ export const connectAccount = createServerFn({ method: "POST" })
       if (data.service === "brilliant") {
         if (!data.key || !data.site) return { ok: false as const, text: "Paste the site and the API key.", site: "" };
         const site = (/^https?:/i.test(data.site) ? data.site : `https://${data.site}`).replace(/\/$/, "");
-        const response = await fetch(`${site}/api/v2/user/count`, { headers: { "X-Api-Key": data.key }, signal: AbortSignal.timeout(10000) });
-        const body = await response.json() as { total?: number; count?: number; message?: string };
-        if (!response.ok) return { ok: false as const, text: body.message || "Brilliant Directories refused the key.", site };
-        return { ok: true as const, text: `${Number(body.total ?? body.count) || 0} members`, site };
+        const paths = ["/api/v2/data_categories/get", "/api/v2/user/count"];
+        let last = "Brilliant Directories did not answer.";
+        for (const path of paths) {
+          const response = await fetch(`${site}${path}`, { headers: { "X-Api-Key": data.key, Accept: "application/json" }, signal: AbortSignal.timeout(10000) });
+          const raw = await response.text();
+          let message = "";
+          try { message = textOf(JSON.parse(raw)); } catch { message = raw.slice(0, 180); }
+          if (response.ok) return { ok: true as const, text: "The key was accepted.", site };
+          last = message || `Brilliant Directories refused the key (HTTP ${response.status}).`;
+          if (/does not have permission/i.test(last)) return { ok: true as const, text: "The key is valid. This key is not allowed to list members, so the check used a lighter endpoint.", site };
+        }
+        return { ok: false as const, text: last, site };
       }
       return { ok: false as const, text: "Unknown account.", site: "" };
-    } catch {
-      return { ok: false as const, text: "That account did not answer.", site: "" };
+    } catch (error) {
+      return { ok: false as const, text: error instanceof Error ? error.message : "That account did not answer.", site: "" };
     }
   });
+
+function textOf(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.map(textOf).filter(Boolean).join("; ");
+  if (value && typeof value === "object") {
+    const row = value as { message?: unknown; msg?: unknown; error?: unknown; detail?: unknown };
+    return textOf(row.message || row.msg || row.error || row.detail || "");
+  }
+  return "";
+}
+
+async function readBody(response: Response) {
+  const raw = await response.text();
+  let message = "";
+  try {
+    const body = JSON.parse(raw.slice(0, 4000)) as { error?: { message?: string } | string; message?: unknown; detail?: unknown; errors?: unknown };
+    message = textOf(body.error) || textOf(body.message) || textOf(body.detail) || textOf(body.errors);
+  } catch {
+    message = raw.slice(0, 160);
+  }
+  const text = response.ok ? "The service accepted the key." : (message || `Refused (HTTP ${response.status}).`);
+  return { ok: response.ok, checked: true as const, text: String(text).slice(0, 240) };
+}
+
+function cleanKey(value: string) {
+  return value.trim().replace(/^['"]|['"]$/g, "").replace(/^(bearer|token)\s+/i, "").trim();
+}
+
+function timed(work: Promise<Response>) {
+  return new Promise<Response>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("The service did not answer in time.")), 8000);
+    work.then((value) => { clearTimeout(timer); resolve(value); }, (error) => { clearTimeout(timer); reject(error); });
+  });
+}
+
+export async function runProbe(data: { name: string; key: string; email: string }) {
+    let key = cleanKey(data.key);
+    if (!key) {
+      const bag = await envBag();
+      key = cleanKey((SERVICE_ENV[data.name] || []).map((name) => bag[name]?.trim()).find(Boolean) || "");
+    }
+    if (!key) return { ok: false as const, checked: false as const, text: "No key is saved for this service." };
+    const auth = { Authorization: `Bearer ${key}` };
+    try {
+      if (data.name === "OpenAI") return readBody(await timed(fetch("https://api.openai.com/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Anthropic") return readBody(await timed(fetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01" }, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "xAI") return readBody(await timed(fetch("https://api.x.ai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "NVIDIA") return readBody(await timed(fetch("https://integrate.api.nvidia.com/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Groq") return readBody(await timed(fetch("https://api.groq.com/openai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "OpenRouter") return readBody(await timed(fetch("https://openrouter.ai/api/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "DeepSeek") return readBody(await timed(fetch("https://api.deepseek.com/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Mistral") return readBody(await timed(fetch("https://api.mistral.ai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "ElevenLabs") return readBody(await timed(fetch("https://api.elevenlabs.io/v1/user", { headers: { "xi-api-key": key }, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "YouTube" || data.name === "Google Maps") {
+        const path = data.name === "YouTube"
+          ? `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&q=music&key=${encodeURIComponent(key)}`
+          : `https://maps.googleapis.com/maps/api/geocode/json?address=Atlanta&key=${encodeURIComponent(key)}`;
+        const checked = await readBody(await timed(fetch(path, { headers: { Referer: "https://ceogps.com/", Origin: "https://ceogps.com" }, signal: AbortSignal.timeout(7000) })));
+        if (checked.ok || !/referer/i.test(checked.text)) return checked;
+        return { ok: false as const, checked: true as const, text: "Google blocked this key because of the website restriction. In Google Cloud, allow https://ceogps.com/* for this key. Use chrisgr33ninc@gmail.com, chris@ceogps.com, or cagednreality@icloud.com." };
+      }
+      if (data.name === "Stripe") return readBody(await timed(fetch("https://api.stripe.com/v1/balance", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Replicate") return readBody(await timed(fetch("https://api.replicate.com/v1/account", { headers: { Authorization: `Token ${key}` }, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Luma") {
+        const headers = { Authorization: `Bearer ${key}`, Accept: "application/json" };
+        const agents = await readBody(await timed(fetch("https://agents.lumalabs.ai/v1/generations/00000000-0000-0000-0000-000000000000", { headers, signal: AbortSignal.timeout(8000) })));
+        if (agents.ok || /generation not found/i.test(agents.text)) return { ok: true as const, checked: true as const, text: "The service accepted the key." };
+        const legacy = await readBody(await timed(fetch("https://api.lumalabs.ai/dream-machine/v1/generations?limit=1", { headers, signal: AbortSignal.timeout(8000) })));
+        if (legacy.ok) return { ok: true as const, checked: true as const, text: "The service accepted the key." };
+        return { ok: false as const, checked: true as const, text: agents.text || "Luma refused the key." };
+      }
+      if (data.name === "Telegram") return readBody(await timed(fetch(`https://api.telegram.org/bot${key}/getMe`, { signal: AbortSignal.timeout(8000) })));
+      if (data.name === "SendGrid") return readBody(await timed(fetch("https://api.sendgrid.com/v3/scopes", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Hugging Face") return readBody(await timed(fetch("https://huggingface.co/api/whoami-v2", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Nylas") return readBody(await timed(fetch("https://api.us.nylas.com/v3/grants?limit=1", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Cloudflare Token" || data.name === "Cloudflare" || data.name === "Cloudflare Account") {
+        const token = await readBody(await timed(fetch("https://api.cloudflare.com/client/v4/user/tokens/verify", { headers: auth, signal: AbortSignal.timeout(7000) })));
+        if (token.ok) return token;
+        const emails = [...new Set(`${data.email},chris@ceogps.com,chrisgr33ninc@gmail.com,cagednreality@icloud.com`.split(",").map((item) => item.trim().toLowerCase()).filter((item) => item.includes("@")))];
+        let last = token.text;
+        for (const email of emails) {
+          const global = await readBody(await timed(fetch("https://api.cloudflare.com/client/v4/user", { headers: { "X-Auth-Email": email, "X-Auth-Key": key }, signal: AbortSignal.timeout(7000) })));
+          if (global.ok) return { ...global, text: `The service accepted the key for ${email}.` };
+          last = global.text;
+        }
+        return { ok: false as const, checked: true as const, text: last || "Cloudflare refused the key. A token is checked as a token. A global key is checked against chris@ceogps.com, chrisgr33ninc@gmail.com, and cagednreality@icloud.com." };
+      }
+      return { ok: false as const, checked: false as const, text: "Saved on this machine. This service has no live check yet." };
+    } catch (error) {
+      return { ok: false as const, checked: true as const, text: error instanceof Error ? error.message : "The service did not answer." };
+    }
+}
+
+export const probeKey = createServerFn({ method: "POST" })
+  .validator((input: { name?: string; key?: string; email?: string }) => ({
+    name: String(input?.name || "").slice(0, 80),
+    key: String(input?.key || "").trim().slice(0, 2000),
+    email: String(input?.email || "").slice(0, 300),
+  }))
+  .handler(async ({ data }) => runProbe(data));
 
 type InboxRow = {
   id: string;
@@ -337,9 +413,10 @@ function gmailFolder(labels: string[]): { folder: InboxRow["folder"]; starred: b
 }
 
 export const pullInbox = createServerFn({ method: "POST" })
-  .validator((input: { nylasKey?: string; googleToken?: string }) => ({
+  .validator((input: { nylasKey?: string; googleToken?: string; googleTokens?: string[] }) => ({
     nylasKey: String(input?.nylasKey || "").trim().slice(0, 400),
     googleToken: String(input?.googleToken || "").trim().slice(0, 4000),
+    googleTokens: Array.isArray(input?.googleTokens) ? input.googleTokens.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 3) : [],
   }))
   .handler(async ({ data }) => {
     const messages: InboxRow[] = [];
@@ -391,14 +468,18 @@ export const pullInbox = createServerFn({ method: "POST" })
       notes.push(ids.length ? `Nylas ${ids.length} mailbox${ids.length === 1 ? "" : "es"}.` : "Nylas key is set, but no grant is connected.");
     } else notes.push("Nylas key is not on the server.");
 
-    if (data.googleToken) {
-      const headers = { Authorization: `Bearer ${data.googleToken}` };
+    const googleTokens = [...new Set([data.googleToken, ...data.googleTokens].map((item) => item.trim()).filter(Boolean))];
+    if (!googleTokens.length) notes.push("Google is not connected. Connect chris@ceogps.com, chrisgr33ninc@gmail.com, and cagednreality@icloud.com.");
+    for (const googleToken of googleTokens) {
+      const headers = { Authorization: `Bearer ${googleToken}` };
       const who = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers });
       const profile = await who.json() as { email?: string; name?: string; error?: { message?: string } };
       if (!who.ok) notes.push(profile.error?.message || "Google refused the session. Reconnect it in Integrations.");
       else {
-        if ((profile.email || "").toLowerCase() !== "chrisgr33ninc@gmail.com") {
-          notes.push(`Google is signed in as ${profile.email || "another account"}. Reconnect it as chrisgr33ninc@gmail.com.`);
+        const email = (profile.email || "").toLowerCase();
+        const allowed = ["chris@ceogps.com", "chrisgr33ninc@gmail.com", "cagednreality@icloud.com"];
+        if (!allowed.includes(email)) {
+          notes.push(`Google is signed in as ${profile.email || "another account"}. Use chris@ceogps.com, chrisgr33ninc@gmail.com, or cagednreality@icloud.com.`);
         } else {
         if (profile.email) accounts.push({ email: profile.email, name: profile.name || profile.email, provider: "gmail" });
         const list = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20", { headers });
@@ -412,7 +493,7 @@ export const pullInbox = createServerFn({ method: "POST" })
             const header = (name: string) => mail.payload?.headers?.find((row) => row.name.toLowerCase() === name.toLowerCase())?.value || "";
             const place = gmailFolder(mail.labelIds || []);
             return {
-              id: `gmail:${mail.id || item.id}`,
+              id: `gmail:${email}:${mail.id || item.id}`,
               title: header("Subject") || "No subject",
               body: mail.snippet || "",
               at: mail.internalDate ? new Date(Number(mail.internalDate)).toISOString() : new Date().toISOString(),
@@ -428,7 +509,7 @@ export const pullInbox = createServerFn({ method: "POST" })
         }
         }
       }
-    } else notes.push("Google is not connected. Reconnect it in Integrations to pull Gmail.");
+    }
 
     return { ok: messages.length > 0, text: notes.join(" "), messages, accounts };
   });

@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PanelSlugRouteImport } from './routes/panel/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiKeysCheckRouteImport } from './routes/api/keys/check'
 import { Route as ApiWebhooksFacebookRouteImport } from './routes/api/webhooks/facebook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiKeysCheckRoute = ApiKeysCheckRouteImport.update({
+  id: '/api/keys/check',
+  path: '/api/keys/check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksFacebookRoute = ApiWebhooksFacebookRouteImport.update({
   id: '/api/webhooks/facebook',
   path: '/api/webhooks/facebook',
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/keys/check': typeof ApiKeysCheckRoute
   '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/keys/check': typeof ApiKeysCheckRoute
   '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRoutesById {
@@ -61,20 +69,33 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/keys/check': typeof ApiKeysCheckRoute
   '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/panel/$slug' | '/api/auth/$' | '/api/webhooks/facebook'
+    | '/'
+    | '/login'
+    | '/panel/$slug'
+    | '/api/auth/$'
+    | '/api/keys/check'
+    | '/api/webhooks/facebook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/panel/$slug' | '/api/auth/$' | '/api/webhooks/facebook'
+  to:
+    | '/'
+    | '/login'
+    | '/panel/$slug'
+    | '/api/auth/$'
+    | '/api/keys/check'
+    | '/api/webhooks/facebook'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/panel/$slug'
     | '/api/auth/$'
+    | '/api/keys/check'
     | '/api/webhooks/facebook'
   fileRoutesById: FileRoutesById
 }
@@ -83,6 +104,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PanelSlugRoute: typeof PanelSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiKeysCheckRoute: typeof ApiKeysCheckRoute
   ApiWebhooksFacebookRoute: typeof ApiWebhooksFacebookRoute
 }
 
@@ -116,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/keys/check': {
+      id: '/api/keys/check'
+      path: '/api/keys/check'
+      fullPath: '/api/keys/check'
+      preLoaderRoute: typeof ApiKeysCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/facebook': {
       id: '/api/webhooks/facebook'
       path: '/api/webhooks/facebook'
@@ -131,6 +160,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PanelSlugRoute: PanelSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiKeysCheckRoute: ApiKeysCheckRoute,
   ApiWebhooksFacebookRoute: ApiWebhooksFacebookRoute,
 }
 export const routeTree = rootRouteImport

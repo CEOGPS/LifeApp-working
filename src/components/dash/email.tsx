@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { newId, type EmailCampaign, type EmailDomain, type MailFolder, type MailItem, type Memory } from "./memory";
 import { fmtDate } from "./format";
-import { GMAIL_ACCOUNT } from "@/lib/lifeos/oauth";
+import { BOARD_EMAILS } from "@/lib/lifeos/oauth";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
 type Tab = "Inbox" | "Campaigns" | "Analytics" | "Verification" | "DNS" | "Lists";
@@ -115,9 +115,9 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
     try {
       const { pullInbox } = await import("@/lib/lifeos/env-keys");
       const { readOauth } = await import("@/lib/lifeos/oauth");
-      const google = readOauth().find((row) => row.provider === "google");
+      const googles = readOauth().filter((row) => row.provider === "google" && row.token);
       const key = data.keys.find((row) => row.name === "Nylas" && row.value)?.value || "";
-      const result = await pullInbox({ data: { nylasKey: key, googleToken: google?.token || "" } });
+      const result = await pullInbox({ data: { nylasKey: key, googleToken: googles[0]?.token || "", googleTokens: googles.map((row) => row.token) } });
       const incoming = Array.isArray(result.messages) ? result.messages : [];
       update((prev) => {
         const have = new Set(prev.mail.map((row) => row.id));
@@ -152,15 +152,19 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
 
   const pulled = useRef(false);
   useEffect(() => {
-    const existing = data.emailHub.accounts.find((row) => row.email.toLowerCase() === GMAIL_ACCOUNT);
-    if (!existing) {
-      const id = newId();
+    const missing = BOARD_EMAILS.filter((email) => !data.emailHub.accounts.some((row) => row.email.toLowerCase() === email));
+    if (missing.length) {
       update((prev) => ({
         ...prev,
-        emailHub: { ...prev.emailHub, accounts: [{ id, email: GMAIL_ACCOUNT, name: "chrisgr33ninc", provider: "gmail" }, ...prev.emailHub.accounts.filter((row) => row.email.toLowerCase() !== GMAIL_ACCOUNT)] },
+        emailHub: {
+          ...prev.emailHub,
+          accounts: [
+            ...missing.map((email) => ({ id: newId(), email, name: email.split("@")[0], provider: "gmail" as const })),
+            ...prev.emailHub.accounts.filter((row) => !missing.includes(row.email.toLowerCase() as (typeof BOARD_EMAILS)[number])),
+          ],
+        },
       }));
-      setAccountId(id);
-    } else if (!accountId) setAccountId(existing.id);
+    }
     if (pulled.current) return;
     pulled.current = true;
     void pullMail();
@@ -290,7 +294,7 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
           <section className="module-card h-fit p-3">
             <div className="mb-2 flex gap-3">
               <button type="button" className="quiet is-on" onClick={() => { setCompose(true); setOpenId(null); }}>Compose</button>
-              <button type="button" className="quiet" disabled={busy === "pull"} onClick={() => void pullMail()}>{busy === "pull" ? "Pulling" : `Pull ${GMAIL_ACCOUNT}`}</button>
+              <button type="button" className="quiet" disabled={busy === "pull"} onClick={() => void pullMail()}>{busy === "pull" ? "Pulling" : "Pull all three"}</button>
             </div>
             <input className={field} placeholder="Search mail" value={search} onChange={(event) => setSearch(event.target.value)} />
             <ul className="mt-2">

@@ -4,8 +4,13 @@ const STORE = "lifeos.oauth";
 const VERIFIER = "lifeos.pkce";
 
 export const GMAIL_ACCOUNT = "chrisgr33ninc@gmail.com";
+export const BOARD_EMAILS = ["chris@ceogps.com", "chrisgr33ninc@gmail.com", "cagednreality@icloud.com"] as const;
+
+export function allowedEmail(email: string) {
+  return BOARD_EMAILS.includes(email.trim().toLowerCase() as (typeof BOARD_EMAILS)[number]);
+}
 export type OauthProvider = "google" | "discord" | "facebook" | "spotify";
-export type OauthSession = { provider: OauthProvider; name: string; email: string; token: string };
+export type OauthSession = { provider: OauthProvider; name: string; email: string; token: string; refresh?: string };
 
 const SCOPES: Record<OauthProvider, string> = {
   google: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly",
@@ -30,24 +35,28 @@ export function readOauth(): OauthSession[] {
 }
 
 function saveOauth(row: OauthSession) {
-  const rows = readOauth().filter((item) => item.provider !== row.provider);
+  const rows = readOauth().filter((item) => !(item.provider === row.provider && item.email.toLowerCase() === row.email.toLowerCase()));
   localStorage.setItem(STORE, JSON.stringify([row, ...rows]));
 }
 
-export function disconnectOauth(provider: OauthProvider) {
-  const rows = readOauth().filter((item) => item.provider !== provider);
+export function disconnectOauth(provider: OauthProvider, email?: string) {
+  const rows = readOauth().filter((item) => item.provider !== provider || (email && item.email.toLowerCase() !== email.toLowerCase()));
   localStorage.setItem(STORE, JSON.stringify(rows));
 }
 
-export async function startOAuth(provider: OauthProvider) {
+export async function startOAuth(provider: OauthProvider, email?: string) {
   const settings = await fetch(`${SUPABASE}/auth/v1/settings`, { headers: { apikey: ANON } }).then((response) => response.json()).catch(() => null) as { external?: Record<string, boolean> } | null;
   if (settings?.external && settings.external[provider] === false) {
     throw new Error(`${provider} is turned off in Supabase Auth. Enable it under Authentication, then Providers.`);
+  }
+  if (provider === "discord" && window.location.hostname !== "lifeos1.pages.dev") {
+    throw new Error(`Stopped. Discord can only return to the old dashboard at https://lifeos1.pages.dev. Add ${window.location.origin}/panel/integrations in Supabase → Authentication → URL Configuration → Redirect URLs.`);
   }
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
   const challenge = b64url(new Uint8Array(digest));
   sessionStorage.setItem(VERIFIER, verifier);
+  if (email && allowedEmail(email)) sessionStorage.setItem("lifeos.oauth.mailbox", email);
   const back = `${window.location.origin}/panel/integrations`;
   const url = new URL(`${SUPABASE}/auth/v1/authorize`);
   url.searchParams.set("provider", provider);
@@ -56,7 +65,9 @@ export async function startOAuth(provider: OauthProvider) {
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "s256");
   if (provider === "google") {
-    url.searchParams.set("login_hint", GMAIL_ACCOUNT);
+    const hint = email && allowedEmail(email) ? email : GMAIL_ACCOUNT;
+    url.searchParams.set("login_hint", hint);
+    url.searchParams.set("access_type", "offline");
     url.searchParams.set("prompt", "consent select_account");
   }
   window.location.assign(url.toString());
@@ -72,7 +83,7 @@ export async function finishOAuth(): Promise<OauthSession | null> {
     headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" },
     body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
   });
-  const body = await response.json() as { provider_token?: string; user?: { email?: string; app_metadata?: { provider?: string }; user_metadata?: { full_name?: string; name?: string } } };
+  const body = await response.json() as { access_token?: string; refresh_token?: string; provider_token?: string; user?: { email?: string; app_metadata?: { provider?: string }; user_metadata?: { full_name?: string; name?: string } } };
   params.delete("code");
   params.delete("state");
   const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
@@ -80,8 +91,9 @@ export async function finishOAuth(): Promise<OauthSession | null> {
   if (!response.ok || !body.provider_token) return null;
   const raw = body.user?.app_metadata?.provider;
   const provider: OauthProvider = raw === "discord" || raw === "facebook" || raw === "spotify" ? raw : "google";
-  const email = body.user?.email || "";
-  if (provider === "google" && email.toLowerCase() !== GMAIL_ACCOUNT) {
+  const picked = sessionStorage.getItem("lifeos.oauth.mailbox") || "";
+  const email = provider === "google" ? (body.user?.email || "") : (allowedEmail(picked) ? picked : (body.user?.email || ""));
+  if (provider === "google" && !allowedEmail(email)) {
     sessionStorage.removeItem(VERIFIER);
     return { provider, name: "", email, token: "" };
   }
@@ -90,8 +102,27 @@ export async function finishOAuth(): Promise<OauthSession | null> {
     name: body.user?.user_metadata?.full_name || body.user?.user_metadata?.name || "",
     email,
     token: body.provider_token,
+    refresh: body.refresh_token || "",
   };
   saveOauth(session);
   sessionStorage.removeItem(VERIFIER);
+  sessionStorage.removeItem("lifeos.oauth.mailbox");
   return session;
+}
+
+export async function freshGoogleToken(email?: string) {
+  const wanted = email?.trim().toLowerCase();
+  const row = readOauth().find((item) => item.provider === "google" && item.token && (!wanted || item.email.toLowerCase() === wanted))
+    || readOauth().find((item) => item.provider === "google" && item.token);
+  if (!row) return "";
+  if (!row.refresh) return row.token;
+  const response = await fetch(`${SUPABASE}/auth/v1/token?grant_type=refresh_token`, {
+    method: "POST",
+    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: row.refresh }),
+  });
+  const body = await response.json().catch(() => ({})) as { provider_token?: string; refresh_token?: string };
+  if (!response.ok || !body.provider_token) return row.token;
+  saveOauth({ ...row, token: body.provider_token, refresh: body.refresh_token || row.refresh });
+  return body.provider_token;
 }

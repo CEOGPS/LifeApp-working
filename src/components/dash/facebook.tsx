@@ -28,13 +28,19 @@ function savedAppId() {
   return "";
 }
 
+function onOwnedSite() {
+  const host = window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1" || /(^|\.)ceogps\.com$/i.test(host);
+}
+
 function start(appId: string) {
-  if (!appId || !window.FB) return;
+  if (!appId || !window.FB || !onOwnedSite()) return;
   window.FB.init({ appId, cookie: true, xfbml: true, version: VERSION });
   window.FB.AppEvents.logPageView();
 }
 
 export function bootFacebook(appId = savedAppId()) {
+  if (!onOwnedSite()) return;
   window.fbAsyncInit = () => start(appId || savedAppId());
   const existing = document.getElementById("facebook-jssdk");
   if (existing) {

@@ -18,6 +18,40 @@ type Snap = {
 const audio = typeof window !== "undefined" ? new Audio() : null;
 if (audio) audio.preload = "auto";
 
+function trackDb() {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open("lifeos.music", 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("files")) request.result.createObjectStore("files");
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export function saveTrackFile(id: string, file: Blob) {
+  return trackDb().then((base) => new Promise<void>((resolve, reject) => {
+    const tx = base.transaction("files", "readwrite");
+    tx.objectStore("files").put(file, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+export function readTrackFile(url: string) {
+  if (!url.startsWith("idb:")) return Promise.resolve(url);
+  const id = url.slice(4);
+  return trackDb().then((base) => new Promise<string>((resolve, reject) => {
+    const request = base.transaction("files", "readonly").objectStore("files").get(id);
+    request.onsuccess = () => {
+      const blob = request.result as Blob | undefined;
+      if (!blob) reject(new Error("missing"));
+      else resolve(URL.createObjectURL(blob));
+    };
+    request.onerror = () => reject(request.error);
+  }));
+}
+
 let snap: Snap = {
   track: null,
   queue: [],
@@ -46,6 +80,16 @@ function load(track: Cut | null, autoplay: boolean) {
   if (!track?.url) {
     audio.pause();
     audio.removeAttribute("src");
+    poke();
+    return;
+  }
+  if (track.url.startsWith("idb:")) {
+    void readTrackFile(track.url).then((src) => {
+      if (snap.track?.id !== track.id || !audio) return;
+      audio.src = src;
+      if (autoplay) void audio.play().catch(() => { snap = { ...snap, paused: true }; poke(); });
+      poke();
+    }).catch(() => { snap = { ...snap, paused: true }; poke(); });
     poke();
     return;
   }

@@ -165,18 +165,45 @@ export const speakVoice = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }) => {
     const key = data.key || process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY || "";
-    const voice = data.voice || process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
+    const voice = data.voice || "EXAVITQu4vr4xnSDxMaL";
     if (!key || !data.text) return { ok: false as const, audio: "" };
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
-      method: "POST",
-      headers: { "xi-api-key": key, "Content-Type": "application/json", Accept: "audio/mpeg" },
-      body: JSON.stringify({ text: data.text, model_id: "eleven_flash_v2_5" }),
-    });
-    if (!res.ok) return { ok: false as const, audio: "" };
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    let binary = "";
-    for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
-    return { ok: true as const, audio: btoa(binary) };
+    for (const model_id of ["eleven_turbo_v2_5", "eleven_multilingual_v2", "eleven_flash_v2_5"]) {
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
+        method: "POST",
+        headers: { "xi-api-key": key, "Content-Type": "application/json", Accept: "audio/mpeg" },
+        body: JSON.stringify({ text: data.text, model_id }),
+      });
+      if (!res.ok) continue;
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      let binary = "";
+      for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+      return { ok: true as const, audio: btoa(binary) };
+    }
+    return { ok: false as const, audio: "" };
+  });
+
+export const cloneVoice = createServerFn({ method: "POST" })
+  .validator((input: { name?: string; audio?: string; type?: string; key?: string }) => ({
+    name: String(input?.name || "").trim().slice(0, 40),
+    audio: String(input?.audio || "").slice(0, 8_000_000),
+    type: String(input?.type || "audio/mpeg").slice(0, 60),
+    key: String(input?.key || "").trim().slice(0, 400),
+  }))
+  .handler(async ({ data }) => {
+    const key = data.key || process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY || "";
+    if (!key) return { ok: false as const, id: "", text: "No ElevenLabs key is saved." };
+    if (!data.name || data.audio.length < 1000) return { ok: false as const, id: "", text: "Add a name and a clear audio sample." };
+    const bytes = Uint8Array.from(atob(data.audio), (char) => char.charCodeAt(0));
+    const form = new FormData();
+    form.set("name", data.name);
+    form.set("description", "LifeOS instant clone");
+    const ext = data.type.includes("wav") ? "wav" : data.type.includes("mp4") || data.type.includes("m4a") ? "m4a" : "mp3";
+    form.set("files", new Blob([bytes], { type: data.type || "audio/mpeg" }), `sample.${ext}`);
+    const res = await fetch("https://api.elevenlabs.io/v1/voices/add", { method: "POST", headers: { "xi-api-key": key }, body: form });
+    const body = await res.json().catch(() => ({})) as { voice_id?: string; detail?: { message?: string } | string };
+    const detail = typeof body.detail === "string" ? body.detail : body.detail?.message;
+    if (!res.ok || !body.voice_id) return { ok: false as const, id: "", text: detail || "ElevenLabs refused the clone. Instant cloning has to be on for this key." };
+    return { ok: true as const, id: body.voice_id, text: "Clone ready." };
   });
 
 function songSections(lyrics: string, style: string) {
@@ -221,8 +248,21 @@ async function audioBase64(url: string) {
   return btoa(binary);
 }
 
+async function secret(name: string, ...alts: string[]) {
+  for (const key of [name, ...alts]) {
+    const live = process.env[key]?.trim();
+    if (live) return live;
+  }
+  const { envValue } = await import("@/lib/lifeos/env-keys");
+  for (const key of [name, ...alts]) {
+    const saved = (await envValue(key)).trim();
+    if (saved) return saved;
+  }
+  return "";
+}
+
 async function aceSong(data: { style: string; lyrics: string; instrumental: boolean; replicate: string; job: string }) {
-  const token = data.replicate || process.env.REPLICATE_API_TOKEN || "";
+  const token = data.replicate || await secret("REPLICATE_API_TOKEN");
   if (!token) return { ok: false as const, audio: "", error: "Add a Replicate key. ACE-Step runs there.", job: "" };
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const response = data.job
@@ -415,7 +455,7 @@ export const editPicture = createServerFn({ method: "POST" })
     id: String(input?.id || "").trim().slice(0, 80),
   }))
   .handler(async ({ data }) => {
-    const key = data.key || process.env.REPLICATE_API_TOKEN || "";
+    const key = data.key || await secret("REPLICATE_API_TOKEN");
     if (!key) return { ok: false as const, url: "", id: "", state: "failed", error: "Add a Replicate key to edit an image from a prompt." };
     let id = data.id;
     if (!id) {
@@ -473,7 +513,7 @@ export const wanClip = createServerFn({ method: "POST" })
     aspect: ["16:9", "9:16", "1:1"].includes(String(input?.aspect || "")) ? String(input?.aspect) : "16:9",
   }))
   .handler(async ({ data }) => {
-    const key = data.key || process.env.REPLICATE_API_TOKEN || "";
+    const key = data.key || await secret("REPLICATE_API_TOKEN");
     if (!key) return { ok: false as const, url: "", id: "", state: "failed", error: "Add a Replicate key in Integrations. Wan runs there." };
     let id = data.id;
     if (!id) {
@@ -517,7 +557,7 @@ export const makeClip = createServerFn({ method: "POST" })
     duration: String(input?.duration || "") === "5s" ? "5s" : "9s",
   }))
   .handler(async ({ data }) => {
-    const key = data.key || process.env.LUMA_API_KEY || "";
+    const key = data.key || await secret("LUMA_API_KEY", "VITE_LUMA_API_KEY");
     if (!key) return { ok: false as const, url: "", id: "", state: "failed", error: "Add a Luma key in Integrations." };
     let id = data.id;
     if (!id) {
@@ -632,7 +672,8 @@ async function engineHits(url: string, source: string, limit = 4): Promise<Searc
 }
 
 async function dogpileHits(query: string, key: string): Promise<{ hits: SearchHit[]; note: string }> {
-  const token = key || process.env.DOGPILE_API_KEY || "";
+  const { envValue } = await import("@/lib/lifeos/env-keys");
+  const token = key || process.env.DOGPILE_API_KEY || await envValue("DOGPILE_API_KEY");
   if (!token) return { hits: [], note: "" };
   const base = (process.env.DOGPILE_API_URL || "https://developer.dogpile.com").replace(/\/$/, "");
   try {
@@ -661,16 +702,6 @@ async function dogpileHits(query: string, key: string): Promise<{ hits: SearchHi
   }
 }
 
-async function braveHits(query: string, key = ""): Promise<SearchHit[]> {
-  const token = key || process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || "";
-  if (token) {
-    const body = await readJson<{ web?: { results?: { title?: string; url?: string; description?: string }[] } }>(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, { "X-Subscription-Token": token });
-    const rows = (body?.web?.results || []).map((row) => ({ title: row.title || "Brave", url: row.url || "", snippet: `Brave · ${row.description || ""}` })).filter((row) => row.url);
-    if (rows.length) return rows;
-  }
-  return engineHits(`https://search.brave.com/search?q=${encodeURIComponent(query)}`, "Brave", 4);
-}
-
 function socialHits(query: string) {
   const sites: [string, string][] = [["facebook.com", "Facebook"], ["instagram.com", "Instagram"], ["snapchat.com", "Snapchat"], ["tiktok.com", "TikTok"], ["linkedin.com", "LinkedIn"]];
   return Promise.all(sites.map(async ([site, name]) => (await duckResults(`${query} site:${site}`, 2)).map((row) => ({ ...row, snippet: `${name} · ${row.snippet.replace(/^DuckDuckGo · /, "")}` }))));
@@ -690,15 +721,43 @@ function keepHits(groups: SearchHit[][]) {
   return hits;
 }
 
+async function searxHits(query: string, categories: string, base: string): Promise<{ hits: SearchHit[]; note: string }> {
+  const root = (base || process.env.SEARXNG_URL || "http://127.0.0.1:8888").replace(/\/$/, "");
+  try {
+    const response = await fetch(`${root}/search?q=${encodeURIComponent(query)}&format=json&language=en&categories=${encodeURIComponent(categories)}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(12000),
+    });
+    const raw = await response.text();
+    if (!response.ok || raw.trim().startsWith("<")) {
+      return { hits: [], note: `SearXNG at ${root} did not return JSON.` };
+    }
+    const body = JSON.parse(raw) as { results?: { title?: string; url?: string; content?: string; engine?: string; engines?: string[] }[] };
+    const hits = (body.results || []).slice(0, 20).map((row) => {
+      const engines = (row.engines || []).filter(Boolean);
+      const via = engines.length ? engines.slice(0, 3).join(", ") : row.engine || "SearXNG";
+      return {
+        title: String(row.title || "Result").slice(0, 160),
+        url: String(row.url || "").slice(0, 400),
+        snippet: `${via} · ${String(row.content || "").replace(/\s+/g, " ").slice(0, 180)}`,
+      };
+    }).filter((row) => /^https?:/i.test(row.url));
+    return { hits, note: hits.length ? `SearXNG · ${hits.length} results` : "SearXNG answered with no results." };
+  } catch {
+    return { hits: [], note: `SearXNG is not running at ${root}. Use port 8888. The dashboard already uses 8080.` };
+  }
+}
+
 export const lookup = createServerFn({ method: "POST" })
-  .validator((input: string | { query?: string; kind?: string; key?: string; brave?: string }) => {
-    const raw = typeof input === "string" ? { query: input, kind: "web", key: "", brave: "" } : input;
-    const kind = raw?.kind === "phone" || raw?.kind === "email" ? raw.kind : "web";
+  .validator((input: string | { query?: string; kind?: string; key?: string; brave?: string; base?: string }) => {
+    const raw = typeof input === "string" ? { query: input, kind: "web", key: "", brave: "", base: "" } : input;
+    const kind = raw?.kind === "phone" || raw?.kind === "email" || raw?.kind === "image" ? raw.kind : "web";
     return {
       query: String(raw?.query || "").trim().slice(0, 180),
       kind,
       key: String(raw?.key || "").trim().slice(0, 400),
       brave: String(raw?.brave || "").trim().slice(0, 400),
+      base: String(raw?.base || "").trim().slice(0, 200),
     };
   })
   .handler(async ({ data }) => {
@@ -708,15 +767,17 @@ export const lookup = createServerFn({ method: "POST" })
     const digits = query.replace(/\D/g, "");
     if (data.kind === "phone" && digits.length < 7) return { hits: [] as SearchHit[], note: "Enter a full phone number." };
     const webQuery = data.kind === "phone" ? digits : query;
+    const categories = data.kind === "image" ? "images" : "general";
+    const searx = await searxHits(webQuery, categories, data.base);
+    if (searx.hits.length) return { hits: searx.hits, note: searx.note };
 
     const encoded = encodeURIComponent(webQuery);
     const dogpile = await dogpileHits(webQuery, data.key);
-    const [duck, google, bing, yahoo, brave, social, wiki, wikiData, reddit, news, archive, books, places, apple, code, answers] = await Promise.all([
+    const [duck, google, bing, yahoo, social, wiki, wikiData, reddit, news, archive, books, places, apple, code, answers] = await Promise.all([
       duckResults(data.kind === "web" ? query : `"${webQuery}"`, 6),
       engineHits(`https://www.google.com/search?q=${encoded}&gbv=1&hl=en`, "Google", 4),
       engineHits(`https://www.bing.com/search?q=${encoded}`, "Bing", 4),
       engineHits(`https://search.yahoo.com/search?p=${encoded}`, "Yahoo", 4),
-      braveHits(webQuery, data.brave),
       socialHits(webQuery),
       readJson<[string, string[], string[], string[]]>(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=4&namespace=0&format=json`),
       readJson<{ search?: { label?: string; description?: string; concepturi?: string }[] }>(`https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&format=json&limit=4`),
@@ -735,7 +796,6 @@ export const lookup = createServerFn({ method: "POST" })
       google,
       bing,
       yahoo,
-      brave,
       ...social,
       duck,
       (wiki?.[1] || []).map((title, index) => ({ title, url: wiki?.[3]?.[index] || "", snippet: `Wikipedia · ${wiki?.[2]?.[index] || ""}` })),
@@ -770,7 +830,7 @@ export const lookup = createServerFn({ method: "POST" })
 
     const hits = keepHits(groups);
     const missing = data.key || process.env.DOGPILE_API_KEY ? "" : "Add the Dogpile key in Integrations for live results.";
-    return { hits, note: dogpile.note || (hits.length ? "" : missing || "Nothing came back from the public sources.") };
+    return { hits, note: [searx.note, dogpile.note, hits.length ? "" : missing || "Nothing came back from the public sources."].filter(Boolean).join(" ") };
   });
 
 export const inspectSite = createServerFn({ method: "POST" })
@@ -1137,16 +1197,16 @@ export const pullChats = createServerFn({ method: "POST" })
       const headers = { Authorization: `Bearer ${apiKey}`, Accept: "application/json" };
       const listed = await fetch("https://api.us.nylas.com/v3/grants?limit=10", { headers });
       const grants = await listed.json() as { data?: { id: string; email?: string }[]; error?: { message?: string } };
-      const grant = (grants.data || []).find((row) => (row.email || "").toLowerCase() === "cagednreality@icloud.com")
-        || (grants.data || []).find((row) => (row.email || "").toLowerCase().includes("cagednreality"))
-        || (grants.data || [])[0];
-      if (!listed.ok || !grant) notes.push(grants.error?.message || "Nylas has no mailbox for texts.");
+      const board = ["chris@ceogps.com", "chrisgr33ninc@gmail.com", "cagednreality@icloud.com"];
+      const mine = (grants.data || []).filter((row) => board.includes((row.email || "").toLowerCase()));
+      const use = mine.length ? mine : (grants.data || []).slice(0, 3);
+      if (!listed.ok || !use.length) notes.push(grants.error?.message || "Nylas has no mailbox for texts.");
       else {
+        let count = 0;
+        for (const grant of use) {
         const response = await fetch(`https://api.us.nylas.com/v3/grants/${grant.id}/messages?limit=30`, { headers });
         const mail = await response.json() as { data?: { id?: string; subject?: string; snippet?: string; from?: { email?: string }[]; to?: { email?: string }[] }[]; error?: { message?: string } };
-        if (!response.ok) notes.push(mail.error?.message || "Nylas did not return text mail.");
-        else {
-          let count = 0;
+        if (!response.ok) { notes.push(mail.error?.message || `${grant.email || "Mailbox"} did not return text mail.`); continue; }
           for (const row of mail.data || []) {
             const from = (row.from || []).map((item) => item.email || "").join(" ");
             const to = (row.to || []).map((item) => item.email || "").join(" ");
@@ -1161,13 +1221,13 @@ export const pullChats = createServerFn({ method: "POST" })
               id: `${voice && !mobile ? "gv" : "tm"}:${row.id || blob.slice(0, 40)}`,
               who,
               text: row.snippet || row.subject || "Text",
-              mine: from.toLowerCase().includes("cagednreality@icloud.com"),
+              mine: board.some((email) => from.toLowerCase().includes(email)),
               platform: voice && !mobile ? "voice" : "sms",
             });
             count += 1;
           }
-          notes.push(`${grant.email || "Mailbox"} ${count} text${count === 1 ? "" : "s"}.`);
         }
+        notes.push(`${use.map((row) => row.email).filter(Boolean).join(", ") || "Mailboxes"} ${count} text${count === 1 ? "" : "s"}.`);
       }
     }
 

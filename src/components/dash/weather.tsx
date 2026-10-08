@@ -95,7 +95,7 @@ export function WeatherClock() {
     <div className="flex flex-col gap-4">
       <div className="text-center">
         <p className="font-display text-5xl tracking-widest text-white">{fmtTime(time)}</p>
-        <p className="mt-1 font-display text-sm tracking-[0.2em] text-white/40">{time.toLocaleDateString("en-US", { weekday: "long" })}</p>
+        <p className="accent-purple mt-1 font-display text-sm tracking-[0.2em]">{time.toLocaleDateString("en-US", { weekday: "long" })}</p>
         <p className="text-base text-white/60">{fmtDate(time)}</p>
       </div>
       <div className="rounded-lg border border-primary/25 bg-primary/10 p-4">

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { newId, type Memory } from "./memory";
-import { fmtDate } from "./format";
+import { downloadFile, fmtDate } from "./format";
 import { playCut } from "./player";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
@@ -147,6 +147,26 @@ async function fitImage(src: string, edge: number, quality: number) {
 
 function shelfItem(row: { id: string; title: string; body: string; at: string }): Item | null {
   if (!row.title.startsWith("Shelf · ") || row.title === "Shelf · albums") return null;
+  const name = row.title.replace(/^Shelf · /, "");
+  if (/^https?:\/\//i.test(row.body)) {
+    const filename = name;
+    const kind = kindOf("", filename);
+    return {
+      id: row.id,
+      album_id: null,
+      kind: kind === "other" ? kindOf("", row.body) : kind,
+      mime: "",
+      filename,
+      title: filename.replace(/\.[^.]+$/, "") || filename,
+      alt_text: "",
+      url: row.body,
+      size_bytes: 0,
+      tags: [],
+      vault: false,
+      favorite: false,
+      created_at: row.at || new Date().toISOString(),
+    };
+  }
   try {
     const body = JSON.parse(row.body) as Partial<Item> & { size?: number; album?: string | null };
     if (!body.url || !/^https?:\/\//i.test(body.url)) return null;
@@ -173,8 +193,8 @@ function shelfItem(row: { id: string; title: string; body: string; at: string })
 function remember(items: Item[], albums: Album[], update: Update) {
   const shelf = items.filter((item) => /^https?:\/\//i.test(item.url)).slice(0, 320).map((item) => ({
     id: item.id,
-    title: `Shelf · ${(item.title || item.filename).slice(0, 80)}`,
-    body: JSON.stringify({ url: item.url, kind: item.kind, mime: item.mime, filename: item.filename, size: item.size_bytes, tags: item.tags, favorite: item.favorite, album: item.album_id, alt_text: item.alt_text, vault: item.vault }),
+    title: `Shelf · ${(item.filename || item.title).slice(0, 80)}`,
+    body: item.url,
     at: item.created_at,
   }));
   update((prev) => ({
@@ -212,11 +232,21 @@ export function YoutubeBox({ apiKey = "", query = "" }: { apiKey?: string; query
   useEffect(() => {
     if (query.trim()) void search(query).catch(() => setNote("YouTube search did not answer."));
   }, [query]);
+  useEffect(() => {
+    const onPlay = (event: Event) => {
+      const next = (event as CustomEvent<string>).detail;
+      if (!next) return;
+      setQ(next);
+      void search(next).catch(() => setNote("YouTube search did not answer."));
+    };
+    window.addEventListener("lifeos:youtube", onPlay);
+    return () => window.removeEventListener("lifeos:youtube", onPlay);
+  }, []);
   return (
     <div className="min-w-0">
       <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void search(q).catch(() => setNote("YouTube search did not answer.")); }}>
         <input className="h-8 min-w-0 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" placeholder="Search YouTube" value={q} onChange={(event) => setQ(event.target.value)} />
-        <button type="submit" className="quiet is-on">Search</button>
+        <button type="submit" className="quiet accent-orange">Search</button>
       </form>
       {play ? (
         <div className="relative mt-3">
@@ -310,7 +340,9 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
   const [preview, setPreview] = useState<Item | null>(null);
   const [edit, setEdit] = useState<Item | null>(null);
   const [resize, setResize] = useState<Item | null>(null);
-  const [albumForm, setAlbumForm] = useState<Album | null>(null);
+  const [albumName, setAlbumName] = useState("");
+  const [picked, setPicked] = useState<string[]>([]);
+  const [moveTo, setMoveTo] = useState("");
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [showVault, setShowVault] = useState(false);
 
@@ -347,7 +379,8 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
     let rows = items.filter((item) => showVault || !item.vault);
-    if (albumId) rows = rows.filter((item) => item.album_id === albumId);
+    if (albumId === "unfiled") rows = rows.filter((item) => !item.album_id);
+    else if (albumId) rows = rows.filter((item) => item.album_id === albumId);
     else if (filter === "images") rows = rows.filter((item) => item.kind === "image");
     else if (filter === "videos") rows = rows.filter((item) => item.kind === "video");
     else if (filter === "audio") rows = rows.filter((item) => item.kind === "audio");
@@ -376,7 +409,7 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
         const url = await uploadFile(file, file.name);
         const item: Item = {
           id: newId(),
-          album_id: albumId,
+          album_id: albumId && albumId !== "unfiled" ? albumId : null,
           kind: kindOf(file.type, file.name),
           mime: file.type,
           filename: file.name,
@@ -397,11 +430,22 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
     }
   }
 
-  function saveAlbum() {
-    if (!albumForm?.name.trim()) return;
-    setAlbums((prev) => albumForm.id && prev.some((row) => row.id === albumForm.id) ? prev.map((row) => row.id === albumForm.id ? albumForm : row) : [albumForm, ...prev]);
-    setAlbumId(albumForm.id);
-    setAlbumForm(null);
+  function createAlbum() {
+    const name = albumName.trim().slice(0, 40);
+    if (!name) { setNote("Type an album name."); return; }
+    const id = newId();
+    setAlbums((prev) => [{ id, name, color: "#5eead4", created_at: new Date().toISOString() }, ...prev]);
+    setAlbumId(id);
+    setAlbumName("");
+    setNote(`Album “${name}” is ready. Drop images on it or use Move.`);
+  }
+
+  function fileItems(ids: string[], nextAlbum: string | null) {
+    const set = new Set(ids);
+    setItems((prev) => prev.map((item) => set.has(item.id) ? { ...item, album_id: nextAlbum } : item));
+    setPicked([]);
+    const label = albums.find((row) => row.id === nextAlbum)?.name || "Unfiled";
+    setNote(`${ids.length} moved to ${label}.`);
   }
 
   async function autoTag() {
@@ -445,7 +489,6 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
         </div>
         <div className="flex items-center gap-4">
           <button type="button" className="bg-blue" onClick={() => fileRef.current?.click()}>Upload</button>
-          <button type="button" className="link-add" onClick={() => setAlbumForm({ id: newId(), name: "", color: "#5eead4", created_at: new Date().toISOString() })}>New album</button>
         </div>
       </div>
       <div className="module-card p-3">
@@ -458,13 +501,24 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
             <button key={row.id} type="button" className={`menu ${!albumId && filter === row.id ? "is-on" : ""}`} onClick={() => { setFilter(row.id); setAlbumId(null); setPage(0); }}>{row.label}</button>
           ))}
           <p className="mb-1 mt-4 text-[10px] tracking-widest text-white/35">ALBUMS</p>
+          <form className="mb-2 grid gap-2" onSubmit={(event) => { event.preventDefault(); createAlbum(); }}>
+            <input className="h-8 rounded-full border border-line bg-black/40 px-3 text-sm" value={albumName} placeholder="New album" onChange={(event) => setAlbumName(event.target.value)} />
+            <button type="submit" className="quiet is-on w-fit">Create album</button>
+          </form>
+          <button type="button" className={`menu ${albumId === "unfiled" ? "is-on" : ""}`} onClick={() => { setAlbumId("unfiled"); setPage(0); }}>Unfiled</button>
           {albums.map((row) => (
-            <div key={row.id} className="flex items-center gap-2">
-              <button type="button" className={`menu ${albumId === row.id ? "is-on" : ""}`} onClick={() => { setAlbumId(row.id); setPage(0); }}>{row.name}</button>
-              <button type="button" className="link-remove" onClick={() => { setAlbums((prev) => prev.filter((item) => item.id !== row.id)); setItems((prev) => prev.map((item) => item.album_id === row.id ? { ...item, album_id: null } : item)); if (albumId === row.id) setAlbumId(null); }}>Remove</button>
+            <div key={row.id} className="flex items-center gap-2" onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              const id = event.dataTransfer.getData("text/media-id");
+              const ids = id ? [id] : picked;
+              if (ids.length) fileItems(ids, row.id);
+            }}>
+              <button type="button" className={`menu min-w-0 flex-1 truncate ${albumId === row.id ? "is-on" : ""}`} onClick={() => { setAlbumId(row.id); setPage(0); }}>{row.name}</button>
+              <button type="button" className="link-remove shrink-0" onClick={() => { setAlbums((prev) => prev.filter((item) => item.id !== row.id)); setItems((prev) => prev.map((item) => item.album_id === row.id ? { ...item, album_id: null } : item)); if (albumId === row.id) setAlbumId(null); }}>Delete</button>
             </div>
           ))}
-          {!albums.length ? <p className="px-0 text-[11px] text-white/30">No albums yet</p> : null}
+          {!albums.length ? <p className="text-[11px] text-white/30">No albums yet. Name one above.</p> : null}
           <label className="mt-4 flex items-center gap-2 text-[11px] text-white/50">
             <input type="checkbox" checked={showVault} onChange={(event) => setShowVault(event.target.checked)} /> Show vault-linked
           </label>
@@ -483,6 +537,17 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
             <button type="button" className={`quiet ${view === "list" ? "is-on" : ""}`} onClick={() => setView("list")}>List</button>
             <button type="button" className="quiet" onClick={() => void autoTag()}>Auto-tag</button>
             <button type="button" className="quiet" onClick={exportCsv}>Export</button>
+            {picked.length ? (
+              <>
+                <span className="text-[11px] text-white/50">{picked.length} selected</span>
+                <select className="h-8 rounded-full border border-line bg-black/40 px-2 text-xs" value={moveTo} onChange={(event) => setMoveTo(event.target.value)}>
+                  <option value="">Move to…</option>
+                  <option value="unfiled">Unfiled</option>
+                  {albums.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+                </select>
+                <button type="button" className="quiet is-on" onClick={() => { if (!moveTo) { setNote("Pick an album."); return; } fileItems(picked, moveTo === "unfiled" ? null : moveTo); }}>Move</button>
+              </>
+            ) : null}
             <input ref={fileRef} className="sr-only" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.txt,.md,.csv" onChange={(event) => { void addFiles([...(event.target.files || [])]); event.target.value = ""; }} />
           </div>
           {note ? <p className="mb-3 text-sm text-white/50">{note}</p> : null}
@@ -491,16 +556,21 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
           {view === "grid" ? (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
               {pageRows.map((item) => (
-                <div key={item.id} className="module-card overflow-hidden">
+                <div key={item.id} className="module-card overflow-hidden" draggable onDragStart={(event) => event.dataTransfer.setData("text/media-id", item.id)}>
                   <div className="relative">
                     <button type="button" className="menu" onClick={() => setPreview(item)}>
                       {item.kind === "image" && !item.vault && item.url ? <img src={item.url} alt={item.alt_text || item.title} className="h-36 w-full object-cover" /> : <span className="grid h-36 w-full place-items-center text-xs uppercase text-white/40">{item.vault ? "Vault" : item.kind}</span>}
                     </button>
                     <button type="button" className="icon absolute top-2 right-2" aria-label={item.favorite ? "Unstar" : "Star"} onClick={() => toggleStar(item.id)}><Star on={item.favorite} /></button>
+                    <label className="absolute top-2 left-2 text-[11px] text-white"><input type="checkbox" checked={picked.includes(item.id)} onChange={() => setPicked((prev) => prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id])} /></label>
                   </div>
                   <div className="px-2 py-2">
                     <p className="truncate text-sm">{item.title || item.filename}</p>
-                    <p className="text-[11px] text-white/40">{item.kind} · {bytes(item.size_bytes)}</p>
+                    <p className="text-[11px] text-white/40">{albums.find((row) => row.id === item.album_id)?.name || "Unfiled"} · {bytes(item.size_bytes)}</p>
+                    <select className="mt-1 h-7 w-full rounded-full border border-line bg-black/40 px-2 text-[11px]" value={item.album_id || ""} onChange={(event) => fileItems([item.id], event.target.value || null)}>
+                      <option value="">Unfiled</option>
+                      {albums.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+                    </select>
                   </div>
                 </div>
               ))}
@@ -519,6 +589,7 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
                       <td className="max-w-40 truncate">{item.tags.join(", ")}</td>
                       <td>{fmtDate(item.created_at)}</td>
                       <td className="space-x-2 p-2 text-right">
+                        {item.url ? <button type="button" className="link-add" onClick={() => downloadFile(item.filename || item.title || "file", item.url)}>Download</button> : null}
                         {item.kind === "image" ? <button type="button" className="link-add" onClick={() => setResize(item)}>Resize</button> : null}
                         <button type="button" className="link-add" onClick={() => setEdit(item)}>Edit</button>
                         <button type="button" className="link-remove" onClick={() => setRemoveId(item.id)}>Remove</button>
@@ -540,6 +611,7 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
               <span className="flex items-center gap-3">
                 <button type="button" className="icon" aria-label={preview.favorite ? "Unstar" : "Star"} onClick={() => { toggleStar(preview.id); setPreview({ ...preview, favorite: !preview.favorite }); }}><Star on={preview.favorite} /></button>
                 <button type="button" className="quiet" onClick={() => setPreview(null)}>Close</button>
+                {preview.url ? <button type="button" className="quiet" onClick={() => downloadFile(preview.filename || preview.title || "file", preview.url)}>Download</button> : null}
               </span>
             </div>
             {preview.vault ? <p className="text-sm text-white/60">This file is flagged for the Vault. <Link to="/panel/$slug" params={{ slug: "vault" }} className="text-blue-2">Open Vault</Link></p> : null}
@@ -580,18 +652,6 @@ export function MediaDesk({ data, update }: { data: Memory; update: Update }) {
             <div className="flex justify-end gap-3">
               <button type="button" className="quiet" onClick={() => setEdit(null)}>Cancel</button>
               <button type="button" className="bg-blue" onClick={() => { setItems((prev) => prev.map((row) => row.id === edit.id ? edit : row)); setEdit(null); }}>Save</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {albumForm ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" onClick={() => setAlbumForm(null)}>
-          <div className="module-card w-full max-w-sm p-4" onClick={(event) => event.stopPropagation()}>
-            <p className="mb-3 text-sm">New album</p>
-            <input className="h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm" value={albumForm.name} placeholder="Album name" onChange={(event) => setAlbumForm({ ...albumForm, name: event.target.value })} />
-            <div className="mt-3 flex justify-end gap-3">
-              <button type="button" className="quiet" onClick={() => setAlbumForm(null)}>Cancel</button>
-              <button type="button" className="bg-blue" onClick={saveAlbum}>Create</button>
             </div>
           </div>
         </div>

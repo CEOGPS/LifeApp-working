@@ -15,10 +15,10 @@ import { NAV } from "./shell";
 function PageHead({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-3">
-      <h1 className="brand-script text-xl">{title}</h1>
+      <h1 className="accent-purple brand-script text-xl">{title}</h1>
       <div className="ml-auto flex items-center gap-2 rounded-full border border-primary/30 px-3 py-1.5">
         <span className="h-1.5 w-1.5 rounded-full bg-green" />
-        <span className="font-display text-[10px] tracking-widest text-blue-2">LIFEOS ONLINE</span>
+        <span className="accent-orange font-display text-[10px] tracking-widest">LIFEOS ONLINE</span>
       </div>
     </div>
   );
@@ -29,7 +29,7 @@ function Card({ title, to, children }: { title: string; to?: string; children: R
     <section className="module-card flex flex-col">
       <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
         <h2 className="module-title">{title}</h2>
-        {to ? <Link to="/panel/$slug" params={{ slug: to }} className="ml-auto text-sm text-blue-2">Open</Link> : null}
+        {to ? <Link to="/panel/$slug" params={{ slug: to }} className="accent-orange ml-auto text-sm">Open</Link> : null}
       </div>
       <div className="p-4">{children}</div>
     </section>
@@ -177,9 +177,9 @@ function GlowBars({ rows }: { rows: { name: string; value: number }[] }) {
   );
 }
 
-function GlowArea({ rows, color }: { rows: { name: string; value: number }[]; color: string }) {
+function GlowArea({ rows, color, purple = false }: { rows: { name: string; value: number }[]; color: string; purple?: boolean }) {
   return (
-    <div className="chart-glow h-28 min-w-0 overflow-hidden">
+    <div className={`chart-glow h-28 min-w-0 overflow-hidden ${purple ? "chart-purple" : ""}`}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={rows} margin={{ top: 16, right: 8, left: 8, bottom: 0 }}>
           <Area type="monotone" dataKey="value" stroke={color} fill={color} fillOpacity={0.16} strokeOpacity={0.7}>
@@ -202,6 +202,8 @@ export function Dashboard() {
   const [noteBody, setNoteBody] = useState("");
   const [billName, setBillName] = useState("");
   const [bill, setBill] = useState("");
+  const [spotLists, setSpotLists] = useState<{ id: string; name: string; url: string }[]>([]);
+  const playlists = [...new Set(data.tracks.map((row) => row.playlist || "Library"))];
   const money = data.accounts.map((row) => ({ name: row.name, value: row.balance }));
   const budget = data.expenses.map((row) => ({ name: row.name, value: row.paid ? row.amount : -row.amount }));
 
@@ -226,6 +228,13 @@ export function Dashboard() {
     }).catch(() => setLive("Calendar is not connected."));
     return () => clearInterval(timer);
   }, [update]);
+
+  useEffect(() => {
+    void import("@/lib/lifeos/oauth").then(({ readOauth }) => {
+      const token = readOauth().find((row) => row.provider === "spotify")?.token || "";
+      return import("@/lib/lifeos/env-keys").then(({ spotifyHub }) => spotifyHub({ data: { token, action: "home", query: "" } }));
+    }).then((result) => setSpotLists(result.playlists || [])).catch(() => setSpotLists([]));
+  }, []);
 
   function facts() {
     const net = data.accounts.reduce((sum, row) => sum + row.balance, 0);
@@ -282,17 +291,17 @@ export function Dashboard() {
           }} />
         </Card>
         <Card title="Budget & Expenses" to="finance">
-          <GlowArea rows={budget.map((row) => ({ name: row.name, value: Math.abs(row.value) }))} color="rgba(52, 211, 153, 0.55)" />
+          <div className="chart-purple"><GlowArea rows={budget.map((row) => ({ name: row.name, value: Math.abs(row.value) }))} color="rgba(192, 132, 252, 0.9)" purple /></div>
           {data.expenses.map((row) => (
             <button key={row.id} type="button" className="flex w-full items-center justify-between gap-2 text-sm" onClick={() => update((prev) => ({ ...prev, expenses: prev.expenses.map((item) => item.id === row.id ? { ...item, paid: !item.paid } : item) }))}>
               <span>{row.name}</span>
-              <span className="text-xs text-white/45">{fmtMoney(row.amount)}</span>
+              <span className="accent-purple text-xs">{fmtMoney(row.amount)}</span>
               <input className="w-20 rounded-full border border-line bg-ink px-2 py-1 text-right text-sm" style={{ caretColor: "transparent" }} value={row.amount} onClick={(event) => event.stopPropagation()} onChange={(event) => {
                 const amount = Number(event.target.value);
                 if (!Number.isFinite(amount)) return;
                 update((prev) => ({ ...prev, expenses: prev.expenses.map((item) => item.id === row.id ? { ...item, amount } : item) }));
               }} />
-              <span className={row.paid ? "text-green" : "glow-amber"}>{row.paid ? "Paid" : "Due"}</span>
+              <span className={row.paid ? "text-green" : "accent-orange"}>{row.paid ? "Paid" : "Due"}</span>
             </button>
           ))}
           <form className="mt-3 flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); const amount = Number(bill); if (!billName.trim() || !Number.isFinite(amount)) return; update((prev) => ({ ...prev, expenses: [{ id: newId(), name: billName.trim(), amount, paid: false, fixed: true }, ...prev.expenses] })); setBillName(""); setBill(""); }}>
@@ -308,15 +317,15 @@ export function Dashboard() {
         </Card>
         <Card title="Social Analytics" to="social">
           {(data.socialAccounts.length ? data.socialAccounts : []).map((row) => (
-            <p key={row.id} className="min-h-11 text-sm">{row.name} <span className="text-muted">{row.followers.toLocaleString()} followers{row.views ? ` · ${row.views.toLocaleString()} views` : ""}</span></p>
+            <p key={row.id} className="min-h-11 text-sm">{row.name} <span className="accent-purple">{row.followers.toLocaleString()}</span> <span className="text-muted">followers{row.views ? ` · ` : ""}</span>{row.views ? <span className="accent-purple">{row.views.toLocaleString()}</span> : null}{row.views ? <span className="text-muted"> views</span> : null}</p>
           ))}
           {data.socialPosts[0] ? <p className="text-sm text-muted">{data.socialPosts[0].sent ? `Sent · ${data.socialPosts[0].sent}` : "Draft"} · {data.socialPosts[0].text.slice(0, 80)}</p> : null}
-          {!data.socialAccounts.length ? data.social.map((row) => <p key={row.id} className="min-h-11 text-sm">{row.label} <span className="text-muted">{row.points.at(-1)}</span></p>) : null}
+          {!data.socialAccounts.length ? data.social.map((row) => <p key={row.id} className="min-h-11 text-sm">{row.label} <span className="accent-purple">{row.points.at(-1)}</span></p>) : null}
         </Card>
       </div>
 
       <div className="order-1 xl:sticky xl:top-2 xl:order-2 xl:self-start">
-        <ErebusDock data={data} update={update} />
+        <ErebusDock data={data} update={update} agent="Kranos" />
       </div>
 
       <div className="order-3 flex min-w-0 flex-col gap-4">
@@ -324,7 +333,7 @@ export function Dashboard() {
           {data.notifs.map((row) => (
             <button key={row.id} type="button" className="flex min-h-11 w-full items-start gap-2 py-1 text-left text-sm" onClick={() => update((prev) => ({ ...prev, notifs: prev.notifs.map((item) => item.id === row.id ? { ...item, seen: true } : item) }))}>
               <span className={row.seen ? "mt-1 h-2 w-2 rounded-full bg-muted" : "blink light-amber mt-1 h-2 w-2 rounded-full"} />
-              <span>{row.text}<span className="text-ember block">{row.source}</span></span>
+              <span>{row.text}<span className="accent-purple block">{row.source}</span></span>
             </button>
           ))}
         </Card>
@@ -344,12 +353,27 @@ export function Dashboard() {
             }}>{playing.track && !playing.paused ? "Pause" : "Play"}</button>
             {playing.track ? <button type="button" className="link-remove" onClick={stopCut}>Stop</button> : null}
           </div>
+          {playlists.length ? <p className="accent-purple mt-3 text-[10px] tracking-widest">MUSIC</p> : null}
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            {playlists.map((name) => (
+              <button key={name} type="button" className="quiet accent-purple" onClick={() => {
+                const rows = data.tracks.filter((item) => (item.playlist || "Library") === name && (item.url || item.page));
+                const first = rows[0];
+                if (!first) return;
+                playCut({ id: first.id, title: first.title, artist: first.artist, album: first.album, url: first.url, page: first.page, art: first.art }, rows.map((item) => ({ id: item.id, title: item.title, artist: item.artist, album: item.album, url: item.url, page: item.page, art: item.art })));
+              }}>{name}</button>
+            ))}
+          </div>
+          {spotLists.length ? <p className="accent-orange mt-3 text-[10px] tracking-widest">SPOTIFY</p> : null}
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            {spotLists.map((row) => <a key={row.id} className="accent-orange text-sm" href={row.url || "https://open.spotify.com"} target="_blank" rel="noreferrer">{row.name}</a>)}
+          </div>
         </Card>
         <Card title="Financial Stats" to="finance">
           <GlowBars rows={money} />
           {data.accounts.map((row) => (
             <label key={row.id} className="mt-2 flex items-center justify-between gap-2 text-sm">
-              <span>{row.name}<span className="text-white/45 block text-xs">{fmtMoney(row.balance)}</span></span>
+              <span>{row.name}<span className="accent-purple block text-xs">{fmtMoney(row.balance)}</span></span>
               <input className="w-28 rounded-full border border-line bg-ink px-3 py-1 text-right text-sm" style={{ caretColor: "transparent" }} value={row.balance} onChange={(event) => {
                 const balance = Number(event.target.value);
                 if (!Number.isFinite(balance)) return;
@@ -419,14 +443,14 @@ export function Dashboard() {
     <Card title="AI Task Monitor" to="ai-hub">
       {data.jobs.map((row) => (
         <button key={row.id} type="button" className="flex min-h-11 w-full items-center justify-between gap-2 text-left text-sm" onClick={() => update((prev) => ({ ...prev, jobs: prev.jobs.map((item) => item.id === row.id ? { ...item, active: !item.active } : item) }))}>
-          <span>{row.agent}: {row.task}</span>
-          <span className={row.active ? "text-green" : "text-muted"}>{row.active ? "Active" : "Off"}</span>
+          <span><span className="accent-purple">{row.agent}</span>: {row.task}</span>
+          <span className={row.active ? "text-green" : "accent-orange"}>{row.active ? "Active" : "Off"}</span>
         </button>
       ))}
       <div className="mt-2"><Add label="New assignment" onAdd={(task) => update((prev) => ({ ...prev, jobs: [{ id: newId(), agent: "Erebus", task, active: true }, ...prev.jobs] }))} /></div>
     </Card>
     <Card title="Activity Feed">
-      {data.notifs.map((row) => <p key={row.id} className="min-h-11 text-sm">{row.text} <span className="text-ember">{row.source}</span></p>)}
+      {data.notifs.map((row) => <p key={row.id} className="min-h-11 text-sm">{row.text} <span className="accent-purple">{row.source}</span></p>)}
     </Card>
     </div>
   );

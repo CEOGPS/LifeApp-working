@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { EngineBar } from "./engine-bar";
 import { moneyTips } from "@/lib/lifeos/board";
 import { newId, type Memory } from "./memory";
 import { fmtDate, fmtMoney } from "./format";
@@ -177,6 +178,7 @@ export function FinanceDesk({ data, update }: { data: Memory; update: Update }) 
         </div>
       </aside>
       <section className="module-card p-4">
+        <EngineBar panel="Finance" data={data} update={update} />
         {section === "markets" ? (
           <div>
             <h1 className="text-2xl">Markets</h1>

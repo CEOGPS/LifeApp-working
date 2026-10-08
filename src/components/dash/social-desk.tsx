@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { EngineBar } from "./engine-bar";
 import { newId, type Memory, type SocialAccount, type SocialPost } from "./memory";
 
 type PlatformId = SocialAccount["id"];
@@ -197,6 +198,7 @@ export function SocialDesk({ data, update }: { data: Memory; update: (recipe: (p
         </div>
         <button type="button" className="bg-blue" onClick={() => void sync()}>Sync</button>
       </div>
+      <EngineBar panel="Social" data={data} update={update} />
       <div className="grid items-start gap-4 xl:grid-cols-[15rem_1fr_18rem]">
         <aside className="module-card p-2">
           {accounts.map((row) => (

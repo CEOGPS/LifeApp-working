@@ -47,3 +47,26 @@ export async function pushBrand(banner: string, logo: string) {
   });
   return response.ok;
 }
+
+const KEYS = "lifeos-keys";
+
+export async function pullKeys(): Promise<{ id: string; name: string; value: string }[]> {
+  const row = await pullCloud(KEYS);
+  const doc = row?.doc;
+  if (!doc || typeof doc !== "object") return [];
+  const keys = (doc as { keys?: unknown }).keys;
+  if (!Array.isArray(keys)) return [];
+  return keys.filter((item) => item && typeof item === "object" && "name" in item && "value" in item).map((item) => {
+    const row = item as { id?: unknown; name?: unknown; value?: unknown };
+    return { id: String(row.id || row.name || ""), name: String(row.name || ""), value: String(row.value || "") };
+  }).filter((item) => item.name && item.value);
+}
+
+export async function pushKeys(keys: { id: string; name: string; value: string }[]) {
+  const response = await fetch(`${SUPABASE}/rest/v1/lifeos_board?on_conflict=device`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ device: KEYS, doc: { keys }, updated_at: new Date().toISOString() }),
+  });
+  return response.ok;
+}

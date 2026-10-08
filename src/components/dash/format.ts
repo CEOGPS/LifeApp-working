@@ -48,3 +48,18 @@ export function fmtMoney(value: number) {
   const sign = amount < 0 ? "-" : "";
   return `${sign}$${Math.abs(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+export function downloadFile(name: string, href: string) {
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = name.replace(/[^\w.\- ]+/g, "").slice(0, 80) || "download";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+export function downloadText(name: string, text: string, type = "text/plain") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  downloadFile(name, url);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}

@@ -88,6 +88,7 @@ export type Deal = {
   next: string;
 };
 export type KeyRow = { id: string; name: string; value: string };
+export type Fact = { id: string; text: string; source: string; at: string };
 export type SocialAccount = {
   id: "instagram" | "facebook" | "x" | "tiktok" | "linkedin" | "youtube" | "reddit" | "snapchat";
   name: string;
@@ -118,6 +119,7 @@ export type Memory = Board & {
   ideas: Idea[];
   deals: Deal[];
   keys: KeyRow[];
+  facts: Fact[];
   query: string;
   emailHub: EmailHub;
   socialAccounts: SocialAccount[];
@@ -133,6 +135,7 @@ const AT = "lifeos.savedAt";
 const DEVICE = "lifeos.device";
 const BANNER_KEY = "lifeos.banner";
 const LOGO_KEY = "lifeos.logo";
+const KEYS_KEY = "lifeos.keys.v1";
 
 function id() {
   return crypto.randomUUID();
@@ -162,6 +165,7 @@ export function seed(): Memory {
     ],
     deals: [],
     keys: [],
+    facts: [],
     query: "",
     emailHub: { accounts: [], lists: [], campaigns: [], domains: [] },
     socialAccounts: [],
@@ -378,8 +382,18 @@ export function sanitizeMemory(input: unknown): Memory {
     keys: list(raw.keys, (row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as KeyRow;
-      return { id: String(r.id || id()).slice(0, 40), name: String(r.name || "").slice(0, 60), value: String(r.value || "").slice(0, 400) };
-    }),
+      const name = String(r.name || "").trim().slice(0, 80);
+      const value = String(r.value || "").trim().slice(0, 2000);
+      if (!name || !value) return null;
+      return { id: String(r.id || id()).slice(0, 40), name, value };
+    }, "head", 400),
+    facts: list(raw.facts, (row) => {
+      if (!row || typeof row !== "object") return null;
+      const r = row as Fact;
+      const text = String(r.text || "").trim().slice(0, 500);
+      if (!text) return null;
+      return { id: String(r.id || id()).slice(0, 40), text, source: String(r.source || "Board").slice(0, 40), at: String(r.at || "").slice(0, 40) };
+    }, "head", 200),
     query: String(raw.query || "").slice(0, 120),
     emailHub: hub(raw.emailHub),
     socialAccounts: list(raw.socialAccounts, (row) => {
@@ -528,6 +542,61 @@ function saveMediaRows(rows: Entry[]) {
   })).catch(() => undefined);
 }
 
+const BRAND_DB = "lifeos-brand";
+type BrandLocal = { banner: string; logo: string; at: number };
+
+function brandDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(BRAND_DB, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("meta")) request.result.createObjectStore("meta");
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function saveBrandLocal(banner: string, logo: string) {
+  if (typeof indexedDB === "undefined") return;
+  const row: BrandLocal = { banner, logo, at: Date.now() };
+  void brandDb().then((database) => new Promise<void>((resolve, reject) => {
+    const tx = database.transaction("meta", "readwrite");
+    tx.objectStore("meta").put(row, "brand");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  })).catch(() => undefined);
+}
+
+async function loadBrandLocal(): Promise<BrandLocal | null> {
+  if (typeof indexedDB === "undefined") return null;
+  const database = await brandDb();
+  return new Promise((resolve, reject) => {
+    const request = database.transaction("meta", "readonly").objectStore("meta").get("brand");
+    request.onsuccess = () => resolve(request.result && typeof request.result === "object" ? request.result as BrandLocal : null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function readKeysLocal(): KeyRow[] {
+  try {
+    const rows = JSON.parse(localStorage.getItem(KEYS_KEY) || "[]");
+    return Array.isArray(rows) ? rows.filter((row) => row?.name && row?.value).map((row) => ({ id: String(row.id || row.name), name: String(row.name), value: String(row.value) })) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveKeysLocal(keys: KeyRow[]) {
+  try { localStorage.setItem(KEYS_KEY, JSON.stringify(keys)); } catch { /* keys stay in the cloud copy */ }
+}
+
+function unionKeys(primary: KeyRow[], extra: KeyRow[]) {
+  const map = new Map<string, KeyRow>();
+  for (const row of extra) if (row.name && row.value) map.set(row.name, row);
+  for (const row of primary) if (row.name && row.value) map.set(row.name, row);
+  return [...map.values()];
+}
+
 function mergeMedia(local: Entry[], stored: Entry[]) {
   const map = new Map<string, Entry>();
   for (const row of stored) map.set(row.id, row);
@@ -540,7 +609,12 @@ function mergeMedia(local: Entry[], stored: Entry[]) {
 
 let memory = seed();
 let statusText = "This browser";
-if (typeof window !== "undefined") window.addEventListener("pagehide", () => { saveContactRows(memory.contacts); saveMediaRows(memory.media); });
+if (typeof window !== "undefined") window.addEventListener("pagehide", () => {
+  saveContactRows(memory.contacts);
+  saveMediaRows(memory.media);
+  saveBrandLocal(memory.banner, memory.logo);
+  saveKeysLocal(memory.keys);
+});
 let hydrated = false;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
 const listeners = new Set<() => void>();
@@ -567,10 +641,15 @@ export function bootMemory() {
 function rememberLocal() {
   saveContactRows(memory.contacts);
   saveMediaRows(memory.media);
-  try { if (memory.banner) localStorage.setItem(BANNER_KEY, memory.banner); } catch { /* banner stays in the cloud copy */ }
-  try { if (memory.logo) localStorage.setItem(LOGO_KEY, memory.logo); } catch { /* logo stays in the cloud copy */ }
+  saveBrandLocal(memory.banner, memory.logo);
+  saveKeysLocal(memory.keys);
+  try { localStorage.setItem(BANNER_KEY, memory.banner); } catch { /* banner stays in IndexedDB */ }
+  try { localStorage.setItem(LOGO_KEY, memory.logo); } catch { /* logo stays in IndexedDB */ }
   const board = {
     ...memory,
+    banner: "",
+    logo: "",
+    keys: [] as KeyRow[],
     contacts: [] as Contact[],
     media: memory.media.map((row) => ({ ...row, body: row.body.startsWith("data:") ? "" : row.body.slice(0, 2000) })),
   };
@@ -598,18 +677,20 @@ function schedulePush() {
 async function pushNow() {
   try {
     const { pushBoard } = await import("@/lib/lifeos/sync");
-    const { pushCloud, pushBrand } = await import("@/lib/lifeos/board-store");
+    const { pushCloud, pushBrand, pushKeys } = await import("@/lib/lifeos/board-store");
     const copy = { ...memory, keys: [], vault: [] };
     const result = await pushBoard({ data: { device: deviceId(), payload: JSON.stringify(copy) } });
     await pushCloud(deviceId(), copy).catch(() => false);
     await pushBrand(memory.banner, memory.logo).catch(() => false);
+    await pushKeys(memory.keys).catch(() => false);
     if (result.at) localStorage.setItem(AT, String(result.at));
     statusText = "Synced";
   } catch {
     try {
-      const { pushCloud, pushBrand } = await import("@/lib/lifeos/board-store");
+      const { pushCloud, pushBrand, pushKeys } = await import("@/lib/lifeos/board-store");
       const ok = await pushCloud(deviceId(), { ...memory, keys: [], vault: [] });
       await pushBrand(memory.banner, memory.logo).catch(() => false);
+      await pushKeys(memory.keys).catch(() => false);
       statusText = ok ? "Synced" : "Saved on this browser";
     } catch {
       statusText = "Saved on this browser";
@@ -625,13 +706,19 @@ export async function hydrateMemory() {
     if (stored.length) memory = { ...memory, contacts: unionById(memory.contacts, stored) };
     const media = mergeMedia(memory.media, sanitizeMemory({ media: await loadMediaRows() }).media);
     if (media.length) memory = { ...memory, media };
+    const brandLocal = await loadBrandLocal().catch(() => null);
+    if (brandLocal) memory = { ...memory, banner: memory.banner || brandLocal.banner, logo: memory.logo || brandLocal.logo };
+    const savedKeys = readKeysLocal();
+    if (savedKeys.length) memory = { ...memory, keys: unionKeys(savedKeys, memory.keys) };
   } catch { /* indexedDB unavailable */ }
   try {
     const { pullBoard } = await import("@/lib/lifeos/sync");
-    const { pullCloud, pullBrand } = await import("@/lib/lifeos/board-store");
+    const { pullCloud, pullBrand, pullKeys } = await import("@/lib/lifeos/board-store");
     const remote = await pullBoard({ data: deviceId() }).catch(() => null);
     const cloud = await pullCloud(deviceId()).catch(() => null);
     const brand = await pullBrand().catch(() => null);
+    const cloudKeys = await pullKeys().catch(() => []);
+    if (cloudKeys.length) memory = { ...memory, keys: unionKeys(memory.keys, cloudKeys) };
     const localAt = Number(localStorage.getItem(AT) || 0);
     const cloudAt = cloud?.at || 0;
     const remoteAt = remote?.at || 0;

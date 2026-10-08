@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
+import { EngineBar } from "./engine-bar";
 import { newId, type Memory, type SongIdea } from "./memory";
+import { downloadFile, downloadText } from "./format";
 import { playCut, togglePause, usePlayer } from "./player";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
@@ -257,6 +259,7 @@ export function EinsteinDesk({ data, update }: { data: Memory; update: Update })
         </div>
       </aside>
       <div className="grid gap-3">
+        <EngineBar panel="Music Einstein" data={data} update={update} />
         {view === "home" ? (
           <section className="module-card p-3">
             <p className="px-1 text-sm text-white/50">Recent</p>
@@ -392,6 +395,9 @@ export function EinsteinDesk({ data, update }: { data: Memory; update: Update })
               <button type="button" className="quiet" onClick={() => setOpenId(null)}>Close</button>
             </div>
             {open.audio ? <button type="button" className="quiet is-on" onClick={() => { if (playing.track?.id === open.id) togglePause(); else playCut({ id: open.id, title: open.title, artist: "Music Einstein", album: open.note || "", url: open.audio || "", page: "", art: "" }); }}>{playing.track?.id === open.id && !playing.paused ? "Pause vocal" : "Play vocal"}</button> : null}
+            {open.audio ? <button type="button" className="quiet" onClick={() => downloadFile(`${open.title || "song"}.mp3`, open.audio || "")}>Download song</button> : null}
+            {open.video ? <button type="button" className="quiet" onClick={() => downloadFile(`${open.title || "video"}.mp4`, open.video || "")}>Download video</button> : null}
+            {open.lyrics ? <button type="button" className="quiet" onClick={() => downloadText(`${open.title || "lyrics"}.txt`, open.lyrics || "")}>Download lyrics</button> : null}
             {open.video && open.audio ? <MusicCut video={open.video} audio={open.audio} /> : open.video ? <video className="max-h-64 w-full" controls src={open.video} /> : null}
             <textarea className="min-h-40 w-full rounded-2xl border border-line bg-black/40 px-3 py-2 text-sm" value={open.lyrics || ""} onChange={(event) => patch(open.id, { lyrics: event.target.value.slice(0, 4000) })} />
             {status ? <p className="text-sm text-white/50">{status}</p> : null}

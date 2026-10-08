@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { EngineBar } from "./engine-bar";
 import { newId, type Memory } from "./memory";
-import { defaultVoice, voiceId, VOICES } from "./voices";
+import { defaultVoice, readClones, voiceId, VOICES } from "./voices";
+import { VoiceClone } from "./dock";
 import { AGENT_SKILLS, matchedSkill, runAgentTool, skillBrief } from "./agent-tools";
+import { pingCli } from "./local-agents";
 import { boardFacts } from "./facts";
 
 type Update = (recipe: (prev: Memory) => Memory) => void;
@@ -44,6 +47,49 @@ const ROSTER = [
   { name: "Aurora", role: "Creative Director", tagline: "Elegant · Luminous · Creative", avatar: "nyx", prompt: "You are Aurora. Elegant creative director. Write polished copy and brand ideas for Chris Green." },
   { name: "Breeze", role: "Comms and Social", tagline: "Connected · Fluid · Always On", avatar: "nova", prompt: "You are Breeze. Fast social and comms operator. Keep replies short and ready to post." },
 ];
+
+const STAFF = [
+  { name: "Wire", role: "API calls", task: "Report which keys are saved and which calls failed." },
+  { name: "Clerk", role: "Email and calendar", task: "Report the inbox and the next events." },
+  { name: "Closer", role: "Sales", task: "Report open CRM deals and who needs a follow-up." },
+  { name: "Signal", role: "Marketing", task: "Report campaigns, keywords, and what is not running." },
+  { name: "Pulse", role: "Social", task: "Report posts, accounts, and what has not gone out." },
+  { name: "Line", role: "Calls", task: "Report calls and messages that still need a reply." },
+  { name: "Studio", role: "Images, video, sound, music, docs", task: "Report files made and drafts still unfinished." },
+  { name: "Host", role: "Website and DNS", task: "Report GoDaddy, Cloudflare, and Brilliant Directories." },
+  { name: "Scout", role: "Web scraping", task: "Report the last search and pages that were read." },
+  { name: "Gauge", role: "Analytics", task: "Report the saved site and social numbers only." },
+  { name: "Hack", role: "Life hacks", task: "Report one practical next step from the board." },
+  { name: "Lens", role: "AI insights", task: "Report what the saved numbers actually show." },
+  { name: "Sim", role: "Simulators", task: "Report which simulators were used." },
+  { name: "Lead", role: "Leads", task: "Report new leads and which ones have no next step." },
+  { name: "Book", role: "CRM and storage", task: "Report how many contacts are stored and what is missing." },
+];
+
+function laneDigest(data: Memory) {
+  const keys = data.keys.filter((row) => row.value).map((row) => row.name);
+  const crm = data.contacts.filter((row) => row.kind === "crm").length;
+  const open = data.tasks.filter((row) => !row.done).map((row) => row.title);
+  return [
+    `Erebus · Code: ${open.length} open tasks. ${open.slice(0, 8).join("; ") || "none"}.`,
+    `Wire · API: ${keys.length ? keys.join(", ") : "no keys saved"}.`,
+    `Clerk · Mail and calendar: ${data.events.length} events on the board.`,
+    `Closer · Sales: ${crm} CRM contacts.`,
+    `Signal · Marketing: ${data.marketing.map((row) => row.label).slice(0, 8).join(", ") || "no campaigns saved"}.`,
+    `Pulse · Social: ${data.socialAccounts.length} accounts, ${data.socialPosts.length} posts.`,
+    `Line · Calls: ${data.thread.filter((row) => /call|sms|message/i.test(row.platform || "")).length} message rows.`,
+    `Studio · Creation: ${data.media.length} media files, ${data.tracks.length} tracks, ${data.notes.length} notes.`,
+    `Host · Site and DNS: ${["GoDaddy", "Cloudflare Account", "Cloudflare Token", "Brilliant Directories"].filter((name) => keys.includes(name)).join(", ") || "none of those keys are saved"}.`,
+    `Scout · Scraping: last search ${data.query || "none"}.`,
+    `Gauge · Analytics: ${data.stats.map((row) => `${row.label} ${row.value}`).join(", ") || "no analytics saved"}.`,
+    `Hack · Life hacks: ${open.length} open tasks to draw a next step from.`,
+    `Lens · Insights: ${data.accounts.length} accounts, ${data.expenses.filter((row) => !row.paid).length} unpaid bills.`,
+    `Sim · Simulators: the simulator panel is the source. No run is stored on the board unless a note says so.`,
+    `Lead · Leads: ${data.leads.length}. ${data.leads.slice(0, 8).map((row) => `${row.name} (${row.status})`).join(", ") || "none"}.`,
+    `Book · Storage: ${data.contacts.length} contacts, ${data.contacts.length - crm} personal.`,
+    `Jobs on: ${data.jobs.filter((row) => row.active).map((row) => row.agent).join(", ") || "none"}.`,
+  ].join("\n");
+}
 
 const CATALOG = [
   { id: "grok-4.5", name: "Grok", key: "xAI", note: "Default mind" },
@@ -145,7 +191,7 @@ function Profile({ name, blurb, data, update }: { name: string; blurb: string; d
       <div className="flex flex-wrap items-end gap-3">
         {AVATARS.map((avatar) => (
           <button key={avatar} type="button" className={`quiet ${form.avatar === avatar ? "is-on" : ""}`} onClick={() => setForm({ ...form, avatar })}>
-            <video className="mb-1 h-16 w-full rounded-full object-cover" src={`/agents/avatars/${avatar}.mp4`} muted loop autoPlay playsInline />
+            <img className="mb-1 h-16 w-16 rounded-full object-cover" src={`/agents/stills/${avatar}.jpg`} alt="" />
             <span className="capitalize">{avatar}</span>
           </button>
         ))}
@@ -172,9 +218,12 @@ function Profile({ name, blurb, data, update }: { name: string; blurb: string; d
         }}>Create skin</button>
       </div>
       <p className="mt-1 text-[11px] text-white/35">{skins.find((skin) => skin.name === form.skin)?.note || "No look written for this skin."}</p>
-      <div className="mt-3 flex flex-wrap gap-3">
-        {VOICES.map((voice) => <button key={voice.id} type="button" className={`quiet ${form.voice === voice.id ? "is-on" : ""}`} onClick={() => setForm({ ...form, voice: voice.id })}>{voice.name}</button>)}
-      </div>
+      <label className="mt-3 block text-[11px] uppercase tracking-wider text-white/40">Voice
+        <select className="mt-1 h-9 w-full rounded-full border border-line bg-black px-3 text-sm normal-case text-white" value={form.voice} onChange={(event) => { const next = { ...form, voice: event.target.value }; setForm(next); saveAgent(update, name, next); }}>
+          {[...VOICES, ...readClones(data.notes).filter((row) => !VOICES.some((voice) => voice.id === row.id))].map((voice) => <option key={voice.id} value={voice.id}>{voice.name}</option>)}
+        </select>
+      </label>
+      <VoiceClone data={data} update={update} onReady={(id) => { const next = { ...form, voice: id }; setForm(next); saveAgent(update, name, next); }} />
       {(["soul", "personality", "instructions", "rules"] as const).map((key) => (
         <label key={key} className="mt-3 block text-[11px] uppercase tracking-wider text-white/40">{key}
           <textarea className={field} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} />
@@ -184,12 +233,12 @@ function Profile({ name, blurb, data, update }: { name: string; blurb: string; d
         <input className="mt-1 h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm" value={form.task} onChange={(event) => setForm({ ...form, task: event.target.value })} />
       </label>
       <button type="button" className="bg-blue mt-4" onClick={() => saveAgent(update, name, form)}>Save</button>
-      <AgentChat name={name} prompt={form.instructions || blurb} voice={form.voice} data={data} update={update} />
+      <AgentChat name={name} prompt={form.instructions || blurb} voice={form.voice} data={data} update={update} onVoice={(id) => { const next = { ...form, voice: id }; setForm(next); saveAgent(update, name, next); }} />
     </div>
   );
 }
 
-function AgentChat({ name, prompt, voice, data, update }: { name: string; prompt: string; voice: string; data: Memory; update: Update }) {
+function AgentChat({ name, prompt, voice, data, update, onVoice }: { name: string; prompt: string; voice: string; data: Memory; update: Update; onVoice: (id: string) => void }) {
   const stored = readChat(data, name);
   const [lines, setLines] = useState(stored);
   const [loaded, setLoaded] = useState(name);
@@ -234,7 +283,14 @@ function AgentChat({ name, prompt, voice, data, update }: { name: string; prompt
   }
   return (
     <div className="mt-6 border-t border-white/10 pt-4">
-      <p className="text-[10px] tracking-widest text-white/35">CHAT · {CATALOG.find((item) => item.id === model)?.name || model}</p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="text-[10px] tracking-widest text-white/35">CHAT · {CATALOG.find((item) => item.id === model)?.name || model}</p>
+        <label className="text-[11px] uppercase tracking-wider text-white/40">Voice
+          <select className="ml-2 h-8 rounded-full border border-line bg-black px-2 text-sm normal-case text-white" value={voiceId(voice)} aria-label="Voice" onChange={(event) => onVoice(event.target.value)}>
+            {[...VOICES, ...readClones(data.notes).filter((row) => !VOICES.some((voice) => voice.id === row.id))].map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </select>
+        </label>
+      </div>
       <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
         {lines.map((line, index) => (
           <p key={`${line.role}-${index}`} className={`text-sm ${line.role === "user" ? "text-white/80" : "text-white/55"}`}>
@@ -291,6 +347,29 @@ function Models({ data, update }: { data: Memory; update: Update }) {
   );
 }
 
+function LocalLink({ name, urlName, fallback, data, update, cli }: { name: string; urlName: string; fallback: string; data: Memory; update: Update; cli: "hermes" | "qwen" }) {
+  const savedUrl = data.keys.find((row) => row.name === urlName)?.value || fallback;
+  const savedKey = data.keys.find((row) => row.name === name)?.value || "";
+  const [url, setUrl] = useState(savedUrl);
+  const [key, setKey] = useState("");
+  const [note, setNote] = useState("");
+  function put(label: string, value: string) {
+    update((prev) => ({ ...prev, keys: [{ id: newId(), name: label, value }, ...prev.keys.filter((row) => row.name !== label)] }));
+  }
+  return (
+    <div className="mt-4 border-t border-white/10 pt-4">
+      <p className="text-[10px] tracking-widest text-white/35">CLI · {cli}</p>
+      <input className="mt-2 h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm" value={url} onChange={(event) => setUrl(event.target.value)} />
+      <input className="mt-2 h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm" placeholder={savedKey ? "Key saved" : "API key if this server requires one"} value={key} onChange={(event) => setKey(event.target.value)} />
+      <div className="mt-2 flex gap-3">
+        <button type="button" className="quiet is-on" onClick={() => { put(urlName, url.trim()); if (key.trim()) put(name, key.trim()); setNote("Saved."); }}>Save</button>
+        <button type="button" className="quiet" onClick={() => { setNote("Checking the command…"); void pingCli(cli).then(setNote); }}>Check CLI</button>
+      </div>
+      {note ? <p className="mt-2 text-sm text-white/70">{note}</p> : null}
+    </div>
+  );
+}
+
 function TelegramBox({ token }: { token: string }) {
   const [chat, setChat] = useState("");
   const [text, setText] = useState("");
@@ -319,10 +398,19 @@ export function HubDesk({ data, update }: { data: Memory; update: Update }) {
   const [section, setSection] = useState<Section>("erebus");
   const [draft, setDraft] = useState("");
   const [openAgent, setOpenAgent] = useState("");
-  const custom = data.notes.filter((row) => row.title.startsWith("Agent ·")).map((row) => row.title.replace("Agent · ", "")).filter((name) => !["Erebus", "Kranos", "Telegram", "Hermes", "Qwen", ...ROSTER.map((agent) => agent.name)].includes(name));
+  const [brief, setBrief] = useState("");
+  const [briefing, setBriefing] = useState(false);
+  const savedBrief = data.notes.find((row) => row.title === "Kranos · Report")?.body || "";
+  useEffect(() => {
+    update((prev) => {
+      const have = new Set(prev.jobs.map((row) => row.agent));
+      const add = STAFF.filter((row) => !have.has(row.name)).map((row) => ({ id: newId(), agent: row.name, task: row.task, active: true }));
+      if (!add.length) return prev;
+      return { ...prev, jobs: [...add, ...prev.jobs] };
+    });
+  }, [update]);
+  const custom = data.notes.filter((row) => row.title.startsWith("Agent ·")).map((row) => row.title.replace("Agent · ", "")).filter((name) => !["Erebus", "Kranos", "Telegram", "Hermes", "Qwen", ...ROSTER.map((agent) => agent.name), ...STAFF.map((agent) => agent.name)].includes(name));
   const workers = data.jobs.filter((row) => !["Erebus", "Kranos"].includes(row.agent));
-  const nvidia = data.keys.some((row) => row.name === "NVIDIA" && row.value);
-  const xai = data.keys.some((row) => row.name === "xAI" && row.value);
   const telegram = data.keys.some((row) => row.name === "Telegram" && row.value);
 
   return (
@@ -339,22 +427,35 @@ export function HubDesk({ data, update }: { data: Memory; update: Update }) {
         ))}
       </aside>
       <section className="module-card p-4">
-        {section === "erebus" ? <Profile name="Erebus" blurb="Runs the board. The only agent that creates and edits." data={data} update={update} /> : null}
-        {section === "kranos" ? <Profile name="Kranos" blurb="Takes direction from Erebus. Does not create files." data={data} update={update} /> : null}
+        <EngineBar panel="AI Hub" data={data} update={update} />
+        {section === "erebus" ? <Profile name="Erebus" blurb="Coding agent. Builds, edits, and checks the work. Creation tools stay here." data={data} update={update} /> : null}
+        {section === "kranos" ? <Profile name="Kranos" blurb="Every other agent reports here. Kranos writes the progress summary and what should change." data={data} update={update} /> : null}
         {section === "messaging" ? (
           <div>
             <Profile name="Telegram" blurb={telegram ? "Bot token is on this machine. It only sends and reads messages." : "No Telegram token on this machine. Settings still save."} data={data} update={update} />
             <TelegramBox token={data.keys.find((row) => row.name === "Telegram")?.value || ""} />
           </div>
         ) : null}
-        {section === "hermes" ? <Profile name="Hermes" blurb={nvidia ? "NVIDIA key is ready. Hermes is the local model slot." : "NVIDIA key is not set. This is still the Hermes model slot."} data={data} update={update} /> : null}
-        {section === "qwen" ? <Profile name="Qwen" blurb={xai ? "xAI key is ready. Qwen stays a separate model slot." : "xAI key is not set. Qwen stays a separate model slot."} data={data} update={update} /> : null}
+        {section === "hermes" ? <div><Profile name="Hermes" blurb="Files, browser, and the terminal, through the hermes command. Erebus sends that work here." data={data} update={update} /><LocalLink name="Hermes" urlName="Hermes URL" fallback="http://127.0.0.1:8642" cli="hermes" data={data} update={update} /></div> : null}
+        {section === "qwen" ? <div><Profile name="Qwen" blurb="Images and video, through the qwen command. Erebus sends that work here." data={data} update={update} /><LocalLink name="Qwen" urlName="Qwen URL" fallback="http://127.0.0.1:8000" cli="qwen" data={data} update={update} /></div> : null}
         {section === "agents" ? (
           openAgent ? <div><button type="button" className="quiet" onClick={() => setOpenAgent("")}>Back</button><Profile name={openAgent} blurb={ROSTER.find((agent) => agent.name === openAgent)?.tagline || "Change the skin, voice, and rules without deleting this agent."} data={data} update={update} /></div> : (
           <div>
             <h1 className="text-2xl">Agents</h1>
-            <p className="text-sm text-white/50">The crew stays. Open one to change avatar, skin, rules, and chat. Nothing is deleted to switch look.</p>
+            <p className="text-sm text-white/50">Specialists report to Kranos. Erebus stays on the code. Open one to change voice, rules, and chat.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {STAFF.map((agent) => {
+                const row = readAgent(data, agent.name);
+                return (
+                  <button key={agent.name} type="button" className="menu text-left" onClick={() => setOpenAgent(agent.name)}>
+                    <span className="block text-sm">{agent.name}</span>
+                    <span className="block text-[11px] text-white/40">{agent.role} · reports to Kranos · {row.active ? "On" : "Idle"}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mb-2 mt-6 text-[10px] tracking-widest text-white/35">OTHER</p>
+            <div className="grid gap-3 sm:grid-cols-2">
               {ROSTER.map((agent) => {
                 const row = readAgent(data, agent.name);
                 return (
@@ -405,11 +506,24 @@ export function HubDesk({ data, update }: { data: Memory; update: Update }) {
         {section === "hierarchy" ? (
           <div>
             <h1 className="text-2xl">Hierarchy</h1>
-            <p className="mt-1 text-sm text-white/50">Erebus directs Kranos. Kranos directs the workers and Telegram.</p>
-            {["Erebus", "Kranos", "Telegram"].map((name, index) => (
-              <p key={name} className="mt-3 text-sm" style={{ paddingLeft: index * 16 }}>{name}<span className="ml-2 text-white/40">{readAgent(data, name).task || "No assignment"}</span></p>
-            ))}
-            {workers.filter((row) => row.agent !== "Telegram").map((row) => <p key={row.id} className="mt-2 pl-8 text-sm text-white/70">{row.agent}<span className="ml-2 text-white/40">{row.task}</span></p>)}
+            <p className="mt-1 text-sm text-white/50">Erebus does the code. Everyone else reports to Kranos. Kranos writes one summary: progress, what is stuck, and what could be better.</p>
+            <button type="button" className="quiet is-on mt-3" onClick={() => {
+              setBriefing(true);
+              const facts = laneDigest(data);
+              void import("@/lib/lifeos/sync").then(({ askNyx }) => askNyx({ data: { name: "Kranos", prompt: "You are Kranos. Specialists reported the facts below. Write three sections: Progress, Stuck, Better. Use only these facts. Do not invent numbers, names, or results.", question: "Organize the specialist reports.", facts } })).then((result) => {
+                const text = result.text || facts;
+                setBrief(text);
+                update((prev) => ({
+                  ...prev,
+                  notes: [{ id: newId(), title: "Kranos · Report", body: text }, ...prev.notes.filter((row) => row.title !== "Kranos · Report")],
+                  thread: [...prev.thread, { id: newId(), who: "Kranos", text: text.slice(0, 4000), mine: false, platform: "kranos" }],
+                }));
+              }).catch(() => setBrief(facts)).finally(() => setBriefing(false));
+            }}>{briefing ? "Collecting…" : "Collect reports"}</button>
+            <pre className="mt-4 whitespace-pre-wrap text-sm text-white/75">{brief || savedBrief || laneDigest(data)}</pre>
+            <p className="mt-4 text-sm">Erebus <span className="text-white/40">code</span></p>
+            <p className="mt-2 pl-4 text-sm">Kranos <span className="text-white/40">collects the reports</span></p>
+            {STAFF.map((row) => <p key={row.name} className="mt-1 pl-8 text-sm text-white/70">{row.name}<span className="ml-2 text-white/40">{row.role}</span></p>)}
           </div>
         ) : null}
         {section === "workers" ? (
@@ -417,8 +531,8 @@ export function HubDesk({ data, update }: { data: Memory; update: Update }) {
             <h1 className="text-2xl">Workers</h1>
             <p className="text-sm text-white/50">Cloudflare workers and anyone who is not Erebus or Kranos. Assign a preset, then turn it on.</p>
             <div className="mt-3 flex flex-wrap gap-3">
-              {["Lead Scout", "Review Reply", "Invoice Chaser", "Social Scheduler", "Content AI"].map((name) => (
-                <button key={name} type="button" className="quiet" onClick={() => saveAgent(update, name, { ...readAgent(data, name), task: readAgent(data, name).task || "Awaiting assignment", active: true })}>{workers.some((row) => row.agent === name) ? name : `Add ${name}`}</button>
+              {STAFF.map((row) => (
+                <button key={row.name} type="button" className="quiet" onClick={() => saveAgent(update, row.name, { ...readAgent(data, row.name), task: row.task, active: true })}>{workers.some((job) => job.agent === row.name) ? row.name : `Add ${row.name}`}</button>
               ))}
             </div>
             {workers.map((row) => (

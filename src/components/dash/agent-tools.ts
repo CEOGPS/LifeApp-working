@@ -75,7 +75,18 @@ export function matchedSkill(text: string) {
   return `Loaded skill ${hit.name}. Follow it. Do not store tokens in the browser, do not run a shell, and do not claim a tool ran if it is off.\n${body}`;
 }
 
-export type ToolHit = { text: string; task?: string; noteTitle?: string; noteBody?: string };
+export type ToolHit = { text: string; task?: string; noteTitle?: string; noteBody?: string; play?: string; spoken?: string };
+
+function youtubeAsk(text: string) {
+  if (!/you\s*tube|\byt\b|pull up (?:a |the )?(?:song|video|track)|play (?:a |the )?(?:song|video|track|music)/i.test(text)) return "";
+  const named = text.match(/(?:play|pull up|put on|open|find|search(?: for)?|queue)\s+(.+)/i)?.[1] || text;
+  const query = named
+    .replace(/\b(on youtube|on you tube|on yt|youtube|you tube|please|for me|a song|the song|some music|a video|the video)\b/gi, " ")
+    .replace(/[^\w\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (query || "popular songs").slice(0, 80);
+}
 
 export function skillBrief() {
   return "Live commands: /search, /page, /contacts, /finance, /quote, /youtube, /task, /note, /csv, /skill. A loaded skill is guidance. Never claim a shell, browser driver, SSH session, deploy, or send action ran unless a live command returned it.";
@@ -92,7 +103,7 @@ export async function runAgentTool(data: Memory, text: string): Promise<ToolHit 
   const search = line.match(/^(?:\/search|\/web|search the web:?|look up)\s+(.+)/i);
   if (search) {
     const { lookup } = await import("@/lib/lifeos/sync");
-    const result = await lookup({ data: { query: search[1].slice(0, 180), kind: "web" } });
+    const result = await lookup({ data: { query: search[1].slice(0, 180), kind: "web", key: data.keys.find((row) => row.name === "Dogpile")?.value || "" } });
     const hits = result.hits.slice(0, 8).map((hit) => `${hit.title} — ${hit.url}`).join("\n");
     return { text: `Web search for ${search[1]}:\n${hits || result.note || "No results."}` };
   }
@@ -102,12 +113,17 @@ export async function runAgentTool(data: Memory, text: string): Promise<ToolHit 
     const result = await inspectSite({ data: page[1] });
     return { text: `Page ${result.status}: ${result.title || "No title"}. ${result.description || "No description."}` };
   }
-  const video = line.match(/^(?:\/youtube|youtube)\s+(.+)/i);
-  if (video) {
+  const videoQuery = youtubeAsk(line) || (line.match(/^(?:\/youtube|youtube)\s+(.+)/i)?.[1] || "");
+  if (videoQuery) {
     const { youtubeSearch } = await import("@/lib/lifeos/sync");
-    const result = await youtubeSearch({ data: { query: video[1].slice(0, 80) } });
+    const result = await youtubeSearch({ data: { query: videoQuery.slice(0, 80) } });
+    const first = result.videos?.[0];
     const hits = (result.videos || []).slice(0, 6).map((row) => `${row.title} — https://www.youtube.com/watch?v=${row.id}`).join("\n");
-    return { text: `YouTube:\n${hits || result.error || "No videos."}` };
+    return {
+      text: `YouTube:\n${hits || result.error || "No videos."}`,
+      play: videoQuery.slice(0, 80),
+      spoken: first ? `Playing ${first.title} on YouTube.` : "I couldn't find that on YouTube.",
+    };
   }
   const person = line.match(/^(?:\/contacts?|find contact)\s+(.+)/i);
   if (person) {

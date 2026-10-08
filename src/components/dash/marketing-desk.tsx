@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { EngineBar } from "./engine-bar";
 import { Area, AreaChart, LabelList, ResponsiveContainer } from "recharts";
 import { newId, type Memory } from "./memory";
 
@@ -137,10 +138,7 @@ export function MarketingDesk({ data, update }: { data: Memory; update: Update }
 
   return (
     <div className="grid gap-4">
-      <div>
-        <h1 className="text-2xl">Marketing</h1>
-        <p className="text-sm text-white/50">SEO · Content · Lead Gen · Keywords · Listings · Campaigns · CRM · People</p>
-      </div>
+      <EngineBar panel="Marketing" data={data} update={update} />
       <div className="flex gap-4 overflow-x-auto">
         {TABS.map((item) => (
           <button key={item.id} type="button" className={`quiet ${tool === item.id ? "is-on" : ""}`} onClick={() => { setTool(item.id); setNote(""); }}>{item.label}</button>

@@ -243,11 +243,26 @@ export async function runAccount(data: { service: string; token: string; key: st
         return { ok: true as const, text: site ? `Connected · ${match?.displayName || "Property"} · ${site}` : "No GA4 properties are on this Google login. Paste the property ID.", site };
       }
       if (data.service === "godaddy") {
-        if (!data.key) return { ok: false as const, text: "Paste the GoDaddy key.", site: "" };
-        const auth = data.secret ? `sso-key ${data.key}:${data.secret}` : data.key.startsWith("gd_pat_") ? `sso-key ${data.key}` : `Bearer ${data.key}`;
-        const response = await fetch("https://api.godaddy.com/v1/domains?statuses=ACTIVE&limit=20", { headers: { Authorization: auth, Accept: "application/json" }, signal: AbortSignal.timeout(10000) });
-        const body = await response.json() as { domain?: string }[] | { message?: string };
-        if (!response.ok || !Array.isArray(body)) return { ok: false as const, text: (body as { message?: string }).message || "GoDaddy refused the key.", site: "" };
+        const strip = (value: string) => value.trim().replace(/^['"]|['"]$/g, "").replace(/^sso-key\s+/i, "");
+        let key = strip(data.key);
+        let secret = strip(data.secret);
+        if (!secret && key.includes(":")) {
+          const split = key.indexOf(":");
+          secret = key.slice(split + 1);
+          key = key.slice(0, split);
+        }
+        if (!key || !secret) return { ok: false as const, text: "Paste the GoDaddy key and the secret.", site: "" };
+        const response = await fetch("https://api.godaddy.com/v1/domains?statuses=ACTIVE&limit=20", {
+          headers: { Authorization: `sso-key ${key}:${secret}`, Accept: "application/json" },
+          signal: AbortSignal.timeout(10000),
+        });
+        const raw = await response.text();
+        let body: { domain?: string }[] | { message?: string; code?: string } = [];
+        try { body = raw ? JSON.parse(raw) as typeof body : []; } catch { body = { message: raw.slice(0, 180) }; }
+        if (!response.ok || !Array.isArray(body)) {
+          const message = !Array.isArray(body) ? body.message : "";
+          return { ok: false as const, text: message || `GoDaddy refused the key (HTTP ${response.status}). Use the production key and secret.`, site: "" };
+        }
         const names = body.map((row) => row.domain).filter(Boolean).slice(0, 3);
         return { ok: true as const, text: names.length ? `${body.length} domains · ${names.join(", ")}` : "GoDaddy connected. No active domains.", site: "" };
       }

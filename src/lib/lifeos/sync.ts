@@ -1745,11 +1745,15 @@ export const pullAnalytics = createServerFn({ method: "POST" })
     }
     if (data.godaddy) {
       try {
-        const auth = data.godaddySecret ? `sso-key ${data.godaddy}:${data.godaddySecret}` : `Bearer ${data.godaddy}`;
+        const auth = data.godaddySecret ? `sso-key ${data.godaddy}:${data.godaddySecret}` : data.godaddy.includes(":") ? `sso-key ${data.godaddy}` : "";
+        if (!auth) { notes.push("GoDaddy needs the key and the secret."); } else {
         const response = await fetch("https://api.godaddy.com/v1/domains?statuses=ACTIVE&limit=100", { headers: { Authorization: auth, Accept: "application/json" }, signal: AbortSignal.timeout(10000) });
-        const body = await response.json() as { domain?: string; expires?: string }[] | { message?: string };
+        const raw = await response.text();
+        let body: { domain?: string; expires?: string }[] | { message?: string } = [];
+        try { body = raw ? JSON.parse(raw) as typeof body : []; } catch { body = { message: raw.slice(0, 180) }; }
         if (!response.ok || !Array.isArray(body)) notes.push((body as { message?: string }).message || "GoDaddy has no website analytics API. Domain list was refused.");
         else rows.push({ id: "gd-domains", label: "GoDaddy domains", value: body.length, points: [] });
+        }
       } catch {
         notes.push("GoDaddy did not answer.");
       }

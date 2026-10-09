@@ -73,7 +73,7 @@ export function MusicDesk({ data, update }: { data: Memory; update: Update }) {
     setNote(result.error || "");
   }
 
-  async function importFiles(files: FileList | null) {
+  async function importFiles(files: FileList | File[] | null) {
     const batch = [...(files || [])].filter((file) => file.type.startsWith("audio/") || /\.(mp3|wav|m4a|flac|ogg|aac)$/i.test(file.name)).slice(0, 25);
     if (!batch.length) { setNote("Choose audio files. mp3, wav, m4a, flac, or ogg."); return; }
     const playlist = list === "Made" || list === "Liked" ? "Library" : list;
@@ -137,7 +137,7 @@ export function MusicDesk({ data, update }: { data: Memory; update: Update }) {
             <div className="flex flex-wrap items-center gap-3">
               <button type="button" className="quiet is-on" onClick={playRows}>Play</button>
               <button type="button" className="quiet is-on" onClick={() => fileRef.current?.click()}>Import</button>
-              <input ref={fileRef} className="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" multiple onChange={(event) => { const files = event.target.files; event.target.value = ""; void importFiles(files); }} />
+              <input ref={fileRef} className="hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac" multiple onChange={(event) => { const files = [...(event.target.files || [])]; event.target.value = ""; void importFiles(files); }} />
               <button type="button" className="quiet" onClick={() => void import("@/lib/lifeos/oauth").then(({ startOAuth }) => startOAuth("spotify")).catch((error: unknown) => setNote(error instanceof Error ? error.message : "Spotify did not connect."))}>Spotify</button>
             </div>
           </div>

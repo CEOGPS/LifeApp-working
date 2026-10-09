@@ -3,6 +3,19 @@ import { newId, type EmailCampaign, type EmailDomain, type MailFolder, type Mail
 import { fmtDate } from "./format";
 import { BOARD_EMAILS } from "@/lib/lifeos/oauth";
 
+function plain(value: string) {
+  return value.replace(/<[^>]+>/g, " ").replace(/&/g, "&").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function mailText(value: string) {
+  const text = value.replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n").replace(/<[^>]+>/g, "");
+  return text.split(/(https?:\/\/[^\s<>"]+)/g).map((part, index) => (
+    /^https?:\/\//.test(part)
+      ? <a key={index} className="break-all text-orange-300 underline decoration-orange-300/40" href={part} target="_blank" rel="noreferrer">{part.replace(/^https?:\/\//, "")}</a>
+      : <span key={index}>{part}</span>
+  ));
+}
+
 type Update = (recipe: (prev: Memory) => Memory) => void;
 type Tab = "Inbox" | "Campaigns" | "Analytics" | "Verification" | "DNS" | "Lists";
 type Folder = MailFolder | "starred";
@@ -261,7 +274,7 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
       {note ? <p className="text-ember text-xs">{note}</p> : null}
 
       {tab === "Inbox" ? (
-        <div className="grid min-h-[36rem] gap-3 lg:grid-cols-[13rem_16rem_1fr]">
+        <div className="grid min-h-[36rem] gap-3 lg:grid-cols-[12rem_24rem_1fr]">
           <section className="module-card h-fit p-3">
             <p className="text-sm">Accounts</p>
             {hub.accounts.map((row) => (
@@ -297,12 +310,16 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
               <button type="button" className="quiet" disabled={busy === "pull"} onClick={() => void pullMail()}>{busy === "pull" ? "Pulling" : "Pull all three"}</button>
             </div>
             <input className={field} placeholder="Search mail" value={search} onChange={(event) => setSearch(event.target.value)} />
-            <ul className="mt-2">
-              {rows.map((row) => (
-                <li key={row.id}>
-                  <button type="button" className={`menu ${openId === row.id ? "is-on" : ""}`} onClick={() => { setOpenId(row.id); setCompose(false); }}>
-                    <span className="block truncate">{row.starred ? "★ " : ""}{row.title}</span>
-                    <span className="block truncate text-white/40">{row.from || row.to || row.body.slice(0, 80)}</span>
+            <ul className="mt-2 max-h-[34rem] overflow-y-auto">
+              {rows.map((row, index) => (
+                <li key={row.id} className={index % 2 ? "bg-white/[0.04]" : ""}>
+                  <button type="button" className={`inbox-row ${openId === row.id ? "is-on" : ""} ${index % 2 ? "is-alt" : ""}`} onClick={() => { setOpenId(row.id); setCompose(false); }}>
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="truncate text-sm text-white">{row.starred ? "★ " : ""}{row.from || row.to || "Unknown"}</span>
+                      <span className="shrink-0 text-[10px] text-white/40">{fmtDate(row.at)}</span>
+                    </span>
+                    <span className="truncate text-sm text-orange-300">{row.title || "No subject"}</span>
+                    <span className="truncate text-xs text-white/40">{plain(row.body).slice(0, 90)}</span>
                   </button>
                 </li>
               ))}
@@ -323,9 +340,9 @@ export function EmailDesk({ data, update }: { data: Memory; update: Update }) {
               </form>
             ) : open ? (
               <div>
-                <p className="text-xl">{open.title}</p>
+                <p className="text-xl text-orange-300">{open.title}</p>
                 <p className="mt-1 text-sm text-white/50">{open.from || "Local"} → {open.to || "No recipient"} · {fmtDate(open.at)}</p>
-                <p className="mt-4 whitespace-pre-wrap text-base leading-7">{open.body}</p>
+                <p className="mt-4 whitespace-pre-wrap text-base leading-7 text-white/85">{mailText(open.body)}</p>
                 <div className="mt-4 flex flex-wrap gap-4">
                   <button type="button" className="quiet" onClick={() => reply(open)}>Reply</button>
                   <button type="button" className="quiet" onClick={() => reply(open, true)}>Forward</button>

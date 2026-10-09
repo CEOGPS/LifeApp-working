@@ -224,12 +224,16 @@ export function ensureDbReady(): Promise<void> {
   return getSql().then(() => undefined);
 }
 
-// Server-only eager start: kick PGLite bootstrap as soon as this module loads in
-// Node. Client bundles never hit this path (`getSql` throws in the browser).
+// Server-only eager start for Node. Cloudflare Workers disallow timers, crypto,
+// and I/O while a module is evaluating, so the database opens on the first
+// query inside a request instead.
 const globalBoot = globalThis as typeof globalThis & {
   __pgBootstrapPromise__?: Promise<void>;
 };
-if (typeof window === "undefined" && dbSource === "pglite") {
+const onCloudflare =
+  typeof navigator !== "undefined" &&
+  String(navigator.userAgent || "").includes("Cloudflare");
+if (typeof window === "undefined" && dbSource === "pglite" && !onCloudflare) {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
     console.error("[db] PGLite bootstrap failed:", err);

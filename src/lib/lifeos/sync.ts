@@ -1,7 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
-import { callTool } from "@/lib/app-data/client.server";
-import { ConnectorType, GoogleCalendarTools } from "@/lib/app-data/types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -340,24 +338,7 @@ async function elevenSong(data: { title: string; style: string; lyrics: string; 
 export type DayEvent = { title: string; when: string };
 
 export const pullCalendar = createServerFn({ method: "GET" }).handler(async () => {
-  const start = new Date();
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  try {
-    const result = await callTool(
-      GoogleCalendarTools.search,
-      { time_min: start.toISOString(), time_max: end.toISOString(), max_results: 8 },
-      { connectorType: ConnectorType.GoogleCalendar },
-    );
-    const items = Array.isArray(result.data) ? result.data : [];
-    const events = items.slice(0, 8).map((row) => {
-      const item = row as { summary?: string; start?: { dateTime?: string; date?: string } };
-      return { title: item.summary || "Event", when: item.start?.dateTime || item.start?.date || start.toISOString() };
-    });
-    if (!result.ok) return { events: [] as DayEvent[], note: result.errorMessage || "Calendar is not connected." };
-    return { events, note: events.length ? "Today's calendar" : "No events today." };
-  } catch {
-    return { events: [] as DayEvent[], note: "Calendar is not connected." };
-  }
+  return { events: [] as DayEvent[], note: "Calendar is not connected." };
 });
 
 export const googleCalendar = createServerFn({ method: "POST" })

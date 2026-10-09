@@ -1,0 +1,24 @@
+name = "lifeos1-api"
+main = "worker/lifeos1-api.js"
+compatibility_date = "2026-07-01"
+account_id = "4cb5c0d8553b8c0c9156ee4f2bad9e6f"
+workers_dev = true
+
+# Public site. API keys stay as wrangler secrets, not in this file.
+[vars]
+APP_ORIGIN = "https://lifeos.ceogps.com"
+OAUTH_REDIRECT_URI = "https://lifeos1-api.ceogps.workers.dev/api/oauth/callback"
+CORS_ORIGINS = "https://lifeos.ceogps.com,https://lifeos1.ceogps.com"
+
+[[kv_namespaces]]
+binding = "LIFEOS_KV"
+id = "c7e7fb2195cc4397af43f41a06be7efb"
+
+[[d1_databases]]
+binding = "LIFEOS_DB"
+database_name = "ceogps"
+database_id = "9aa6e88b-bba8-43c8-8591-5fac48d5a200"
+
+[[r2_buckets]]
+binding = "LIFEOS_STORAGE"
+bucket_name = "lifeos-storage"

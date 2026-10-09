@@ -1,5 +1,7 @@
 export const SUPABASE = "https://mhvcdstgkyplhzjptgfr.supabase.co";
 export const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odmNkc3Rna3lwbGh6anB0Z2ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDE3NzYsImV4cCI6MjA5NDI3Nzc3Nn0.DrwY7_a6OyNdKtA5UB62qrWkiaFe9xcAHLqXdfzf8W4";
+export const WORKER = "https://lifeos1-api.ceogps.workers.dev";
+export const APP_ORIGIN = "https://lifeos.ceogps.com";
 const STORE = "lifeos.oauth";
 const VERIFIER = "lifeos.pkce";
 
@@ -10,14 +12,13 @@ export function allowedEmail(email: string) {
   return BOARD_EMAILS.includes(email.trim().toLowerCase() as (typeof BOARD_EMAILS)[number]);
 }
 export type OauthProvider = "google" | "discord" | "facebook" | "spotify";
-export type OauthSession = { provider: OauthProvider; name: string; email: string; token: string; refresh?: string };
+export type OauthSession = { provider: OauthProvider; name: string; email: string; token: string; refresh?: string; via?: "worker" };
 
-const SCOPES: Record<OauthProvider, string> = {
-  google: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly",
-  discord: "identify email guilds",
-  facebook: "email public_profile pages_show_list pages_messaging pages_read_engagement pages_manage_posts instagram_basic instagram_content_publish",
-  spotify: "user-read-email user-read-private user-top-read user-read-recently-played user-read-currently-playing playlist-read-private user-library-read",
-};
+const CARD: Record<OauthProvider, string> = { google: "Google", discord: "Discord", facebook: "Facebook", spotify: "Spotify" };
+
+function isProvider(value: string): value is OauthProvider {
+  return value === "google" || value === "discord" || value === "facebook" || value === "spotify";
+}
 
 function b64url(bytes: Uint8Array) {
   let text = "";
@@ -25,136 +26,142 @@ function b64url(bytes: Uint8Array) {
   return btoa(text).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
-export function readOauth(): OauthSession[] {
+function rawOauth(): OauthSession[] {
   try {
     const rows = JSON.parse(localStorage.getItem(STORE) || "[]");
-    return Array.isArray(rows) ? rows.filter((row) => row?.token && row?.provider) : [];
+    if (!Array.isArray(rows)) return [];
+    const clean = rows.filter((row) => row?.provider && isProvider(row.provider)).map((row) => ({
+      provider: row.provider,
+      name: row.name || CARD[row.provider],
+      email: row.email || "",
+      token: "",
+      via: "worker" as const,
+    }));
+    if (rows.some((row) => row?.token || row?.refresh)) localStorage.setItem(STORE, JSON.stringify(clean));
+    return clean;
   } catch {
     return [];
   }
 }
 
+export function readOauth(): OauthSession[] {
+  return rawOauth().filter((row) => row.token || row.via === "worker");
+}
+
 function saveOauth(row: OauthSession) {
-  const rows = readOauth().filter((item) => !(item.provider === row.provider && item.email.toLowerCase() === row.email.toLowerCase()));
-  localStorage.setItem(STORE, JSON.stringify([row, ...rows]));
+  const clean: OauthSession = { provider: row.provider, name: row.name, email: row.email, token: "", via: "worker" };
+  const rows = rawOauth().filter((item) => !(item.provider === clean.provider && item.email.toLowerCase() === clean.email.toLowerCase()));
+  localStorage.setItem(STORE, JSON.stringify([clean, ...rows]));
 }
 
 export function disconnectOauth(provider: OauthProvider, email?: string) {
-  const rows = readOauth().filter((item) => item.provider !== provider || (email && item.email.toLowerCase() !== email.toLowerCase()));
+  const rows = rawOauth().filter((item) => item.provider !== provider || (email && item.email.toLowerCase() !== email.toLowerCase()));
   localStorage.setItem(STORE, JSON.stringify(rows));
 }
 
-const SPOTIFY_ID = "8ff50c4c947d4ed98bd33bb4dc954b92";
-const DISCORD_ID = "1518131181739053056";
+function readSessionToken() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("sb-mhvcdstgkyplhzjptgfr-auth-token") || "{}") as { access_token?: string; currentSession?: { access_token?: string } };
+    return parsed.access_token || parsed.currentSession?.access_token || "";
+  } catch {
+    return "";
+  }
+}
+
+export function rememberLink(provider: OauthProvider, email?: string, name?: string) {
+  const mailbox = (email || "").trim();
+  const existing = rawOauth().find((item) => item.provider === provider && item.email.toLowerCase() === mailbox.toLowerCase());
+  if (existing?.token) return existing;
+  const row: OauthSession = { provider, name: name || CARD[provider], email: mailbox, token: existing?.token || "", via: "worker" };
+  saveOauth(row);
+  return row;
+}
+
+export async function pullWorkerLinks() {
+  const token = readSessionToken();
+  if (!token) return readOauth();
+  const response = await fetch(`${WORKER}/api/oauth/status`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) return readOauth();
+  const body = await response.json() as { accounts?: { provider?: string; email?: string }[]; statuses?: Record<string, { connected?: boolean; email?: string }> };
+  const linked = Array.isArray(body.accounts) ? body.accounts : [];
+  if (linked.length) {
+    for (const row of linked) {
+      if (row.provider === "google" || row.provider === "discord" || row.provider === "facebook" || row.provider === "spotify") {
+        rememberLink(row.provider, row.email || "");
+      }
+    }
+    return readOauth();
+  }
+  for (const provider of ["google", "discord", "facebook", "spotify"] as const) {
+    const status = body.statuses?.[provider];
+    if (!status?.connected) continue;
+    rememberLink(provider, status.email || "");
+  }
+  return readOauth();
+}
+
+export function catchReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const connected = params.get("connected");
+  const error = params.get("oauth_error") || "";
+  if (connected && isProvider(connected)) {
+    const email = sessionStorage.getItem("lifeos.oauth.mailbox") || "";
+    if (email) rememberLink(connected, email, CARD[connected]);
+    sessionStorage.removeItem("lifeos.oauth.mailbox");
+  }
+  if (connected || error) {
+    params.delete("connected");
+    params.delete("oauth_error");
+    const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+    window.history.replaceState({}, "", next);
+  }
+  return { provider: connected && isProvider(connected) ? connected : "", error };
+}
 
 export async function startOAuth(provider: OauthProvider, email?: string) {
-  const back = `${window.location.origin}/panel/integrations`;
-  if (provider === "spotify" || provider === "discord") {
-    sessionStorage.setItem("lifeos.oauth.back", back);
-    if (email && allowedEmail(email)) sessionStorage.setItem("lifeos.oauth.mailbox", email);
-    const url = new URL(provider === "spotify" ? "https://accounts.spotify.com/authorize" : "https://discord.com/api/oauth2/authorize");
-    url.searchParams.set("client_id", provider === "spotify" ? SPOTIFY_ID : DISCORD_ID);
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set("redirect_uri", back);
-    url.searchParams.set("scope", SCOPES[provider]);
-    url.searchParams.set("state", provider);
-    if (provider === "discord") url.searchParams.set("prompt", "consent");
-    window.location.assign(url.toString());
-    return;
-  }
-  const settings = await fetch(`${SUPABASE}/auth/v1/settings`, { headers: { apikey: ANON } }).then((response) => response.json()).catch(() => null) as { external?: Record<string, boolean> } | null;
-  if (settings?.external && settings.external[provider] === false) {
-    throw new Error(`${provider} is turned off in Supabase Auth. Enable it under Authentication, then Providers.`);
-  }
-  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
-  const challenge = b64url(new Uint8Array(digest));
-  sessionStorage.setItem(VERIFIER, verifier);
-  if (email && allowedEmail(email)) sessionStorage.setItem("lifeos.oauth.mailbox", email);
-  const url = new URL(`${SUPABASE}/auth/v1/authorize`);
-  url.searchParams.set("provider", provider);
-  url.searchParams.set("redirect_to", back);
-  url.searchParams.set("scopes", SCOPES[provider]);
-  url.searchParams.set("code_challenge", challenge);
-  url.searchParams.set("code_challenge_method", "s256");
-  if (provider === "google") {
-    const hint = email && allowedEmail(email) ? email : GMAIL_ACCOUNT;
-    url.searchParams.set("login_hint", hint);
-    url.searchParams.set("access_type", "offline");
-    url.searchParams.set("prompt", "select_account");
-  }
-  window.location.assign(url.toString());
+  const origin = window.location.origin || APP_ORIGIN;
+  const picked = (email || "").trim().toLowerCase();
+  if (!picked) throw new Error("Use the mailbox you clicked.");
+  if (picked.endsWith("@icloud.com")) throw new Error("iCloud connects through Nylas, not OAuth.");
+  if (provider === "google" && !allowedEmail(picked)) throw new Error("Pick one of the three Google mailboxes.");
+  const token = readSessionToken();
+  if (!token) throw new Error("Sign in first.");
+  sessionStorage.setItem("lifeos.oauth.back", `${origin}/panel/integrations`);
+  sessionStorage.setItem("lifeos.oauth.mailbox", picked);
+  const response = await fetch(`${WORKER}/api/oauth/start`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ provider, account_email: picked, origin }),
+  });
+  const body = await response.json().catch(() => ({})) as { url?: string; error?: string };
+  if (!response.ok || !body.url) throw new Error(body.error || "The worker refused the start.");
+  window.location.assign(body.url);
+}
+
+export async function startNylas(email?: string) {
+  const origin = window.location.origin || APP_ORIGIN;
+  const account = (email || "").trim().toLowerCase();
+  if (!account.endsWith("@icloud.com")) throw new Error("Nylas is for the iCloud mailbox.");
+  const token = readSessionToken();
+  if (!token) throw new Error("Sign in first.");
+  sessionStorage.setItem("lifeos.oauth.mailbox", account);
+  const response = await fetch(`${WORKER}/api/nylas/connect`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: account, origin }),
+  });
+  const body = await response.json().catch(() => ({})) as { url?: string; error?: string };
+  if (!response.ok || !body.url) throw new Error(body.error || "Nylas did not start.");
+  window.location.assign(body.url);
 }
 
 export async function finishOAuth(): Promise<OauthSession | null> {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get("code");
-  if (!code) return null;
-  const state = params.get("state");
-  if (state === "spotify" || state === "discord") {
-    const redirect = sessionStorage.getItem("lifeos.oauth.back") || `${window.location.origin}/panel/integrations`;
-    const response = await fetch("/api/oauth/exchange", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: state, code, redirect }),
-    });
-    const body = await response.json() as { ok?: boolean; email?: string; name?: string; token?: string; refresh?: string; text?: string };
-    params.delete("code");
-    params.delete("state");
-    window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? `?${params}` : ""}`);
-    if (!body.ok || !body.token) return null;
-    const session: OauthSession = { provider: state, name: body.name || "", email: body.email || "", token: body.token, refresh: body.refresh || "" };
-    saveOauth(session);
-    sessionStorage.removeItem("lifeos.oauth.back");
-    sessionStorage.removeItem("lifeos.oauth.mailbox");
-    return session;
-  }
-  const verifier = sessionStorage.getItem(VERIFIER) || "";
-  const response = await fetch(`${SUPABASE}/auth/v1/token?grant_type=pkce`, {
-    method: "POST",
-    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
-  });
-  const body = await response.json() as { access_token?: string; refresh_token?: string; provider_token?: string; user?: { email?: string; app_metadata?: { provider?: string }; user_metadata?: { full_name?: string; name?: string } } };
-  params.delete("code");
-  params.delete("state");
-  const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
-  window.history.replaceState({}, "", next);
-  if (!response.ok || !body.provider_token) return null;
-  const raw = body.user?.app_metadata?.provider;
-  const provider: OauthProvider = raw === "discord" || raw === "facebook" || raw === "spotify" ? raw : "google";
-  const picked = sessionStorage.getItem("lifeos.oauth.mailbox") || "";
-  const email = provider === "google" ? (body.user?.email || "") : (allowedEmail(picked) ? picked : (body.user?.email || ""));
-  if (provider === "google" && !allowedEmail(email)) {
-    sessionStorage.removeItem(VERIFIER);
-    return { provider, name: "", email, token: "" };
-  }
-  const session: OauthSession = {
-    provider,
-    name: body.user?.user_metadata?.full_name || body.user?.user_metadata?.name || "",
-    email,
-    token: body.provider_token,
-    refresh: body.refresh_token || "",
-  };
-  saveOauth(session);
-  sessionStorage.removeItem(VERIFIER);
-  sessionStorage.removeItem("lifeos.oauth.mailbox");
-  return session;
+  return null;
 }
 
-export async function freshGoogleToken(email?: string) {
-  const wanted = email?.trim().toLowerCase();
-  const row = readOauth().find((item) => item.provider === "google" && item.token && (!wanted || item.email.toLowerCase() === wanted))
-    || readOauth().find((item) => item.provider === "google" && item.token);
-  if (!row) return "";
-  if (!row.refresh) return row.token;
-  const response = await fetch(`${SUPABASE}/auth/v1/token?grant_type=refresh_token`, {
-    method: "POST",
-    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: row.refresh }),
-  });
-  const body = await response.json().catch(() => ({})) as { provider_token?: string; refresh_token?: string };
-  if (!response.ok || !body.provider_token) return row.token;
-  saveOauth({ ...row, token: body.provider_token, refresh: body.refresh_token || row.refresh });
-  return body.provider_token;
+export async function freshGoogleToken(_email?: string) {
+  return "";
 }

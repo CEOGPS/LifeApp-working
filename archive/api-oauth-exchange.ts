@@ -9,7 +9,13 @@ export const Route = createFileRoute("/api/oauth/exchange")({
         const provider = body.provider === "discord" ? "discord" : body.provider === "spotify" ? "spotify" : "";
         const code = String(body.code || "").slice(0, 2000);
         const redirect = String(body.redirect || "").slice(0, 300);
-        if (!provider || !code || !redirect) return Response.json({ ok: false, text: "Missing the login code." }, { status: 400 });
+        const allowed = new Set([
+          "https://lifeos1-api.ceogps.workers.dev/api/oauth/callback",
+          "https://lifeos1-api.ceogps.workers.dev/oauth/callback",
+          "http://127.0.0.1:8080/panel/integrations",
+          "http://localhost:8080/panel/integrations",
+        ]);
+        if (!provider || !code || !allowed.has(redirect)) return Response.json({ ok: false, text: "That redirect is not allowed." }, { status: 400 });
         const bag = await envBag();
         try {
           if (provider === "spotify") {

@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin } from "vite";
 import { defineConfig } from "vite";
@@ -142,6 +142,41 @@ function authPopupPlugin(): Plugin {
   };
 }
 
+/** SSR `styles.css?url` is hashed separately from the client file. Publish the client CSS under the SSR name so the document link is not a 404. */
+function publishSsrCssPlugin(): Plugin {
+  return {
+    name: "lifeos-publish-ssr-css",
+    apply: "build",
+    closeBundle() {
+      const root = process.cwd();
+      const assetsDir = join(root, "dist/assets");
+      const routesPath = join(root, "dist/_routes.json");
+      const workerDir = join(root, "dist/_worker.js/_ssr");
+      if (!existsSync(assetsDir) || !existsSync(routesPath) || !existsSync(workerDir)) return;
+      let wanted: string | null = null;
+      for (const file of readdirSync(workerDir)) {
+        if (!file.endsWith(".mjs")) continue;
+        const match = readFileSync(join(workerDir, file), "utf8").match(/\/assets\/styles-[A-Za-z0-9_-]+\.css/);
+        if (match) {
+          wanted = match[0];
+          break;
+        }
+      }
+      if (!wanted) return;
+      const name = wanted.slice("/assets/".length);
+      if (existsSync(join(assetsDir, name))) return;
+      const sourceName = readdirSync(assetsDir).find((file) => /^styles-.*\.css$/.test(file));
+      if (!sourceName) return;
+      copyFileSync(join(assetsDir, sourceName), join(assetsDir, name));
+      const routes = JSON.parse(readFileSync(routesPath, "utf8")) as { exclude?: string[] };
+      if (Array.isArray(routes.exclude) && !routes.exclude.includes(wanted)) {
+        routes.exclude.push(wanted);
+        writeFileSync(routesPath, JSON.stringify(routes, null, 2) + "\n");
+      }
+    },
+  };
+}
+
 // `0.0.0.0:8080` is the live-preview contract — don't change host/port.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
@@ -170,12 +205,13 @@ export default defineConfig(({ command, isPreview }) => ({
     ...(command === "build" || isPreview
       ? [
           nitro({
-            preset: "vercel",
+            preset: process.env.LIFEOS_PRESET || "vercel",
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
             serverDir: "./server",
           }),
+          publishSsrCssPlugin(),
         ]
       : []),
     viteReact(),

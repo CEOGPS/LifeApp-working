@@ -440,32 +440,137 @@ function Repeat({ label, rows, onChange, placeholder }: { label: string; rows: s
   );
 }
 
-type Kin = { relation: string; birthday: string; phone: string; email: string; connect: number; support: number; notes: string };
+type Kin = {
+  firstName: string;
+  lastName: string;
+  company: string;
+  birthday: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  avatar: string;
+  relation: string;
+  emails: string[];
+  phones: string[];
+  websites: string[];
+  socials: string[];
+  notes: string;
+};
+
+function blankKin(): Kin {
+  return { firstName: "", lastName: "", company: "", birthday: "", address: "", city: "", state: "", zip: "", avatar: "", relation: "", emails: [""], phones: [""], websites: [], socials: [], notes: "" };
+}
 
 function readKin(body: string): Kin {
-  const blank: Kin = { relation: "", birthday: "", phone: "", email: "", connect: 5, support: 5, notes: "" };
+  const blank = blankKin();
   try {
-    const parsed = JSON.parse(body) as Partial<Kin>;
-    return { ...blank, ...parsed, connect: Number(parsed.connect) || 5, support: Number(parsed.support) || 5 };
+    const parsed = JSON.parse(body) as Partial<Kin> & { email?: string; phone?: string };
+    return {
+      ...blank,
+      ...parsed,
+      emails: Array.isArray(parsed.emails) && parsed.emails.length ? parsed.emails : parsed.email ? [parsed.email] : [""],
+      phones: Array.isArray(parsed.phones) && parsed.phones.length ? parsed.phones : parsed.phone ? [parsed.phone] : [""],
+      websites: parsed.websites || [],
+      socials: parsed.socials || [],
+    };
   } catch {
     return { ...blank, notes: body };
   }
 }
 
+function kinName(kin: Kin) {
+  return `${kin.firstName} ${kin.lastName}`.trim();
+}
+
+function readPhoto(file: File, onDone: (url: string) => void) {
+  const image = new Image();
+  const url = URL.createObjectURL(file);
+  image.onload = () => {
+    const scale = Math.min(1, 240 / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    onDone(canvas.toDataURL("image/jpeg", 0.72));
+    URL.revokeObjectURL(url);
+  };
+  image.src = url;
+}
+
+function FamilyForm({ form, setForm, onSave, onCancel }: { form: Kin; setForm: (recipe: (prev: Kin) => Kin) => void; onSave: () => void; onCancel: () => void }) {
+  const set = (key: keyof Kin) => (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  return (
+    <form className="mt-3 grid gap-2 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave(); }}>
+      <Field label="First name" value={form.firstName} onChange={set("firstName")} />
+      <Field label="Last name" value={form.lastName} onChange={set("lastName")} />
+      <Field label="Company" value={form.company} onChange={set("company")} />
+      <label className="text-sm text-muted">Relationship
+        <select className="mt-1 h-8 w-full rounded-full border border-line bg-black/40 px-3 text-sm" value={form.relation} onChange={(event) => set("relation")(event.target.value)}>
+          <option value="">None</option>
+          {RELATIONS.map((name) => <option key={name}>{name}</option>)}
+        </select>
+      </label>
+      <label className="text-sm text-muted">Photo
+        <input className="mt-1 block w-full text-sm" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) readPhoto(file, (url) => set("avatar")(url)); event.target.value = ""; }} />
+      </label>
+      <div className="flex items-end gap-3">
+        {form.avatar ? <img src={form.avatar} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-xl bg-white/10 text-[10px] text-white/40">No photo</div>}
+        {form.avatar ? <button type="button" className="link-remove" onClick={() => set("avatar")("")}>Delete photo</button> : null}
+      </div>
+      <Repeat label="Phones" rows={form.phones} placeholder="1(000) 000-0000" onChange={(rows) => setForm((prev) => ({ ...prev, phones: rows.map((item) => fmtPhone(item)) }))} />
+      <Repeat label="Emails" rows={form.emails} placeholder="name@email.com" onChange={(rows) => setForm((prev) => ({ ...prev, emails: rows }))} />
+      <Field label="Birthday" value={form.birthday} onChange={(value) => set("birthday")(fmtDateInput(value))} />
+      <Field label="Street" value={form.address} onChange={set("address")} />
+      <Field label="City" value={form.city} onChange={set("city")} />
+      <Field label="State" value={form.state} onChange={set("state")} />
+      <Field label="ZIP" value={form.zip} onChange={set("zip")} />
+      <Field label="Image URL" value={form.avatar.startsWith("data:") ? "" : form.avatar} onChange={set("avatar")} />
+      <Repeat label="Websites" rows={form.websites} placeholder="https://" onChange={(rows) => setForm((prev) => ({ ...prev, websites: rows }))} />
+      <Socials rows={form.socials} onChange={(rows) => setForm((prev) => ({ ...prev, socials: rows }))} />
+      <Field label="Notes" value={form.notes} onChange={set("notes")} area />
+      <div className="flex gap-2">
+        <button type="submit" className="bg-blue">Save</button>
+        <button type="button" className="quiet" onClick={onCancel}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
 function FamilyShelf({ data, update }: { data: Memory; update: Update }) {
   const people = data.notes.filter((row) => row.title.startsWith("Family · "));
-  const [name, setName] = useState("");
-  const [relation, setRelation] = useState("");
+  const [form, setForm] = useState<Kin>(blankKin());
+  const [editing, setEditing] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const [tip, setTip] = useState("");
 
-  function saveMember() {
-    const who = name.trim();
+  function write(id: string | null) {
+    const firstName = form.firstName.trim();
+    const lastName = form.lastName.trim();
+    const who = `${firstName} ${lastName}`.trim();
     if (!who) return;
+    const emails = form.emails.map((item) => item.trim()).filter((item) => item.includes("@"));
+    const phones = form.phones.map((item) => item.trim()).filter((item) => /\d/.test(item));
+    const next: Kin = { ...form, firstName, lastName, emails, phones, websites: form.websites.map((item) => item.trim()).filter(Boolean), socials: form.socials.map((item) => item.trim()).filter(Boolean) };
     const title = `Family · ${who}`;
-    const body = JSON.stringify({ relation: relation.trim(), birthday: "", phone: "", email: "", connect: 5, support: 5, notes: "" } satisfies Kin);
-    update((prev) => ({ ...prev, notes: [{ id: newId(), title, body }, ...prev.notes.filter((row) => row.title !== title)] }));
-    setName("");
-    setRelation("");
+    const body = JSON.stringify(next);
+    update((prev) => ({
+      ...prev,
+      notes: [{ id: id || newId(), title, body }, ...prev.notes.filter((row) => row.id !== id && row.title !== title)],
+    }));
+    setForm(blankKin());
+    setEditing(null);
+  }
+
+  function beginEdit(row: { id: string; title: string; body: string }) {
+    const kin = readKin(row.body);
+    if (!kin.firstName && !kin.lastName) {
+      const parts = row.title.replace("Family · ", "").trim().split(/\s+/);
+      kin.firstName = parts.length > 1 ? parts.slice(0, -1).join(" ") : parts[0] || "";
+      kin.lastName = parts.length > 1 ? parts[parts.length - 1] : "";
+    }
+    setForm(kin);
+    setEditing(row.id);
   }
 
   async function coach(title: string, body: string) {
@@ -476,7 +581,7 @@ function FamilyShelf({ data, update }: { data: Memory; update: Update }) {
       data: {
         name: "Kranos",
         prompt: "Give three specific things Chris can do this week for this family member. Use only the profile. Do not invent events.",
-        facts: `${title}. Relation ${kin.relation || "unknown"}. Birthday ${kin.birthday || "unknown"}. Notes ${kin.notes || "none"}. Connection ${kin.connect}/10. Support ${kin.support}/10.`,
+        facts: `${title}. ${kin.relation}. Phones ${kin.phones.join(", ") || "none"}. Emails ${kin.emails.join(", ") || "none"}. Birthday ${kin.birthday || "unknown"}. Address ${[kin.address, kin.city, kin.state, kin.zip].filter(Boolean).join(", ") || "unknown"}. Notes ${kin.notes || "none"}.`,
         question: "What should he do this week?",
       },
     });
@@ -485,27 +590,68 @@ function FamilyShelf({ data, update }: { data: Memory; update: Update }) {
 
   return (
     <section className="module-card mb-4 p-4">
-      <h2 className="text-lg">Family</h2>
-      <p className="text-sm text-white/45">Household profiles stay on the board with your notes. They are not CRM leads.</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <input className="h-8 min-w-36 flex-1 rounded-full border border-line bg-black/40 px-3 text-sm" placeholder="Name" value={name} onChange={(event) => setName(event.target.value)} />
-        <input className="h-8 w-36 rounded-full border border-line bg-black/40 px-3 text-sm" placeholder="Relation" value={relation} onChange={(event) => setRelation(event.target.value)} />
-        <button type="button" className="quiet is-on" onClick={saveMember}>Add</button>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg">Family <span className="text-sm text-white/40">{people.length}</span></h2>
+        <div className="flex gap-3">
+          <button type="button" className="quiet" onClick={() => setOpen((value) => !value)}>{open ? "Minimize" : "Open"}</button>
+          <button type="button" className="quiet is-on" onClick={() => { setOpen(true); setForm(blankKin()); setEditing("new"); }}>Add family</button>
+        </div>
       </div>
-      <div className="mt-3 grid gap-2">
+      {!open ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {people.slice(0, 12).map((row) => {
+            const kin = readKin(row.body);
+            const name = kinName(kin) || row.title.replace("Family · ", "");
+            return (
+              <button key={row.id} type="button" className="flex items-center gap-2 rounded-full border border-white/10 px-2 py-1 text-sm" onClick={() => { setOpen(true); beginEdit(row); }}>
+                {kin.avatar ? <img src={kin.avatar} alt="" className="h-6 w-6 rounded-full object-cover" /> : <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-[10px]">{name.slice(0, 1)}</span>}
+                {name}
+              </button>
+            );
+          })}
+          {people.length > 12 ? <span className="self-center text-xs text-white/40">+{people.length - 12}</span> : null}
+        </div>
+      ) : null}
+      {open ? <p className="text-sm text-white/45">Same fields as a contact. They stay on this board and are not CRM leads.</p> : null}
+      {open && editing === "new" ? <FamilyForm form={form} setForm={setForm} onSave={() => write(null)} onCancel={() => { setEditing(null); setForm(blankKin()); }} /> : null}
+      {open ? <div className="mt-3 grid max-h-80 gap-3 overflow-y-auto">
         {people.map((row) => {
           const kin = readKin(row.body);
+          const name = kinName(kin) || row.title.replace("Family · ", "");
+          const phones = kin.phones.filter((item) => /\d/.test(item));
+          const emails = kin.emails.filter((item) => item.includes("@"));
+          const address = [kin.address, kin.city, kin.state, kin.zip].filter(Boolean).join(", ");
+          if (editing === row.id) return <FamilyForm key={row.id} form={form} setForm={setForm} onSave={() => write(row.id)} onCancel={() => { setEditing(null); setForm(blankKin()); }} />;
           return (
-            <div key={row.id} className="border-b border-white/10 py-2 text-sm">
-              <p>{row.title.replace("Family · ", "")} <span className="text-white/40">{kin.relation}</span></p>
-              <p className="text-white/50">Connect {kin.connect}/10 · Support {kin.support}/10{kin.birthday ? ` · ${kin.birthday}` : ""}</p>
-              <button type="button" className="quiet mt-1" onClick={() => void coach(row.title, row.body)}>Tips</button>
-              <button type="button" className="link-remove ml-3" onClick={() => update((prev) => ({ ...prev, notes: prev.notes.filter((item) => item.id !== row.id) }))}>Remove</button>
+            <div key={row.id} className="rounded-xl border border-white/10 p-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {kin.avatar ? <img src={kin.avatar} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-xl bg-white/10 text-sm">{name.slice(0, 1)}</div>}
+                  <div>
+                    <p className="text-base text-white">{name} {kin.relation ? <span className="text-sm text-white/40">{kin.relation}</span> : null}</p>
+                    <p className="text-blue-2">{phones.map((item) => fmtPhone(item)).join(" · ") || "No phone"}</p>
+                    <p className="text-blue-2">{emails.join(" · ") || "No email"}</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" className="quiet" onClick={() => beginEdit(row)}>Edit</button>
+                  <button type="button" className="link-remove" onClick={() => { if (window.confirm(`Delete ${name}?`)) update((prev) => ({ ...prev, notes: prev.notes.filter((item) => item.id !== row.id) })); }}>Delete</button>
+                </div>
+              </div>
+              <p className="mt-2 text-white/70">{[kin.company, address].filter(Boolean).join(" · ") || "No address"}</p>
+              <p className="text-white/50">{kin.birthday ? `Birthday ${kin.birthday}` : "No birthday"}</p>
+              {kin.websites.filter(Boolean).map((site) => <p key={site} className="truncate text-blue-2">{site}</p>)}
+              {kin.socials.filter(Boolean).map((item) => {
+                const social = splitSocial(item);
+                return <p key={item} className="text-white/75">{social.platform}: {social.handle}</p>;
+              })}
+              {kin.notes ? <p className="mt-2 whitespace-pre-wrap text-white/75">{kin.notes}</p> : null}
+              <button type="button" className="quiet mt-2" onClick={() => void coach(row.title, row.body)}>Tips</button>
             </div>
           );
         })}
-        {!people.length ? <p className="text-sm text-white/40">No family profiles yet.</p> : null}
-      </div>
+        {!people.length && editing !== "new" ? <p className="text-sm text-white/40">No family profiles yet.</p> : null}
+      </div> : null}
       {tip ? <p className="mt-3 whitespace-pre-wrap text-sm text-white/70">{tip}</p> : null}
     </section>
   );
@@ -901,11 +1047,14 @@ export function WiredPanel({ slug, data, update }: { slug: string; data: Memory;
   const [accounts, setAccounts] = useState<{ provider: string; name: string; email: string }[]>([]);
   const [oauthNote, setOauthNote] = useState("");
   useEffect(() => {
-    void import("@/lib/lifeos/oauth").then(async ({ finishOAuth, readOauth, allowedEmail }) => {
+    void import("@/lib/lifeos/oauth").then(async ({ finishOAuth, readOauth, allowedEmail, catchReturn, pullWorkerLinks }) => {
       const session = await finishOAuth().catch(() => null);
-      if (session?.provider === "google" && !session.token) {
+      const back = catchReturn();
+      if (session?.provider === "google" && !session.token && !session.via) {
         setOauthNote(allowedEmail(session.email || "") ? "Google did not return a token. Connect that mailbox again." : `${session.email || "That mailbox"} is not one of the three board emails.`);
-      }
+      } else if (back.error) setOauthNote(back.error);
+      else if (back.provider) setOauthNote(`${back.provider} is connected.`);
+      await pullWorkerLinks().catch(() => undefined);
       setAccounts(readOauth().map((row) => ({ provider: row.provider, name: row.name, email: row.email })));
     });
   }, []);

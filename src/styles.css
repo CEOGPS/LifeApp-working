@@ -47,7 +47,7 @@
   }
 }
 
-button:not(.cal-day):not(.cal-cell):not(.flex):not(.w-full):not(.block):not(.link-add):not(.link-remove):not(.menu):not(.quiet):not(.icon),
+button:not(.cal-day):not(.cal-cell):not(.flex):not(.w-full):not(.block):not(.link-add):not(.link-remove):not(.menu):not(.quiet):not(.icon):not(.inbox-row),
 a.bg-blue,
 button.bg-blue,
 button:not(.cal-day):not(.flex).on,
@@ -448,9 +448,40 @@ button.bg-blue:hover {
 button.menu:hover {
   background: rgba(79, 210, 255, 0.1) !important;
 }
-button.menu {
-  border-radius: 0.55rem !important;
-  padding: 0.4rem 0.55rem !important;
+button.inbox-row {
+  display: grid !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  gap: 0.1rem;
+  padding: 0.65rem 0.75rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-align: left;
+  color: inherit !important;
+}
+button.inbox-row.is-alt {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+button.inbox-row:hover {
+  background: rgba(192, 132, 252, 0.14) !important;
+}
+button.inbox-row.is-on {
+  background: rgba(79, 210, 255, 0.12) !important;
+  box-shadow: inset 3px 0 0 #c084fc !important;
+}
+button.inbox-row > span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+button.inbox-row > span.flex {
+  display: flex;
 }
 button:active,
 a.bg-blue:active,

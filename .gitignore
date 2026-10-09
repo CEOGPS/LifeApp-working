@@ -4,3 +4,11 @@ node_modules/
 .env
 .env.*
 .lifeos-keys.json
+lifeos-keys.env
+CEOLife.env
+CEOLife.zip
+dist/
+.wrangler/
+.vercel/
+tsconfig.tsbuildinfo
+*.zip

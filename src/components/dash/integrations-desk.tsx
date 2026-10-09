@@ -1,14 +1,30 @@
 import { useEffect, useState } from "react";
 import { newId, type Memory } from "./memory";
-import { disconnectOauth, readOauth, BOARD_EMAILS, type OauthProvider } from "@/lib/lifeos/oauth";
+import { disconnectOauth, readOauth, BOARD_EMAILS, catchReturn, startNylas, startOAuth, type OauthProvider } from "@/lib/lifeos/oauth";
 import { sheetKeys } from "@/lib/lifeos/sheet-keys";
 
+const WORKER = (import.meta.env.VITE_WORKER_URL || "https://lifeos1-api.ceogps.workers.dev").replace(/\/$/, "");
+const WORKER_OAUTH = new Set(["google", "facebook", "spotify", "discord"]);
+
+function sessionToken() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("sb-mhvcdstgkyplhzjptgfr-auth-token") || "{}") as { access_token?: string; currentSession?: { access_token?: string } };
+    return parsed.access_token || parsed.currentSession?.access_token || "";
+  } catch {
+    return "";
+  }
+}
 function maskKey(value: string) {
   const clean = value.trim();
   if (clean.length <= 8) return "saved";
   return `${clean.slice(0, 3)}····${clean.slice(-4)}`;
 }
+const CARD: Record<OauthProvider, string> = { google: "Google", discord: "Discord", facebook: "Facebook", spotify: "Spotify" };
 const MARKS = "lifeos.integration.marks";
+
+function asAccounts(rows: { provider: string; name: string; email: string }[]) {
+  return rows.map((row) => ({ provider: row.provider, name: row.name, email: row.email }));
+}
 type Mark = { state: "connected" | "error" | "saved"; text: string };
 
 function readMarks(): Record<string, Mark> {
@@ -183,6 +199,15 @@ const ROWS: Row[] = ([
   { name: "YouTube", kind: "key" },
   { name: "YP.com", kind: "key" },
   { name: "Zoominfo", kind: "key" },
+  { name: "Firecrawl", kind: "key" },
+  { name: "GLM", kind: "key" },
+  { name: "Kimi", kind: "key" },
+  { name: "Meta", kind: "key" },
+  { name: "Microsoft", kind: "key" },
+  { name: "Parallel", kind: "key" },
+  { name: "Weather", kind: "key" },
+  { name: "Xiaomi", kind: "key" },
+  { name: "Zoom", kind: "key" },
 ] satisfies Row[]).sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
 
 export function IntegrationsDesk({ data, update, accounts, setAccounts, note, setNote }: {
@@ -194,10 +219,10 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   setNote: (value: string) => void;
 }) {
   const [ready, setReady] = useState<string[]>([]);
-  const [paste, setPaste] = useState("");
+  const [paste, setPaste] = useState<Record<string, string>>({});
   const [sheet, setSheet] = useState("");
   const [sheetNote, setSheetNote] = useState("");
-  const [extra, setExtra] = useState("");
+  const [extra, setExtra] = useState<Record<string, string>>({});
   const [open, setOpen] = useState("");
   const [checked, setChecked] = useState<Record<string, string>>({});
   const [machine, setMachine] = useState<string[]>([]);
@@ -205,6 +230,34 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   const [busy, setBusy] = useState<Record<string, boolean>>({});
 
   useEffect(() => { setMarks(readMarks()); }, []);
+  useEffect(() => {
+    const back = catchReturn();
+    if (back.provider) {
+      const email = readOauth().find((row) => row.provider === back.provider)?.email || "";
+      stamp(CARD[back.provider], "connected", email ? `Connected · ${email}` : "Connected");
+    }
+    if (back.error) {
+      setNote(back.error);
+    }
+    setAccounts([]);
+    const token = sessionToken();
+    if (!token) return;
+    void fetch(`${WORKER}/api/integrations/health`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(12000),
+    }).then(async (response) => {
+      if (!response.ok) return;
+      const body = await response.json() as { integrations?: { id?: string; status?: string; oauth?: { provider?: string; emails?: string[] } }[] };
+      const rows: Account[] = [];
+      for (const item of body.integrations || []) {
+        if (item.status !== "connected" || !item.oauth?.provider) continue;
+        const emails = item.oauth.emails?.length ? item.oauth.emails : [""];
+        for (const email of emails) rows.push({ provider: item.oauth.provider, name: item.id || item.oauth.provider, email });
+        stamp(CARD[item.oauth.provider as OauthProvider] || item.id || "Account", "connected", emails.filter(Boolean).join(", ") || "Connected");
+      }
+      setAccounts(rows);
+    }).catch(() => undefined);
+  }, [setAccounts, setNote]);
 
   function stamp(name: string, state: Mark["state"], text: string) {
     setMarks((prev) => {
@@ -214,25 +267,24 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
     });
   }
 
-  useEffect(() => {
-    void fetch("/api/keys/machine").then((response) => response.json()).then((rows: { name?: string; value?: string }[]) => {
-      if (!Array.isArray(rows) || !rows.length) return;
-      const incoming = rows.filter((row) => row?.name && row?.value).map((row) => ({ name: String(row.name), value: String(row.value) }));
-      setMachine(incoming.map((row) => row.name));
-      setReady(incoming.map((row) => row.name));
-      if (sessionStorage.getItem("lifeos.keys.applied") === String(incoming.length)) return;
-      update((prev) => {
-        const names = new Set(incoming.map((row) => row.name));
-        return { ...prev, keys: [...incoming.map((row) => ({ id: newId(), name: row.name, value: row.value })), ...prev.keys.filter((row) => !names.has(row.name))] };
-      });
-      sessionStorage.setItem("lifeos.keys.applied", String(incoming.length));
-    }).catch(() => undefined);
-  }, []);
-
   function connect(provider: OauthProvider, name: string, email?: string) {
     setNote("");
-    void import("@/lib/lifeos/oauth").then(({ startOAuth }) => startOAuth(provider, email)).catch((error) => {
-      const text = error instanceof Error ? error.message : "Connect failed.";
+    if (!WORKER_OAUTH.has(provider)) {
+      const text = `${name} is not on the worker yet.`;
+      stamp(name, "error", text);
+      setNote(text);
+      return;
+    }
+    if ((email || "").toLowerCase().endsWith("@icloud.com")) {
+      void startNylas(email).catch((error: unknown) => {
+        const text = error instanceof Error ? error.message : "Nylas did not start.";
+        stamp(name, "error", text);
+        setNote(text);
+      });
+      return;
+    }
+    void startOAuth(provider, email).catch((error: unknown) => {
+      const text = error instanceof Error ? error.message : `${name} did not start.`;
       stamp(name, "error", text);
       setNote(text);
     });
@@ -240,7 +292,13 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
 
   function disconnect(provider: OauthProvider, email?: string) {
     disconnectOauth(provider, email);
-    setAccounts(readOauth().map((row) => ({ provider: row.provider, name: row.name, email: row.email })));
+    stamp(CARD[provider], "saved", "Disconnected");
+    setAccounts(asAccounts(readOauth()));
+    void fetch(`${WORKER}/api/oauth/disconnect`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${sessionToken()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, account_email: email || "" }),
+    }).catch(() => undefined);
   }
 
   function putKey(name: string, value: string) {
@@ -258,9 +316,9 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
     };
     try {
       const { readOauth, freshGoogleToken } = await import("@/lib/lifeos/oauth");
-      const sessions = readOauth().filter((row) => row.provider === "google" && row.token);
+      const sessions = readOauth().filter((row) => row.provider === "google" && row.token && row.email.toLowerCase() === "chrisgr33ninc@gmail.com");
       const tokens = sessions.length ? sessions : [{ email: "", token: "" }];
-      let result: { ok: boolean; text: string; site?: string } = { ok: false, text: "Connect Google on chris@ceogps.com, chrisgr33ninc@gmail.com, and cagednreality@icloud.com.", site: "" };
+      let result: { ok: boolean; text: string; site?: string } = { ok: false, text: "Connect Google as chrisgr33ninc@gmail.com.", site: "" };
       const lines: string[] = [];
       for (const session of tokens) {
         const google = session.token ? await freshGoogleToken(session.email) || session.token : "";
@@ -270,9 +328,9 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
           body: JSON.stringify({
             service,
             token: google,
-            key: service === "google-analytics" ? paste || data.keys.find((row) => row.name === "Google Analytics")?.value || "" : service === "godaddy" ? paste || data.keys.find((row) => row.name === "GoDaddy")?.value || "" : service === "brilliant" ? paste || data.keys.find((row) => row.name === "Brilliant Directories")?.value || "" : "",
-            secret: service === "godaddy" ? extra || data.keys.find((row) => row.name === "GoDaddy Secret")?.value || "" : "",
-            site: service === "brilliant" ? extra || data.keys.find((row) => row.name === "Brilliant Site")?.value || "" : "",
+            key: service === "google-analytics" ? paste[name] || data.keys.find((row) => row.name === "Google Analytics")?.value || "" : service === "godaddy" ? paste[name] || data.keys.find((row) => row.name === "GoDaddy")?.value || "" : service === "brilliant" ? paste[name] || data.keys.find((row) => row.name === "Brilliant Directories")?.value || "" : "",
+            secret: service === "godaddy" ? extra[name] || data.keys.find((row) => row.name === "GoDaddy Secret")?.value || "" : "",
+            site: service === "brilliant" ? extra[name] || data.keys.find((row) => row.name === "Brilliant Site")?.value || "" : "",
           }),
           signal: AbortSignal.timeout(12000),
         });
@@ -285,14 +343,14 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       if (result.ok && service === "search-console" && result.site) putKey("Search Console", result.site);
       if (result.ok && service === "google-analytics" && result.site) putKey("Google Analytics", result.site);
       if (result.ok && service === "godaddy") {
-        const key = paste || data.keys.find((row) => row.name === "GoDaddy")?.value || "";
-        const secret = extra || data.keys.find((row) => row.name === "GoDaddy Secret")?.value || "";
+        const key = paste[name] || data.keys.find((row) => row.name === "GoDaddy")?.value || "";
+        const secret = extra[name] || data.keys.find((row) => row.name === "GoDaddy Secret")?.value || "";
         if (key) putKey("GoDaddy", key);
         if (secret) putKey("GoDaddy Secret", secret);
       }
       if (result.ok && service === "brilliant") {
-        const key = paste || data.keys.find((row) => row.name === "Brilliant Directories")?.value || "";
-        const site = extra || data.keys.find((row) => row.name === "Brilliant Site")?.value || "";
+        const key = paste[name] || data.keys.find((row) => row.name === "Brilliant Directories")?.value || "";
+        const site = extra[name] || data.keys.find((row) => row.name === "Brilliant Site")?.value || "";
         if (key) putKey("Brilliant Directories", key);
         if (site) putKey("Brilliant Site", site);
       }
@@ -306,15 +364,10 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
 
   async function verify(name: string, keyOverride?: string) {
     const value = (keyOverride ?? data.keys.find((item) => item.name === name)?.value ?? "").trim();
-    const live = new Set(["OpenAI", "Anthropic", "xAI", "Grok (xAI)", "NVIDIA", "NVIDIA NIM", "Groq", "OpenRouter", "DeepSeek", "Mistral", "ElevenLabs", "YouTube", "Stripe", "Replicate", "Luma", "Telegram", "SendGrid", "Hugging Face", "Nylas", "Cloudflare", "Cloudflare Account", "Cloudflare Token", "Google Maps", "Google AI (Gemini)", "GitHub", "Vercel"]);
-    if (!value) {
+    const cloudflare = name === "Cloudflare" || name === "Cloudflare Token" || name === "Cloudflare Account";
+    if (!value && !cloudflare) {
       stamp(name, "error", "No key is saved on this card.");
       setNote(`${name}: no key is saved.`);
-      return;
-    }
-    if (!live.has(name)) {
-      stamp(name, "saved", maskKey(value));
-      setNote(`${name} saved. This service has no live check.`);
       return;
     }
     setBusy((prev) => ({ ...prev, [name]: true }));
@@ -329,18 +382,36 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       const response = await fetch("/api/keys/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, key: value, email: BOARD_EMAILS.join(",") }),
-        signal: AbortSignal.timeout(12000),
+        body: JSON.stringify({
+          name,
+          key: value,
+          email: /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(name) ? "chrisgr33ninc@gmail.com" : name === "Grok (xAI)" || name === "xAI" ? "chris@ceogps.com" : "",
+        }),
+        signal: AbortSignal.timeout(15000),
       });
-      const row = await response.json().catch(() => ({})) as { ok?: boolean; text?: string };
-      finish(row?.ok ? "connected" : "error", String(row?.text || `The check returned HTTP ${response.status}.`));
+      const row = await response.json().catch(() => ({})) as { ok?: boolean; checked?: boolean; status?: string; reason?: string; error?: string; text?: string };
+      const text = String(row.text || row.reason || row.error || `The check returned HTTP ${response.status}.`);
+      if (row.ok || row.status === "connected") finish("connected", text);
+      else if (row.checked === false) finish("saved", text);
+      else finish("error", text);
     } catch (error) {
       finish("error", error instanceof Error ? error.message : "The check failed.");
     }
   }
 
-  function emails() {
-    return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">{BOARD_EMAILS.join(" · ")}</p>;
+  function checkLabel(name: string) {
+    if (busy[name]) return "Checking";
+    const state = marks[name]?.state;
+    if (state === "error") return "Failed — check again";
+    if (state === "connected") return "Connected";
+    if (state === "saved") return "Saved";
+    return "Check";
+  }
+
+  function emails(name?: string) {
+    const google = /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(name || "");
+    const list = google ? ["chrisgr33ninc@gmail.com"] : name === "Grok (xAI)" || name === "xAI" ? ["chris@ceogps.com"] : [...BOARD_EMAILS];
+    return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">{list.join(" · ")}</p>;
   }
 
   function statusLine(name: string, fallback: { state: Mark["state"] | "idle"; text: string }) {
@@ -449,48 +520,46 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
         {ROWS.map((row) => {
           if (row.kind === "oauth") {
-            if (row.id === "google") {
-              return (
-                <article key={row.name} className="module-card p-4">
-                  <p className="text-lg">{row.name}</p>
-              {emails()}
-                  <p className="mt-1 text-sm text-white/45">All three stay connected and are used together.</p>
-                  <div className="mt-3 grid gap-2">
-                    {BOARD_EMAILS.map((email) => {
-                      const linked = accounts.find((item) => item.provider === "google" && item.email.toLowerCase() === email);
-                      return (
-                        <div key={email} className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-sm text-white/75">{email}</span>
-                          {linked ? <button type="button" className="link-remove" onClick={() => disconnect("google", email)}>Disconnect</button> : <button type="button" className="quiet is-on" onClick={() => connect("google", "Google", email)}>Connect</button>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <button type="button" className="quiet check-btn mt-3" onClick={() => {
-                    const linked = BOARD_EMAILS.filter((email) => accounts.some((item) => item.provider === "google" && item.email.toLowerCase() === email));
-                    stamp("Google", linked.length === BOARD_EMAILS.length ? "connected" : linked.length ? "saved" : "error", linked.length ? `Connected · ${linked.join(", ")}` : "None of the three Google mailboxes are connected.");
-                  }}>Check</button>
-                </article>
-              );
-            }
             const account = accounts.find((item) => item.provider === row.id);
             return (
               <article key={row.name} className="module-card p-4">
                 <p className="text-lg">{row.name}</p>
-                {emails()}
-                <p className="mt-1 text-sm text-white/45">Pick the mailbox, then authorize. It should come back to this page.</p>
+                {row.id === "google" ? null : emails(row.name)}
+                <p className="mt-1 text-sm text-white/45">{row.id === "spotify" ? "Spotify returns through https://lifeos1-api.ceogps.workers.dev/api/oauth/callback and lands on lifeos.ceogps.com." : "Each mailbox connects on its own. Sign-in is required."}</p>
                 <div className="mt-3 grid gap-2">
                   {BOARD_EMAILS.map((email) => {
                     const linked = accounts.find((item) => item.provider === row.id && item.email.toLowerCase() === email);
                     return (
                       <div key={email} className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-sm text-white/75">{email}</span>
-                        {linked ? <button type="button" className="link-remove" onClick={() => disconnect(row.id, email)}>Disconnect</button> : <button type="button" className="quiet check-btn" onClick={() => connect(row.id, row.name, email)}>Authorize</button>}
+                        {linked ? <button type="button" className="link-remove" onClick={() => disconnect(row.id, email)}>Disconnect</button> : <button type="button" className="quiet check-btn" onClick={() => connect(row.id, row.name, email)}>{email.endsWith("@icloud.com") ? "Nylas" : row.id === "google" ? "Connect" : "Authorize"}</button>}
                       </div>
                     );
                   })}
                 </div>
                 {account ? statusLine(row.name, { state: "connected", text: account.email || account.name }) : statusLine(row.name, { state: "idle", text: "Pick one of the three emails." })}
+                {row.id === "google" ? <button type="button" className="quiet check-btn mt-3" onClick={() => {
+                  setBusy((prev) => ({ ...prev, Google: true }));
+                  void import("@/lib/lifeos/oauth").then(async ({ freshGoogleToken }) => {
+                    const token = await freshGoogleToken("chrisgr33ninc@gmail.com");
+                    if (!token) {
+                      stamp("Google", "error", "Connect chrisgr33ninc@gmail.com.");
+                      setBusy((prev) => ({ ...prev, Google: false }));
+                      return;
+                    }
+                    const response = await fetch("/api/keys/account", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ service: "search-console", token, key: "", secret: "", site: "" }),
+                    });
+                    const checked = await response.json().catch(() => ({ ok: false, text: "Google did not answer." })) as { ok?: boolean; text?: string };
+                    stamp("Google", checked.ok ? "connected" : "error", checked.text || "Google did not answer.");
+                    setBusy((prev) => ({ ...prev, Google: false }));
+                  }).catch((error) => {
+                    stamp("Google", "error", error instanceof Error ? error.message : "Google did not answer.");
+                    setBusy((prev) => ({ ...prev, Google: false }));
+                  });
+                }}>{checkLabel("Google")}</button> : null}
               </article>
             );
           }
@@ -505,18 +574,18 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
             return (
               <article key={row.name} className="module-card p-4">
                 <p className="text-lg">{row.name}</p>
-              {emails()}
+              {emails(row.name)}
                 {statusLine(row.name, linked ? { state: "saved", text: status || "Not checked yet" } : { state: "idle", text: "No key saved." })}
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   {oneClick && !google ? <button type="button" className="quiet is-on" onClick={() => connect("google", "Google")}>Connect Google</button> : open === row.name || (service === "google-analytics" && google) ? (
                     <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); void checkAccount(row.name, service); }}>
-                      {service === "google-analytics" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste} placeholder="GA4 property ID" onChange={(event) => setPaste(event.target.value)} /> : <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste} placeholder="API key" onChange={(event) => setPaste(event.target.value)} />}
-                      {row.name === "GoDaddy" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={extra} placeholder="API secret" onChange={(event) => setExtra(event.target.value)} /> : null}
-                      {row.name === "Brilliant Directories" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={extra} placeholder="https://your-site.com" onChange={(event) => setExtra(event.target.value)} /> : null}
+                      {service === "google-analytics" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste[row.name] || ""} placeholder="GA4 property ID" onChange={(event) => setPaste((prev) => ({ ...prev, [row.name]: event.target.value }))} /> : <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste[row.name] || ""} placeholder="API key" onChange={(event) => setPaste((prev) => ({ ...prev, [row.name]: event.target.value }))} />}
+                      {row.name === "GoDaddy" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={extra[row.name] || ""} placeholder="API secret" onChange={(event) => setExtra((prev) => ({ ...prev, [row.name]: event.target.value }))} /> : null}
+                      {row.name === "Brilliant Directories" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={extra[row.name] || ""} placeholder="https://ceogps.com" onChange={(event) => setExtra((prev) => ({ ...prev, [row.name]: event.target.value }))} /> : null}
                       <button type="submit" className="quiet check-btn">{busy[row.name] ? "Checking" : "Check"}</button>
                     </form>
-                  ) : <button type="button" className="quiet is-on" onClick={() => { setOpen(row.name); setPaste(saved?.value || ""); setExtra(data.keys.find((item) => item.name === (row.name === "GoDaddy" ? "GoDaddy Secret" : "Brilliant Site"))?.value || ""); }}>Edit</button>}
-                  <button type="button" className="quiet check-btn" onClick={() => void checkAccount(row.name, service)}>{busy[row.name] ? "Checking" : "Check"}</button>
+                  ) : <button type="button" className="quiet is-on" onClick={() => { setOpen(row.name); setPaste((prev) => ({ ...prev, [row.name]: saved?.value || "" })); setExtra((prev) => ({ ...prev, [row.name]: data.keys.find((item) => item.name === (row.name === "GoDaddy" ? "GoDaddy Secret" : "Brilliant Site"))?.value || "" })); }}>Edit</button>}
+                  <button type="button" className="quiet check-btn" onClick={() => void checkAccount(row.name, service)}>{checkLabel(row.name)}</button>
                 </div>
               </article>
             );
@@ -524,11 +593,11 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
           return (
             <article key={row.name} className="module-card p-4">
               <p className="text-lg">{row.name}</p>
-              {emails()}
+              {emails(row.name)}
               {statusLine(row.name, on ? { state: "saved", text: saved ? maskKey(saved.value) : "Not checked with the service yet." } : { state: "idle", text: "No key saved." })}
               {saved ? <p className="mt-1 text-xs text-white/45">Key on file · {maskKey(saved.value)}</p> : null}
               <div className="mt-3 flex flex-wrap gap-3">
-                <button type="button" className="quiet check-btn" onClick={() => void verify(row.name)}>{busy[row.name] ? "Checking" : marks[row.name]?.state === "error" ? "Failed — check again" : marks[row.name]?.state === "connected" ? "Connected" : "Check"}</button>
+                <button type="button" className="quiet check-btn" onClick={() => void verify(row.name)}>{checkLabel(row.name)}</button>
                 {open === row.name ? (
                   <form className="flex min-w-0 flex-1 gap-2" onSubmit={(event) => {
                     event.preventDefault();

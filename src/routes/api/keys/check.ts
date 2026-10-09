@@ -8,7 +8,7 @@ export const Route = createFileRoute("/api/keys/check")({
         const body = await request.json().catch(() => ({})) as { name?: string; key?: string; email?: string };
         const result = await runProbe({
           name: String(body?.name || "").slice(0, 80),
-          key: String(body?.key || "").trim().slice(0, 2000),
+          key: String(body?.key || "").trim().slice(0, 8000),
           email: String(body?.email || "").slice(0, 300),
         });
         return Response.json(result);

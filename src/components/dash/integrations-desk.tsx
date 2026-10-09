@@ -302,7 +302,8 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   }
 
   function putKey(name: string, value: string) {
-    update((prev) => ({ ...prev, keys: [{ id: newId(), name, value }, ...prev.keys.filter((item) => item.name !== name)] }));
+    const names = name === "xAI" || name === "Grok (xAI)" ? ["xAI", "Grok (xAI)"] : [name];
+    update((prev) => ({ ...prev, keys: [...names.map((item) => ({ id: newId(), name: item, value })), ...prev.keys.filter((item) => !names.includes(item.name))] }));
   }
 
   async function checkAccount(name: string, service: "search-console" | "google-analytics" | "godaddy" | "brilliant") {
@@ -363,7 +364,11 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   }
 
   async function verify(name: string, keyOverride?: string) {
-    const value = (keyOverride ?? data.keys.find((item) => item.name === name)?.value ?? "").trim();
+    const own = (keyOverride ?? data.keys.find((item) => item.name === name)?.value ?? "").trim();
+    const twin = name === "Grok (xAI)" || name === "xAI"
+      ? (data.keys.find((item) => item.name === "xAI")?.value || data.keys.find((item) => item.name === "Grok (xAI)")?.value || "").trim()
+      : "";
+    const value = own || twin;
     const cloudflare = name === "Cloudflare" || name === "Cloudflare Token" || name === "Cloudflare Account";
     if (!value && !cloudflare) {
       stamp(name, "error", "No key is saved on this card.");

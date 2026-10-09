@@ -324,6 +324,9 @@ function timed(work: Promise<Response>) {
 export async function runProbe(data: { name: string; key: string; email: string }) {
     const aliases: Record<string, string> = { "Grok (xAI)": "xAI", "NVIDIA NIM": "NVIDIA" };
     data = { ...data, name: aliases[data.name] || data.name };
+    if (data.name === "xAI" && data.email.trim().toLowerCase() !== "chris@ceogps.com") {
+      return { ok: false as const, checked: true as const, text: "Grok only runs as chris@ceogps.com." };
+    }
     let key = cleanKey(data.key);
     const cloudflareName = data.name === "Cloudflare" || data.name === "Cloudflare Token" || data.name === "Cloudflare Account";
     if (!key && !cloudflareName) return { ok: false as const, checked: false as const, text: "No key is saved for this service." };

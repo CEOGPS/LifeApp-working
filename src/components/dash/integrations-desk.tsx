@@ -215,16 +215,17 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   }
 
   useEffect(() => {
-    void import("@/lib/lifeos/env-keys").then(({ loadEnvKeys }) => loadEnvKeys()).then((rows) => {
-      const found = rows.map((row) => row.name);
-      setMachine(found);
-      setReady(rows.map((row) => row.name));
+    void fetch("/api/keys/machine").then((response) => response.json()).then((rows: { name?: string; value?: string }[]) => {
+      if (!Array.isArray(rows) || !rows.length) return;
+      const incoming = rows.filter((row) => row?.name && row?.value).map((row) => ({ name: String(row.name), value: String(row.value) }));
+      setMachine(incoming.map((row) => row.name));
+      setReady(incoming.map((row) => row.name));
+      if (sessionStorage.getItem("lifeos.keys.applied") === String(incoming.length)) return;
       update((prev) => {
-        const names = new Set(prev.keys.map((row) => row.name));
-        const fresh = rows.filter((row) => row.value && !names.has(row.name));
-        if (!fresh.length) return prev;
-        return { ...prev, keys: [...fresh.map((row) => ({ id: newId(), name: row.name, value: row.value })), ...prev.keys] };
+        const names = new Set(incoming.map((row) => row.name));
+        return { ...prev, keys: [...incoming.map((row) => ({ id: newId(), name: row.name, value: row.value })), ...prev.keys.filter((row) => !names.has(row.name))] };
       });
+      sessionStorage.setItem("lifeos.keys.applied", String(incoming.length));
     }).catch(() => undefined);
   }, []);
 
@@ -248,61 +249,64 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
 
   async function checkAccount(name: string, service: "search-console" | "google-analytics" | "godaddy" | "brilliant") {
     setBusy((prev) => ({ ...prev, [name]: true }));
-    setNote("Checking…");
-    try {
-    const { readOauth, freshGoogleToken } = await import("@/lib/lifeos/oauth");
-    const { connectAccount } = await import("@/lib/lifeos/env-keys");
-    const sessions = readOauth().filter((row) => row.provider === "google" && row.token);
-    const tokens = sessions.length ? sessions : [{ email: "", token: "" }];
-    let result: { ok: boolean; text: string; site?: string } = { ok: false, text: "Connect Google on chris@ceogps.com, chrisgr33ninc@gmail.com, and cagednreality@icloud.com.", site: "" };
-    const lines: string[] = [];
-    for (const session of tokens) {
-      const google = session.token ? await freshGoogleToken(session.email) || session.token : "";
-      const next = await connectAccount({ data: {
-        service,
-        token: google,
-        key: service === "google-analytics" ? paste || data.keys.find((row) => row.name === "Google Analytics")?.value || "" : service === "godaddy" ? paste || data.keys.find((row) => row.name === "GoDaddy")?.value || "" : service === "brilliant" ? paste || data.keys.find((row) => row.name === "Brilliant Directories")?.value || "" : "",
-        secret: service === "godaddy" ? extra || data.keys.find((row) => row.name === "GoDaddy Secret")?.value || "" : "",
-        site: service === "brilliant" ? extra || data.keys.find((row) => row.name === "Brilliant Site")?.value || "" : "",
-      } });
-      if (service === "godaddy" || service === "brilliant") { result = next; break; }
-      lines.push(`${session.email || "Google"}: ${next.text}`);
-      if (next.ok) result = next;
-    }
-    if (service !== "godaddy" && service !== "brilliant") result = { ...result, text: lines.join(" · ") || result.text };
-    if (result.ok && service === "search-console" && result.site) putKey("Search Console", result.site);
-    if (result.ok && service === "google-analytics" && result.site) putKey("Google Analytics", result.site);
-    if (result.ok && service === "godaddy") {
-      const key = paste || data.keys.find((row) => row.name === "GoDaddy")?.value || "";
-      const secret = extra || data.keys.find((row) => row.name === "GoDaddy Secret")?.value || "";
-      if (key) putKey("GoDaddy", key);
-      if (secret) putKey("GoDaddy Secret", secret);
-    }
-    if (result.ok && service === "brilliant") {
-      const key = paste || data.keys.find((row) => row.name === "Brilliant Directories")?.value || "";
-      const site = extra || data.keys.find((row) => row.name === "Brilliant Site")?.value || "";
-      if (key) putKey("Brilliant Directories", key);
-      if (site) putKey("Brilliant Site", site);
-    }
-    setChecked((prev) => ({ ...prev, [service]: result.text }));
-    stamp(name, result.ok ? "connected" : "error", result.text);
-    setBusy((prev) => ({ ...prev, [name]: false }));
-    setOpen("");
-    setPaste("");
-    setExtra("");
-    setNote(result.text);
-    } catch (error) {
-      const text = error instanceof Error ? error.message : "The check failed.";
-      stamp(name, "error", text);
-      setNote(text);
-    } finally {
+    stamp(name, "saved", "Checking now…");
+    setNote(`Checking ${name}…`);
+    const finish = (ok: boolean, text: string) => {
+      stamp(name, ok ? "connected" : "error", text);
+      setNote(`${name}: ${text}`);
       setBusy((prev) => ({ ...prev, [name]: false }));
+    };
+    try {
+      const { readOauth, freshGoogleToken } = await import("@/lib/lifeos/oauth");
+      const sessions = readOauth().filter((row) => row.provider === "google" && row.token);
+      const tokens = sessions.length ? sessions : [{ email: "", token: "" }];
+      let result: { ok: boolean; text: string; site?: string } = { ok: false, text: "Connect Google on chris@ceogps.com, chrisgr33ninc@gmail.com, and cagednreality@icloud.com.", site: "" };
+      const lines: string[] = [];
+      for (const session of tokens) {
+        const google = session.token ? await freshGoogleToken(session.email) || session.token : "";
+        const response = await fetch("/api/keys/account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            service,
+            token: google,
+            key: service === "google-analytics" ? paste || data.keys.find((row) => row.name === "Google Analytics")?.value || "" : service === "godaddy" ? paste || data.keys.find((row) => row.name === "GoDaddy")?.value || "" : service === "brilliant" ? paste || data.keys.find((row) => row.name === "Brilliant Directories")?.value || "" : "",
+            secret: service === "godaddy" ? extra || data.keys.find((row) => row.name === "GoDaddy Secret")?.value || "" : "",
+            site: service === "brilliant" ? extra || data.keys.find((row) => row.name === "Brilliant Site")?.value || "" : "",
+          }),
+          signal: AbortSignal.timeout(12000),
+        });
+        const next = await response.json().catch(() => ({ ok: false, text: `The check returned HTTP ${response.status}.`, site: "" })) as { ok: boolean; text: string; site?: string };
+        if (service === "godaddy" || service === "brilliant") { result = next; break; }
+        lines.push(`${session.email || "Google"}: ${next.text}`);
+        if (next.ok) result = next;
+      }
+      if (service !== "godaddy" && service !== "brilliant") result = { ...result, text: lines.join(" · ") || result.text };
+      if (result.ok && service === "search-console" && result.site) putKey("Search Console", result.site);
+      if (result.ok && service === "google-analytics" && result.site) putKey("Google Analytics", result.site);
+      if (result.ok && service === "godaddy") {
+        const key = paste || data.keys.find((row) => row.name === "GoDaddy")?.value || "";
+        const secret = extra || data.keys.find((row) => row.name === "GoDaddy Secret")?.value || "";
+        if (key) putKey("GoDaddy", key);
+        if (secret) putKey("GoDaddy Secret", secret);
+      }
+      if (result.ok && service === "brilliant") {
+        const key = paste || data.keys.find((row) => row.name === "Brilliant Directories")?.value || "";
+        const site = extra || data.keys.find((row) => row.name === "Brilliant Site")?.value || "";
+        if (key) putKey("Brilliant Directories", key);
+        if (site) putKey("Brilliant Site", site);
+      }
+      setChecked((prev) => ({ ...prev, [service]: result.text }));
+      finish(result.ok, result.text || "No answer from the check.");
+      setOpen("");
+    } catch (error) {
+      finish(false, error instanceof Error ? error.message : "The check failed.");
     }
   }
 
   async function verify(name: string, keyOverride?: string) {
     const value = (keyOverride ?? data.keys.find((item) => item.name === name)?.value ?? "").trim();
-    const live = new Set(["OpenAI", "Anthropic", "xAI", "NVIDIA", "Groq", "OpenRouter", "DeepSeek", "Mistral", "ElevenLabs", "YouTube", "Stripe", "Replicate", "Luma", "Telegram", "SendGrid", "Hugging Face", "Nylas", "Cloudflare", "Cloudflare Account", "Cloudflare Token", "Google Maps"]);
+    const live = new Set(["OpenAI", "Anthropic", "xAI", "Grok (xAI)", "NVIDIA", "NVIDIA NIM", "Groq", "OpenRouter", "DeepSeek", "Mistral", "ElevenLabs", "YouTube", "Stripe", "Replicate", "Luma", "Telegram", "SendGrid", "Hugging Face", "Nylas", "Cloudflare", "Cloudflare Account", "Cloudflare Token", "Google Maps", "Google AI (Gemini)", "GitHub", "Vercel"]);
     if (!value) {
       stamp(name, "error", "No key is saved on this card.");
       setNote(`${name}: no key is saved.`);
@@ -522,23 +526,27 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
               <p className="text-lg">{row.name}</p>
               {emails()}
               {statusLine(row.name, on ? { state: "saved", text: saved ? maskKey(saved.value) : "Not checked with the service yet." } : { state: "idle", text: "No key saved." })}
+              {saved ? <p className="mt-1 text-xs text-white/45">Key on file · {maskKey(saved.value)}</p> : null}
               <div className="mt-3 flex flex-wrap gap-3">
                 <button type="button" className="quiet check-btn" onClick={() => void verify(row.name)}>{busy[row.name] ? "Checking" : marks[row.name]?.state === "error" ? "Failed — check again" : marks[row.name]?.state === "connected" ? "Connected" : "Check"}</button>
                 {open === row.name ? (
                   <form className="flex min-w-0 flex-1 gap-2" onSubmit={(event) => {
                     event.preventDefault();
-                    if (!paste.trim()) return;
-                    const value = paste.trim();
+                    const value = String(new FormData(event.currentTarget).get("value") || "").trim();
+                    if (!value) {
+                      setNote(`${row.name} was not changed. The saved key is still there.`);
+                      return;
+                    }
                     update((prev) => ({ ...prev, keys: [{ id: newId(), name: row.name, value }, ...prev.keys.filter((item) => item.name !== row.name)] }));
-                    setPaste("");
+                    stamp(row.name, "saved", maskKey(value));
                     setOpen("");
-                    setNote(`${row.name} saved. Checking it…`);
+                    setNote(`${row.name} saved.`);
                     void verify(row.name, value);
                   }}>
-                    <input className="h-9 min-w-0 flex-1 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste} placeholder="Paste key" onChange={(event) => setPaste(event.target.value)} />
+                    <input name="value" key={`${row.name}-${saved?.id || "new"}`} className="h-9 min-w-0 flex-1 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" defaultValue={saved?.value || ""} placeholder="Paste key" />
                     <button type="submit" className="quiet is-on">Save</button>
                   </form>
-                ) : <button type="button" className="quiet" onClick={() => { setOpen(row.name); setPaste(""); }}>{on ? "Replace" : "Add key"}</button>}
+                ) : <button type="button" className="quiet" onClick={() => setOpen(row.name)}>{on ? "Replace" : "Add key"}</button>}
               </div>
             </article>
           );

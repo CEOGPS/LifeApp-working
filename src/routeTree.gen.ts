@@ -13,7 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PanelSlugRouteImport } from './routes/panel/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiKeysAccountRouteImport } from './routes/api/keys/account'
 import { Route as ApiKeysCheckRouteImport } from './routes/api/keys/check'
+import { Route as ApiKeysMachineRouteImport } from './routes/api/keys/machine'
+import { Route as ApiOauthExchangeRouteImport } from './routes/api/oauth/exchange'
 import { Route as ApiWebhooksFacebookRouteImport } from './routes/api/webhooks/facebook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -36,9 +39,24 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiKeysAccountRoute = ApiKeysAccountRouteImport.update({
+  id: '/api/keys/account',
+  path: '/api/keys/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiKeysCheckRoute = ApiKeysCheckRouteImport.update({
   id: '/api/keys/check',
   path: '/api/keys/check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiKeysMachineRoute = ApiKeysMachineRouteImport.update({
+  id: '/api/keys/machine',
+  path: '/api/keys/machine',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOauthExchangeRoute = ApiOauthExchangeRouteImport.update({
+  id: '/api/oauth/exchange',
+  path: '/api/oauth/exchange',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWebhooksFacebookRoute = ApiWebhooksFacebookRouteImport.update({
@@ -52,7 +70,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/keys/account': typeof ApiKeysAccountRoute
   '/api/keys/check': typeof ApiKeysCheckRoute
+  '/api/keys/machine': typeof ApiKeysMachineRoute
+  '/api/oauth/exchange': typeof ApiOauthExchangeRoute
   '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +81,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/keys/account': typeof ApiKeysAccountRoute
   '/api/keys/check': typeof ApiKeysCheckRoute
+  '/api/keys/machine': typeof ApiKeysMachineRoute
+  '/api/oauth/exchange': typeof ApiOauthExchangeRoute
   '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRoutesById {
@@ -69,7 +93,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/panel/$slug': typeof PanelSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/keys/account': typeof ApiKeysAccountRoute
   '/api/keys/check': typeof ApiKeysCheckRoute
+  '/api/keys/machine': typeof ApiKeysMachineRoute
+  '/api/oauth/exchange': typeof ApiOauthExchangeRoute
   '/api/webhooks/facebook': typeof ApiWebhooksFacebookRoute
 }
 export interface FileRouteTypes {
@@ -79,7 +106,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/panel/$slug'
     | '/api/auth/$'
+    | '/api/keys/account'
     | '/api/keys/check'
+    | '/api/keys/machine'
+    | '/api/oauth/exchange'
     | '/api/webhooks/facebook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -87,7 +117,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/panel/$slug'
     | '/api/auth/$'
+    | '/api/keys/account'
     | '/api/keys/check'
+    | '/api/keys/machine'
+    | '/api/oauth/exchange'
     | '/api/webhooks/facebook'
   id:
     | '__root__'
@@ -95,7 +128,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/panel/$slug'
     | '/api/auth/$'
+    | '/api/keys/account'
     | '/api/keys/check'
+    | '/api/keys/machine'
+    | '/api/oauth/exchange'
     | '/api/webhooks/facebook'
   fileRoutesById: FileRoutesById
 }
@@ -104,7 +140,10 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PanelSlugRoute: typeof PanelSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiKeysAccountRoute: typeof ApiKeysAccountRoute
   ApiKeysCheckRoute: typeof ApiKeysCheckRoute
+  ApiKeysMachineRoute: typeof ApiKeysMachineRoute
+  ApiOauthExchangeRoute: typeof ApiOauthExchangeRoute
   ApiWebhooksFacebookRoute: typeof ApiWebhooksFacebookRoute
 }
 
@@ -138,11 +177,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/keys/account': {
+      id: '/api/keys/account'
+      path: '/api/keys/account'
+      fullPath: '/api/keys/account'
+      preLoaderRoute: typeof ApiKeysAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/keys/check': {
       id: '/api/keys/check'
       path: '/api/keys/check'
       fullPath: '/api/keys/check'
       preLoaderRoute: typeof ApiKeysCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/keys/machine': {
+      id: '/api/keys/machine'
+      path: '/api/keys/machine'
+      fullPath: '/api/keys/machine'
+      preLoaderRoute: typeof ApiKeysMachineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/oauth/exchange': {
+      id: '/api/oauth/exchange'
+      path: '/api/oauth/exchange'
+      fullPath: '/api/oauth/exchange'
+      preLoaderRoute: typeof ApiOauthExchangeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/webhooks/facebook': {
@@ -160,7 +220,10 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PanelSlugRoute: PanelSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiKeysAccountRoute: ApiKeysAccountRoute,
   ApiKeysCheckRoute: ApiKeysCheckRoute,
+  ApiKeysMachineRoute: ApiKeysMachineRoute,
+  ApiOauthExchangeRoute: ApiOauthExchangeRoute,
   ApiWebhooksFacebookRoute: ApiWebhooksFacebookRoute,
 }
 export const routeTree = rootRouteImport

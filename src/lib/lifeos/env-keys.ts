@@ -203,15 +203,7 @@ export const pullProvider = createServerFn({ method: "POST" })
     }
   });
 
-export const connectAccount = createServerFn({ method: "POST" })
-  .validator((input: { service?: string; token?: string; key?: string; secret?: string; site?: string }) => ({
-    service: String(input?.service || "").slice(0, 40),
-    token: String(input?.token || "").slice(0, 4000),
-    key: String(input?.key || "").trim().slice(0, 400),
-    secret: String(input?.secret || "").trim().slice(0, 400),
-    site: String(input?.site || "").trim().slice(0, 200),
-  }))
-  .handler(async ({ data }) => {
+export async function runAccount(data: { service: string; token: string; key: string; secret: string; site: string }) {
     try {
       if (data.service === "search-console") {
         if (!data.token) return { ok: false as const, text: "Connect Google first.", site: "" };
@@ -277,7 +269,17 @@ export const connectAccount = createServerFn({ method: "POST" })
     } catch (error) {
       return { ok: false as const, text: error instanceof Error ? error.message : "That account did not answer.", site: "" };
     }
-  });
+}
+
+export const connectAccount = createServerFn({ method: "POST" })
+  .validator((input: { service?: string; token?: string; key?: string; secret?: string; site?: string }) => ({
+    service: String(input?.service || "").slice(0, 40),
+    token: String(input?.token || "").slice(0, 4000),
+    key: String(input?.key || "").trim().slice(0, 400),
+    secret: String(input?.secret || "").trim().slice(0, 400),
+    site: String(input?.site || "").trim().slice(0, 200),
+  }))
+  .handler(async ({ data }) => runAccount(data));
 
 function textOf(value: unknown): string {
   if (typeof value === "string") return value;
@@ -315,6 +317,8 @@ function timed(work: Promise<Response>) {
 }
 
 export async function runProbe(data: { name: string; key: string; email: string }) {
+    const aliases: Record<string, string> = { "Grok (xAI)": "xAI", "NVIDIA NIM": "NVIDIA" };
+    data = { ...data, name: aliases[data.name] || data.name };
     let key = cleanKey(data.key);
     if (!key) {
       const bag = await envBag();
@@ -326,9 +330,16 @@ export async function runProbe(data: { name: string; key: string; email: string 
       if (data.name === "OpenAI") return readBody(await timed(fetch("https://api.openai.com/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Anthropic") return readBody(await timed(fetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01" }, signal: AbortSignal.timeout(8000) })));
       if (data.name === "xAI") return readBody(await timed(fetch("https://api.x.ai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
-      if (data.name === "NVIDIA") return readBody(await timed(fetch("https://integrate.api.nvidia.com/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "NVIDIA") {
+        return readBody(await timed(fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+          method: "POST",
+          headers: { ...auth, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "openai/gpt-oss-20b", messages: [{ role: "user", content: "hi" }], max_tokens: 1 }),
+          signal: AbortSignal.timeout(8000),
+        })));
+      }
       if (data.name === "Groq") return readBody(await timed(fetch("https://api.groq.com/openai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
-      if (data.name === "OpenRouter") return readBody(await timed(fetch("https://openrouter.ai/api/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "OpenRouter") return readBody(await timed(fetch("https://openrouter.ai/api/v1/key", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "DeepSeek") return readBody(await timed(fetch("https://api.deepseek.com/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Mistral") return readBody(await timed(fetch("https://api.mistral.ai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "ElevenLabs") return readBody(await timed(fetch("https://api.elevenlabs.io/v1/user", { headers: { "xi-api-key": key }, signal: AbortSignal.timeout(8000) })));
@@ -336,7 +347,15 @@ export async function runProbe(data: { name: string; key: string; email: string 
         const path = data.name === "YouTube"
           ? `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&q=music&key=${encodeURIComponent(key)}`
           : `https://maps.googleapis.com/maps/api/geocode/json?address=Atlanta&key=${encodeURIComponent(key)}`;
-        const checked = await readBody(await timed(fetch(path, { headers: { Referer: "https://ceogps.com/", Origin: "https://ceogps.com" }, signal: AbortSignal.timeout(7000) })));
+        const response = await timed(fetch(path, { headers: { Referer: "https://ceogps.com/", Origin: "https://ceogps.com" }, signal: AbortSignal.timeout(7000) }));
+        const raw = await response.text();
+        if (data.name === "Google Maps") {
+          let body: { status?: string; error_message?: string } = {};
+          try { body = JSON.parse(raw) as typeof body; } catch { /* not json */ }
+          if (body.status === "OK" || body.status === "ZERO_RESULTS") return { ok: true as const, checked: true as const, text: "The service accepted the key." };
+          return { ok: false as const, checked: true as const, text: body.error_message || "Google Maps refused the key." };
+        }
+        const checked = await readBody(new Response(raw, { status: response.status, headers: response.headers }));
         if (checked.ok || !/referer/i.test(checked.text)) return checked;
         return { ok: false as const, checked: true as const, text: "Google blocked this key because of the website restriction. In Google Cloud, allow https://ceogps.com/* for this key. Use chrisgr33ninc@gmail.com, chris@ceogps.com, or cagednreality@icloud.com." };
       }
@@ -354,6 +373,9 @@ export async function runProbe(data: { name: string; key: string; email: string 
       if (data.name === "SendGrid") return readBody(await timed(fetch("https://api.sendgrid.com/v3/scopes", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Hugging Face") return readBody(await timed(fetch("https://huggingface.co/api/whoami-v2", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Nylas") return readBody(await timed(fetch("https://api.us.nylas.com/v3/grants?limit=1", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Google AI (Gemini)") return readBody(await timed(fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`, { signal: AbortSignal.timeout(8000) })));
+      if (data.name === "GitHub") return readBody(await timed(fetch("https://api.github.com/user", { headers: { ...auth, "User-Agent": "LifeOS", Accept: "application/vnd.github+json" }, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Vercel") return readBody(await timed(fetch("https://api.vercel.com/v2/user", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Cloudflare Token" || data.name === "Cloudflare" || data.name === "Cloudflare Account") {
         const token = await readBody(await timed(fetch("https://api.cloudflare.com/client/v4/user/tokens/verify", { headers: auth, signal: AbortSignal.timeout(7000) })));
         if (token.ok) return token;

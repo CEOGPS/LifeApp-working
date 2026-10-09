@@ -383,7 +383,7 @@ export function sanitizeMemory(input: unknown): Memory {
       if (!row || typeof row !== "object") return null;
       const r = row as KeyRow;
       const name = String(r.name || "").trim().slice(0, 80);
-      const value = String(r.value || "").trim().slice(0, 2000);
+      const value = String(r.value || "").trim().slice(0, 8000);
       if (!name || !value) return null;
       return { id: String(r.id || id()).slice(0, 40), name, value };
     }, "head", 400),
@@ -470,6 +470,8 @@ function read(): Memory {
     if (vault.length) next.vault = vault;
     if (!next.banner) next.banner = localStorage.getItem(BANNER_KEY) || "";
     if (!next.logo) next.logo = localStorage.getItem(LOGO_KEY) || "";
+    const kept = readKeysLocal();
+    if (kept.length) next.keys = unionKeys(kept, next.keys);
     return next;
   } catch {
     return seed();

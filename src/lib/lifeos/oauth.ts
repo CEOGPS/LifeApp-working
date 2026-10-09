@@ -44,20 +44,33 @@ export function disconnectOauth(provider: OauthProvider, email?: string) {
   localStorage.setItem(STORE, JSON.stringify(rows));
 }
 
+const SPOTIFY_ID = "8ff50c4c947d4ed98bd33bb4dc954b92";
+const DISCORD_ID = "1518131181739053056";
+
 export async function startOAuth(provider: OauthProvider, email?: string) {
+  const back = `${window.location.origin}/panel/integrations`;
+  if (provider === "spotify" || provider === "discord") {
+    sessionStorage.setItem("lifeos.oauth.back", back);
+    if (email && allowedEmail(email)) sessionStorage.setItem("lifeos.oauth.mailbox", email);
+    const url = new URL(provider === "spotify" ? "https://accounts.spotify.com/authorize" : "https://discord.com/api/oauth2/authorize");
+    url.searchParams.set("client_id", provider === "spotify" ? SPOTIFY_ID : DISCORD_ID);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("redirect_uri", back);
+    url.searchParams.set("scope", SCOPES[provider]);
+    url.searchParams.set("state", provider);
+    if (provider === "discord") url.searchParams.set("prompt", "consent");
+    window.location.assign(url.toString());
+    return;
+  }
   const settings = await fetch(`${SUPABASE}/auth/v1/settings`, { headers: { apikey: ANON } }).then((response) => response.json()).catch(() => null) as { external?: Record<string, boolean> } | null;
   if (settings?.external && settings.external[provider] === false) {
     throw new Error(`${provider} is turned off in Supabase Auth. Enable it under Authentication, then Providers.`);
-  }
-  if (provider === "discord" && window.location.hostname !== "lifeos1.pages.dev") {
-    throw new Error(`Stopped. Discord can only return to the old dashboard at https://lifeos1.pages.dev. Add ${window.location.origin}/panel/integrations in Supabase → Authentication → URL Configuration → Redirect URLs.`);
   }
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
   const challenge = b64url(new Uint8Array(digest));
   sessionStorage.setItem(VERIFIER, verifier);
   if (email && allowedEmail(email)) sessionStorage.setItem("lifeos.oauth.mailbox", email);
-  const back = `${window.location.origin}/panel/integrations`;
   const url = new URL(`${SUPABASE}/auth/v1/authorize`);
   url.searchParams.set("provider", provider);
   url.searchParams.set("redirect_to", back);
@@ -68,7 +81,7 @@ export async function startOAuth(provider: OauthProvider, email?: string) {
     const hint = email && allowedEmail(email) ? email : GMAIL_ACCOUNT;
     url.searchParams.set("login_hint", hint);
     url.searchParams.set("access_type", "offline");
-    url.searchParams.set("prompt", "consent select_account");
+    url.searchParams.set("prompt", "select_account");
   }
   window.location.assign(url.toString());
 }
@@ -77,6 +90,25 @@ export async function finishOAuth(): Promise<OauthSession | null> {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
   if (!code) return null;
+  const state = params.get("state");
+  if (state === "spotify" || state === "discord") {
+    const redirect = sessionStorage.getItem("lifeos.oauth.back") || `${window.location.origin}/panel/integrations`;
+    const response = await fetch("/api/oauth/exchange", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: state, code, redirect }),
+    });
+    const body = await response.json() as { ok?: boolean; email?: string; name?: string; token?: string; refresh?: string; text?: string };
+    params.delete("code");
+    params.delete("state");
+    window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? `?${params}` : ""}`);
+    if (!body.ok || !body.token) return null;
+    const session: OauthSession = { provider: state, name: body.name || "", email: body.email || "", token: body.token, refresh: body.refresh || "" };
+    saveOauth(session);
+    sessionStorage.removeItem("lifeos.oauth.back");
+    sessionStorage.removeItem("lifeos.oauth.mailbox");
+    return session;
+  }
   const verifier = sessionStorage.getItem(VERIFIER) || "";
   const response = await fetch(`${SUPABASE}/auth/v1/token?grant_type=pkce`, {
     method: "POST",

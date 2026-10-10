@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { newId, type Memory } from "./memory";
 import { disconnectOauth, readOauth, BOARD_EMAILS, catchReturn, confirmSignIn, requestSignIn, sessionToken, signOutSession, startNylas, startOAuth, type OauthProvider } from "@/lib/lifeos/oauth";
 import { sheetKeys } from "@/lib/lifeos/sheet-keys";
@@ -222,8 +222,14 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   const [inbox, setInbox] = useState<(typeof BOARD_EMAILS)[number]>("chris@ceogps.com");
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+  const swept = useRef(false);
 
   useEffect(() => { setMarks(readMarks()); }, []);
+  useEffect(() => {
+    if (swept.current || !data.keys.some((row) => row.value.trim())) return;
+    swept.current = true;
+    void checkAll();
+  }, [data.keys]);
   useEffect(() => {
     const back = catchReturn();
     if (back.provider) {
@@ -390,12 +396,51 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       });
       const row = await response.json().catch(() => ({})) as { ok?: boolean; checked?: boolean; status?: string; reason?: string; error?: string; text?: string };
       const text = String(row.text || row.reason || row.error || `The check returned HTTP ${response.status}.`);
-      if (row.ok || row.status === "connected") finish("connected", text);
-      else if (row.checked === false) finish("saved", text);
-      else finish("error", text);
+      if (row.ok || row.status === "connected") { finish("connected", text); return "connected" as const; }
+      if (row.checked === false) { finish("saved", text); return "saved" as const; }
+      finish("error", text);
+      return "error" as const;
     } catch (error) {
       finish("error", error instanceof Error ? error.message : "The check failed.");
+      return "error" as const;
     }
+  }
+
+  async function checkAll() {
+    const names = [...new Set(data.keys.filter((row) => row.value.trim()).map((row) => row.name))];
+    if (!names.length) {
+      setNote("No saved keys to check.");
+      return;
+    }
+    setBusy((prev) => ({ ...prev, all: true }));
+    let connected = 0;
+    let failed = 0;
+    for (let index = 0; index < names.length; index += 4) {
+      const batch = names.slice(index, index + 4);
+      setNote(`Checking ${index + 1}–${Math.min(index + batch.length, names.length)} of ${names.length}.`);
+      const results = await Promise.all(batch.map((name) => verify(name)));
+      for (const result of results) {
+        if (result === "connected") connected += 1;
+        else if (result === "error") failed += 1;
+      }
+    }
+    if (sessionToken()) {
+      const response = await fetch(`${WORKER}/api/integrations/health`, { headers: { Authorization: `Bearer ${sessionToken()}` } }).catch(() => null);
+      if (response?.ok) {
+        const body = await response.json() as { integrations?: { id?: string; status?: string; oauth?: { provider?: string; emails?: string[] } }[] };
+        const rows: Account[] = [];
+        for (const item of body.integrations || []) {
+          if (item.status !== "connected" || !item.oauth?.provider) continue;
+          const emails = item.oauth.emails?.length ? item.oauth.emails : [""];
+          for (const email of emails) rows.push({ provider: item.oauth.provider, name: item.id || item.oauth.provider, email });
+          stamp(CARD[item.oauth.provider as OauthProvider] || item.id || "Account", "connected", emails.filter(Boolean).join(", ") || "Connected");
+          connected += 1;
+        }
+        setAccounts(rows);
+      }
+    }
+    setBusy((prev) => ({ ...prev, all: false }));
+    setNote(`Checked ${names.length} saved cards. ${connected} connected, ${failed} failed. Empty cards were not marked connected.`);
   }
 
   function checkLabel(name: string) {
@@ -458,8 +503,11 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       <div className="module-card mb-4 grid gap-3 p-4">
         {signed ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-white/70">Signed in. Connect uses this Supabase session.</p>
-            <button type="button" className="quiet" onClick={() => { signOutSession(); setSigned(false); setAccounts([]); setNote("Signed out."); }}>Sign out</button>
+            <p className="text-sm text-white/70">Signed in. Cards with a saved key are checked when this page opens.</p>
+            <div className="flex gap-2">
+              <button type="button" className="quiet is-on" disabled={busy.all} onClick={() => { swept.current = true; void checkAll(); }}>{busy.all ? "Checking all" : "Check all cards"}</button>
+              <button type="button" className="quiet" onClick={() => { signOutSession(); setSigned(false); setAccounts([]); setNote("Signed out."); }}>Sign out</button>
+            </div>
           </div>
         ) : (
           <form className="grid gap-2" onSubmit={(event) => {
@@ -470,8 +518,9 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
             }
             void confirmSignIn(inbox, code).then(() => { setSigned(true); setCode(""); setNote("Signed in. Connect the mailbox again."); }).catch((error: unknown) => setNote(error instanceof Error ? error.message : "That code was refused."));
           }}>
-            <p className="text-sm text-white/70">Sign in before Connect. Supabase emails a code. There is no other login on this page.</p>
+            <p className="text-sm text-white/70">Sign in before Connect. Supabase emails a code. Saved keys still check without sign-in.</p>
             <div className="flex flex-wrap gap-2">
+              <button type="button" className="quiet is-on" disabled={busy.all} onClick={() => { swept.current = true; void checkAll(); }}>{busy.all ? "Checking all" : "Check all cards"}</button>
               <select className="h-9 rounded-full border border-line bg-black/40 px-3 text-sm" value={inbox} onChange={(event) => setInbox(event.target.value as (typeof BOARD_EMAILS)[number])}>
                 {BOARD_EMAILS.map((email) => <option key={email} value={email}>{email}</option>)}
               </select>
@@ -505,13 +554,6 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
               void file.text().then((text) => applySheet(text));
             }} />
           </label>
-          <button type="button" className="quiet is-on" onClick={() => {
-            const named = data.keys.filter((row) => row.value).map((row) => row.name);
-            if (!named.length) { setNote("No keys are saved to check."); return; }
-            void (async () => {
-              for (const name of named) await verify(name);
-            })();
-          }}>Check saved keys</button>
           <button type="button" className="quiet" onClick={() => {
             void Promise.all([import("@/lib/lifeos/oauth"), import("@/lib/lifeos/env-keys")]).then(async ([{ readOauth }, { pullProvider }]) => {
               const linked = readOauth();

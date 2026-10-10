@@ -89,7 +89,7 @@ function youtubeAsk(text: string) {
 }
 
 export function skillBrief() {
-  return "Live commands: /search, /page, /contacts, /finance, /quote, /youtube, /task, /note, /csv, /skill. A loaded skill is guidance. Never claim a shell, browser driver, SSH session, deploy, or send action ran unless a live command returned it.";
+  return "Live commands: /search, /page, /contacts, /finance, /quote, /youtube, /task, /note, /csv, /check, /open, /skill. /check calls the key service for every saved key and reports the real result. /open moves to a dashboard panel. A loaded skill is guidance. Never claim a shell, browser driver, SSH session, deploy, or send action ran unless a live command returned it.";
 }
 
 function csvSummary(text: string) {
@@ -147,6 +147,42 @@ export async function runAgentTool(data: Memory, text: string): Promise<ToolHit 
   const note = line.match(/^\/note\s+([^\n]{1,80})\n?([\s\S]*)/i);
   if (note) return { text: `Note saved: ${note[1]}`, noteTitle: note[1].trim(), noteBody: (note[2] || note[1]).trim().slice(0, 4000) };
   if (/^\/csv\b/i.test(line)) return { text: csvSummary(line.replace(/^\/csv\s*/i, "")) };
+  if (/^\/check\b/i.test(line) || /^check (?:all )?(?:cards|integrations|keys)$/i.test(line)) {
+    const named = data.keys.filter((row) => row.value.trim());
+    if (!named.length) return { text: "No saved keys. Nothing was marked connected." };
+    const lines: string[] = [];
+    for (const row of named) {
+      const response = await fetch("/api/keys/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: row.name,
+          key: row.value,
+          email: /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(row.name) ? "chrisgr33ninc@gmail.com" : row.name === "Grok (xAI)" || row.name === "xAI" ? "chris@ceogps.com" : "",
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const body = await response.json().catch(() => ({})) as { ok?: boolean; text?: string; error?: string };
+      lines.push(`${row.name}: ${body.ok ? "connected" : "failed"} — ${body.text || body.error || `HTTP ${response.status}`}`);
+    }
+    const connected = lines.filter((item) => item.includes(": connected")).length;
+    return { text: `Checked ${named.length} saved keys. ${connected} connected.\n${lines.join("\n")}` };
+  }
+  const open = line.match(/^(?:\/open|open)\s+(.+)/i);
+  if (open) {
+    const ask = open[1].trim().toLowerCase();
+    const panels: [string, string][] = [
+      ["dashboard", "dashboard"], ["email", "email"], ["messages", "messages"], ["calendar", "calendar"], ["crm", "crm"],
+      ["contacts", "contacts"], ["omnisearch", "omnisearch"], ["social", "social"], ["marketing", "marketing"],
+      ["analytics", "analytics"], ["leads", "leads"], ["creator", "creator"], ["music", "music"], ["media", "media"],
+      ["office", "office"], ["finance", "finance"], ["projects", "projects"], ["maps", "maps"], ["journal", "journal"],
+      ["vault", "vault"], ["integrations", "integrations"], ["settings", "settings"], ["ai", "ai-hub"], ["ai hub", "ai-hub"],
+    ];
+    const hit = panels.find(([label]) => ask === label || ask.includes(label));
+    if (!hit) return { text: `No panel named ${open[1]}.` };
+    window.location.assign(`/panel/${hit[1]}`);
+    return { text: `Opened ${hit[1]}.` };
+  }
   if (/^\/code\b|^```/.test(line)) return { text: "Code was not executed. The shell and Python sandbox are not connected. Ask for a review and I will answer from the paste." };
   const skill = matchedSkill(line);
   if (skill && /^\/skill\b/i.test(line)) return { text: skill };

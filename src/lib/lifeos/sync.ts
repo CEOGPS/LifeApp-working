@@ -46,7 +46,8 @@ export const askNyx = createServerFn({ method: "POST" })
     const question = String(input?.question || "").trim().slice(0, 4000);
     const facts = String(input?.facts || "").slice(0, 96_000);
     if (!question) throw new Error("question required");
-    const mind = input?.mind === "nvidia" || input?.mind === "openai" ? input.mind : "grok";
+    const allowed = ["ollama", "nvidia", "huggingface", "grok"];
+    const mind = allowed.includes(String(input?.mind || "")) ? String(input.mind) : "ollama";
     return {
       question,
       facts,
@@ -67,7 +68,7 @@ export const askNyx = createServerFn({ method: "POST" })
       const keyed = await askKeyed(data.model, data.key, messages);
       if (keyed) return { ok: true as const, text: keyed.slice(0, 6000), mind: data.model };
     }
-    const order = [data.mind, "grok", "nvidia", "openai"].filter((mind, index, list) => list.indexOf(mind) === index);
+    const order = [data.mind, "ollama", "nvidia", "huggingface", "grok"].filter((mind, index, list) => list.indexOf(mind) === index);
     for (const mind of order) {
       const text = await askMind(mind, messages);
       if (text) return { ok: true as const, text: text.slice(0, 6000), mind };
@@ -116,6 +117,18 @@ async function askKeyed(model: string, key: string, messages: { role: string; co
 
 async function askMind(mind: string, messages: { role: string; content: string }[]) {
   try {
+    if (mind === "ollama") {
+      const host = (process.env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
+      const res = await fetch(`${host}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: process.env.OLLAMA_MODEL || "llama3.2", stream: false, messages }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return "";
+      const body = (await res.json()) as { message?: { content?: string } };
+      return body.message?.content || "";
+    }
     if (mind === "nvidia") {
       const key = process.env.NVIDIA_API_KEY || process.env.NVAPI_KEY || "";
       if (!key) return "";
@@ -128,18 +141,20 @@ async function askMind(mind: string, messages: { role: string; content: string }
       const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
       return body.choices?.[0]?.message?.content || "";
     }
-    if (mind === "openai") {
-      const key = process.env.OPENAI_API_KEY || "";
+    if (mind === "huggingface") {
+      const key = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN || "";
       if (!key) return "";
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await fetch("https://router.huggingface.co/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model: "gpt-4o-mini", max_tokens: 400, temperature: 0.3, messages }),
+        body: JSON.stringify({ model: process.env.HF_MODEL || "meta-llama/Llama-3.1-8B-Instruct", max_tokens: 400, temperature: 0.3, messages }),
+        signal: AbortSignal.timeout(12000),
       });
       if (!res.ok) return "";
       const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
       return body.choices?.[0]?.message?.content || "";
     }
+    if (mind !== "grok") return "";
     const key = process.env.XAI_API_KEY || process.env.GROK_API_KEY || "";
     if (!key) return "";
     const res = await fetch("https://api.x.ai/v1/chat/completions", {

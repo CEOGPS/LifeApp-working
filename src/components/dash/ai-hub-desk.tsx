@@ -92,7 +92,10 @@ function laneDigest(data: Memory) {
 }
 
 const CATALOG = [
-  { id: "grok-4.5", name: "Grok", key: "xAI", note: "Default mind" },
+  { id: "llama3.2", name: "Ollama", key: "Ollama (local)", note: "First choice on this machine" },
+  { id: "openai/gpt-oss-20b", name: "NVIDIA", key: "NVIDIA", note: "Hosted open model" },
+  { id: "meta-llama/Llama-3.1-8B-Instruct", name: "Hugging Face", key: "Hugging Face", note: "Open model" },
+  { id: "grok-4.5", name: "Grok", key: "xAI", note: "Fallback only" },
   { id: "claude-sonnet-4-20250514", name: "Claude Sonnet", key: "Anthropic", note: "Writing and analysis" },
   { id: "claude-opus-4-20250514", name: "Claude Opus", key: "Anthropic", note: "Hard tasks" },
   { id: "gpt-4o", name: "GPT-4o", key: "OpenAI", note: "Vision and code" },
@@ -101,7 +104,6 @@ const CATALOG = [
   { id: "llama-3.3-70b-versatile", name: "Groq Llama 3.3", key: "Groq", note: "Fast open model" },
   { id: "deepseek-chat", name: "DeepSeek", key: "DeepSeek", note: "Reasoning and code" },
   { id: "mistral-large-latest", name: "Mistral Large", key: "Mistral", note: "European model" },
-  { id: "openai/gpt-oss-20b", name: "NVIDIA gpt-oss", key: "NVIDIA", note: "Hosted open model" },
   { id: "meta-llama/llama-3.3-70b-instruct", name: "OpenRouter Llama", key: "OpenRouter", note: "Any routed model" },
 ];
 
@@ -322,7 +324,7 @@ function Models({ data, update }: { data: Memory; update: Update }) {
   return (
     <div>
       <h1 className="text-2xl">Models</h1>
-      <p className="text-sm text-white/50">Pick the mind the agents use. A saved key is sent with the chat. If it is missing, the board falls back to xAI, NVIDIA, then OpenAI on this machine.</p>
+      <p className="text-sm text-white/50">Agents try Ollama, then NVIDIA, then Hugging Face. Grok is only the fallback.</p>
       <div className="mt-4">
         {CATALOG.map((model) => {
           const saved = data.keys.find((row) => row.name === model.key)?.value || "";

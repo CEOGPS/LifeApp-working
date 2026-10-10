@@ -18,9 +18,10 @@ const SKINS = [
 const MODES: Mode[] = ["chat", "image", "video", "writer", "code"];
 
 const MINDS = [
-  { id: "grok", label: "Grok" },
+  { id: "ollama", label: "Ollama" },
   { id: "nvidia", label: "NVIDIA" },
-  { id: "openai", label: "OpenAI" },
+  { id: "huggingface", label: "Hugging Face" },
+  { id: "grok", label: "Grok" },
 ] as const;
 
 function facts(data: Memory, question = "") {
@@ -108,7 +109,7 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   const [volume, setVolume] = useState(0.8);
   const [clip, setClip] = useState("");
   const [status, setStatus] = useState("Ready");
-  const [mind, setMind] = useState<(typeof MINDS)[number]["id"]>("grok");
+  const [mind, setMind] = useState<(typeof MINDS)[number]["id"]>("ollama");
   const [used, setUsed] = useState("Grok");
   const [levels, setLevels] = useState<number[]>(() => Array(28).fill(6));
   const [voice, setVoice] = useState(() => {

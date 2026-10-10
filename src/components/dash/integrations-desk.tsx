@@ -1,19 +1,10 @@
 import { useEffect, useState } from "react";
 import { newId, type Memory } from "./memory";
-import { disconnectOauth, readOauth, BOARD_EMAILS, catchReturn, startNylas, startOAuth, type OauthProvider } from "@/lib/lifeos/oauth";
+import { disconnectOauth, readOauth, BOARD_EMAILS, catchReturn, confirmSignIn, requestSignIn, sessionToken, signOutSession, startNylas, startOAuth, type OauthProvider } from "@/lib/lifeos/oauth";
 import { sheetKeys } from "@/lib/lifeos/sheet-keys";
 
 const WORKER = (import.meta.env.VITE_WORKER_URL || "https://lifeos1-api.ceogps.workers.dev").replace(/\/$/, "");
 const WORKER_OAUTH = new Set(["google", "facebook", "spotify", "discord"]);
-
-function sessionToken() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem("sb-mhvcdstgkyplhzjptgfr-auth-token") || "{}") as { access_token?: string; currentSession?: { access_token?: string } };
-    return parsed.access_token || parsed.currentSession?.access_token || "";
-  } catch {
-    return "";
-  }
-}
 function maskKey(value: string) {
   const clean = value.trim();
   if (clean.length <= 8) return "saved";
@@ -186,7 +177,6 @@ const ROWS: Row[] = ([
   { name: "Twilio", kind: "key" },
   { name: "Twitter/X", kind: "key" },
   { name: "Venmo", kind: "key" },
-  { name: "Vercel", kind: "key" },
   { name: "Vimeo", kind: "key" },
   { name: "VS Code", kind: "key" },
   { name: "Wan-AI", kind: "key" },
@@ -228,6 +218,10 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   const [machine, setMachine] = useState<string[]>([]);
   const [marks, setMarks] = useState<Record<string, Mark>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [signed, setSigned] = useState(() => Boolean(sessionToken()));
+  const [inbox, setInbox] = useState<(typeof BOARD_EMAILS)[number]>("chris@ceogps.com");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
 
   useEffect(() => { setMarks(readMarks()); }, []);
   useEffect(() => {
@@ -257,7 +251,7 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       }
       setAccounts(rows);
     }).catch(() => undefined);
-  }, [setAccounts, setNote]);
+  }, [setAccounts, setNote, signed]);
 
   function stamp(name: string, state: Mark["state"], text: string) {
     setMarks((prev) => {
@@ -461,6 +455,32 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
 
   return (
     <div>
+      <div className="module-card mb-4 grid gap-3 p-4">
+        {signed ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-white/70">Signed in. Connect uses this Supabase session.</p>
+            <button type="button" className="quiet" onClick={() => { signOutSession(); setSigned(false); setAccounts([]); setNote("Signed out."); }}>Sign out</button>
+          </div>
+        ) : (
+          <form className="grid gap-2" onSubmit={(event) => {
+            event.preventDefault();
+            if (!codeSent) {
+              void requestSignIn(inbox).then(() => { setCodeSent(true); setNote(`Code sent to ${inbox}.`); }).catch((error: unknown) => setNote(error instanceof Error ? error.message : "Supabase did not send a code."));
+              return;
+            }
+            void confirmSignIn(inbox, code).then(() => { setSigned(true); setCode(""); setNote("Signed in. Connect the mailbox again."); }).catch((error: unknown) => setNote(error instanceof Error ? error.message : "That code was refused."));
+          }}>
+            <p className="text-sm text-white/70">Sign in before Connect. Supabase emails a code. There is no other login on this page.</p>
+            <div className="flex flex-wrap gap-2">
+              <select className="h-9 rounded-full border border-line bg-black/40 px-3 text-sm" value={inbox} onChange={(event) => setInbox(event.target.value as (typeof BOARD_EMAILS)[number])}>
+                {BOARD_EMAILS.map((email) => <option key={email} value={email}>{email}</option>)}
+              </select>
+              {codeSent ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-sm" inputMode="numeric" autoComplete="one-time-code" placeholder="Email code" value={code} onChange={(event) => setCode(event.target.value)} /> : null}
+              <button type="submit" className="quiet is-on">{codeSent ? "Sign in" : "Email me a code"}</button>
+            </div>
+          </form>
+        )}
+      </div>
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl">Integrations</h1>

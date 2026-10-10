@@ -59,13 +59,53 @@ export function disconnectOauth(provider: OauthProvider, email?: string) {
   localStorage.setItem(STORE, JSON.stringify(rows));
 }
 
+const SESSION = "sb-mhvcdstgkyplhzjptgfr-auth-token";
+
 function readSessionToken() {
   try {
-    const parsed = JSON.parse(localStorage.getItem("sb-mhvcdstgkyplhzjptgfr-auth-token") || "{}") as { access_token?: string; currentSession?: { access_token?: string } };
+    const parsed = JSON.parse(localStorage.getItem(SESSION) || "{}") as { access_token?: string; currentSession?: { access_token?: string } };
     return parsed.access_token || parsed.currentSession?.access_token || "";
   } catch {
     return "";
   }
+}
+
+export function sessionToken() {
+  return readSessionToken();
+}
+
+export async function requestSignIn(email: string) {
+  const mailbox = email.trim().toLowerCase();
+  if (!allowedEmail(mailbox)) throw new Error("Use chris@ceogps.com, chrisgr33ninc@gmail.com, or cagednreality@icloud.com.");
+  const response = await fetch(`${SUPABASE}/auth/v1/otp`, {
+    method: "POST",
+    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: mailbox, create_user: true }),
+  });
+  const body = await response.json().catch(() => ({})) as { msg?: string; error_description?: string; message?: string };
+  if (!response.ok) throw new Error(body.msg || body.error_description || body.message || "Supabase did not send a code.");
+}
+
+export async function confirmSignIn(email: string, code: string) {
+  const mailbox = email.trim().toLowerCase();
+  const response = await fetch(`${SUPABASE}/auth/v1/verify`, {
+    method: "POST",
+    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "email", email: mailbox, token: code.trim() }),
+  });
+  const body = await response.json().catch(() => ({})) as { access_token?: string; refresh_token?: string; expires_at?: number; user?: unknown; msg?: string; error_description?: string; message?: string };
+  if (!response.ok || !body.access_token) throw new Error(body.msg || body.error_description || body.message || "That code was refused.");
+  localStorage.setItem(SESSION, JSON.stringify({
+    access_token: body.access_token,
+    refresh_token: body.refresh_token || "",
+    expires_at: body.expires_at || 0,
+    user: body.user || null,
+  }));
+  return body.access_token;
+}
+
+export function signOutSession() {
+  localStorage.removeItem(SESSION);
 }
 
 export function rememberLink(provider: OauthProvider, email?: string, name?: string) {
@@ -128,7 +168,7 @@ export async function startOAuth(provider: OauthProvider, email?: string) {
   if (picked.endsWith("@icloud.com")) throw new Error("iCloud connects through Nylas, not OAuth.");
   if (provider === "google" && !allowedEmail(picked)) throw new Error("Pick one of the three Google mailboxes.");
   const token = readSessionToken();
-  if (!token) throw new Error("Sign in first.");
+  if (!token) throw new Error("Sign in at the top of Integrations. Supabase emails you a code.");
   sessionStorage.setItem("lifeos.oauth.back", `${origin}/panel/integrations`);
   sessionStorage.setItem("lifeos.oauth.mailbox", picked);
   const response = await fetch(`${WORKER}/api/oauth/start`, {
@@ -146,7 +186,7 @@ export async function startNylas(email?: string) {
   const account = (email || "").trim().toLowerCase();
   if (!account.endsWith("@icloud.com")) throw new Error("Nylas is for the iCloud mailbox.");
   const token = readSessionToken();
-  if (!token) throw new Error("Sign in first.");
+  if (!token) throw new Error("Sign in at the top of Integrations. Supabase emails you a code.");
   sessionStorage.setItem("lifeos.oauth.mailbox", account);
   const response = await fetch(`${WORKER}/api/nylas/connect`, {
     method: "POST",

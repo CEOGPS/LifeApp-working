@@ -414,8 +414,10 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   }
 
   function emails(name?: string) {
-    const google = /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(name || "");
-    const list = google ? ["chrisgr33ninc@gmail.com"] : name === "Grok (xAI)" || name === "xAI" ? ["chris@ceogps.com"] : [...BOARD_EMAILS];
+    const label = name || "";
+    const google = /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(label);
+    const grok = /^grok|^xai$/i.test(label);
+    const list = grok ? ["chris@ceogps.com"] : google ? ["chrisgr33ninc@gmail.com"] : [...BOARD_EMAILS];
     return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">{list.join(" · ")}</p>;
   }
 

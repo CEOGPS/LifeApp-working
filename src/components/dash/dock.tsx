@@ -290,7 +290,7 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   const talking = status.startsWith("Speaking");
   const talk = talking ? Math.min(1, levels.reduce((sum, level) => sum + level, 0) / (levels.length * 40)) : 0;
   return (
-    <div className={`erebus-dock flex w-full min-h-0 flex-col overflow-hidden ${compact ? "h-full gap-1.5" : "module-card max-h-[calc(100dvh-5.5rem)] gap-2 p-3"}`}>
+    <div className={`erebus-dock flex w-full min-h-0 flex-col ${compact ? "h-full gap-1.5 overflow-hidden" : "module-card max-h-[calc(100dvh-5.5rem)] gap-2 overflow-y-auto p-3"}`}>
       <div className={`az-face ${compact ? "is-compact" : ""} ${talking ? "is-talk" : ""}`} data-skin={face.id} style={{ "--talk": talk } as CSSProperties}>
         <img key={face.src} src={face.src} alt="" />
         <span className="az-lid az-lid-l" />
@@ -442,7 +442,7 @@ export function AgentFloat() {
     });
   }
   const panel = (
-    <div className={host ? "flex h-full flex-col bg-black p-3" : "az-dock flex h-[min(44rem,calc(100dvh-1rem))] w-[26rem] flex-col overflow-hidden"}>
+    <div className={host ? "flex h-full flex-col bg-black p-3" : "az-dock flex h-[min(46rem,calc(100dvh-1rem))] w-[28rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden"}>
       <div className="mb-2 flex shrink-0 items-center gap-3" onPointerDown={host ? undefined : down} onPointerMove={host ? undefined : move} onPointerUp={() => { drag.current = null; }}>
         <div className="min-w-0 flex-1">
           <p className="font-display text-[11px] tracking-[0.22em]">EREBUS</p>
@@ -475,11 +475,7 @@ export function AgentFloat() {
             if (!moved) void floatOut();
           }}
         >
-          <span className="az-seal-face" data-skin="nova">
-            <img src="/agents/stills/nova.jpg" alt="" width="168" height="168" />
-            <span className="az-lid az-lid-l" />
-            <span className="az-lid az-lid-r" />
-          </span>
+          <img src="/agents/stills/nova.jpg" alt="" width="54" height="54" />
           <span className="az-live" />
         </button>
       )}

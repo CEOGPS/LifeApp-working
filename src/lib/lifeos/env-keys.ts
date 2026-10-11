@@ -330,9 +330,6 @@ function timed(work: Promise<Response>) {
 export async function runProbe(data: { name: string; key: string; email: string }) {
     const aliases: Record<string, string> = { "Grok (xAI)": "xAI", "NVIDIA NIM": "NVIDIA" };
     data = { ...data, name: aliases[data.name] || data.name };
-    if (data.name === "xAI" && data.email.trim().toLowerCase() !== "chris@ceogps.com") {
-      return { ok: false as const, checked: true as const, text: "Grok only runs as chris@ceogps.com." };
-    }
     let key = cleanKey(data.key);
     const cloudflareName = data.name === "Cloudflare" || data.name === "Cloudflare Token" || data.name === "Cloudflare Account";
     if (!key && !cloudflareName) return { ok: false as const, checked: false as const, text: "No key is saved for this service." };
@@ -342,7 +339,7 @@ export async function runProbe(data: { name: string; key: string; email: string 
       if (data.name === "Anthropic") return readBody(await timed(fetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01" }, signal: AbortSignal.timeout(8000) })));
       if (data.name === "xAI") {
         const result = await readBody(await timed(fetch("https://api.x.ai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
-        if (!result.ok && /credits or licenses/i.test(result.text)) return { ok: false as const, checked: true as const, text: "This xAI key is for chris@ceogps.com, and that team has no credits. It is not connected." };
+        if (!result.ok && /credits or licenses/i.test(result.text)) return { ok: false as const, checked: true as const, text: "The key is for chris@ceogps.com. xAI refused it because that team has no credits yet." };
         return result;
       }
       if (data.name === "NVIDIA") {

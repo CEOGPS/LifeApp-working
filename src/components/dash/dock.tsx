@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { newId, useMemory, type Memory } from "./memory";
 import { soundPrefs } from "./sound";
@@ -288,14 +288,10 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   const modes = agent === "Kranos" ? (["chat"] as Mode[]) : MODES;
   const lastReply = [...lines].reverse().find((row) => !row.mine);
   const talking = status.startsWith("Speaking");
-  const talk = talking ? Math.min(1, levels.reduce((sum, level) => sum + level, 0) / (levels.length * 40)) : 0;
   return (
     <div className={`erebus-dock flex w-full min-h-0 flex-col ${compact ? "h-full gap-1.5 overflow-hidden" : "module-card max-h-[calc(100dvh-5.5rem)] gap-2 overflow-y-auto p-3"}`}>
-      <div className={`az-face ${compact ? "is-compact" : ""} ${talking ? "is-talk" : ""}`} data-skin={face.id} style={{ "--talk": talk } as CSSProperties}>
+      <div className={`az-face ${compact ? "is-compact" : ""}`}>
         <img key={face.src} src={face.src} alt="" />
-        <span className="az-lid az-lid-l" />
-        <span className="az-lid az-lid-r" />
-        <span className="az-mouth" />
         <span className={`az-pip ${talking ? "is-talk" : mic ? "is-listen" : ""}`} />
       </div>
       <div className="flex shrink-0 items-center gap-3">

@@ -156,46 +156,6 @@ button.az-seal {
   object-fit: cover;
   object-position: center center;
 }
-.az-lid {
-  position: absolute;
-  top: 40%;
-  z-index: 2;
-  width: 11%;
-  height: 4.5%;
-  border-radius: 40% 40% 46% 46%;
-  transform: scaleY(0);
-  transform-origin: center top;
-  animation: az-blink 8.5s ease-in-out infinite;
-  pointer-events: none;
-}
-.az-lid-l { left: 35%; }
-.az-lid-r { left: 54%; }
-.az-face[data-skin="nova"] .az-lid { background: linear-gradient(#c9846c, #a86b58); }
-.az-face[data-skin="nyx"] .az-lid { background: linear-gradient(#e7b7a4, #c98978); }
-.az-face[data-skin="ember"] .az-lid { background: linear-gradient(#c98970, #a86d58); }
-.az-mouth {
-  position: absolute;
-  left: 44%;
-  top: 56%;
-  z-index: 2;
-  width: 12%;
-  height: 0;
-  border-radius: 40% 40% 46% 46%;
-  opacity: 0;
-  pointer-events: none;
-}
-.az-face.is-talk .az-mouth {
-  opacity: 1;
-  height: calc(0.3rem + var(--talk, 0) * 1.8rem);
-  transition: height 60ms linear;
-}
-.az-face[data-skin="nova"] .az-mouth { background: #6d3028; box-shadow: 0 0 0 2px #c47a64; }
-.az-face[data-skin="nyx"] .az-mouth { background: #4a0e16; box-shadow: 0 0 0 2px #9a1830; }
-.az-face[data-skin="ember"] .az-mouth { background: #5a2834; box-shadow: 0 0 0 2px #b06a74; }
-@keyframes az-blink {
-  0%, 93%, 100% { transform: scaleY(0); }
-  95.5%, 97.5% { transform: scaleY(1); }
-}
 button.az-seal img,
 button.az-mini img {
   display: block;

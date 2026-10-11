@@ -285,7 +285,7 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   const lastReply = [...lines].reverse().find((row) => !row.mine);
   const talking = status.startsWith("Speaking");
   return (
-    <div className={`erebus-dock flex w-full min-h-0 flex-col ${compact ? "h-full gap-1.5 overflow-hidden" : "module-card max-h-[calc(100dvh-5.5rem)] gap-2 overflow-y-auto p-3"}`}>
+    <div className={`erebus-dock flex w-full min-h-0 flex-col overflow-hidden ${compact ? "h-full gap-1.5" : "module-card h-[calc(100dvh-5.5rem)] gap-2 p-3"}`}>
       <div className={`az-face ${compact ? "is-compact" : ""}`}>
         {agent === "Erebus" ? <video src="/agents/avatars/erebus.mp4" poster="/agents/stills/erebus.jpg" autoPlay muted loop playsInline /> : <video src="/agents/avatars/kranos.mp4" poster="/agents/stills/kranos.jpg" autoPlay muted loop playsInline />}
         <span className={`az-pip ${talking ? "is-talk" : mic ? "is-listen" : ""}`} />
@@ -308,7 +308,7 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
         {MINDS.map((row) => <button key={row.id} type="button" className={`quiet ${mind === row.id ? "is-on" : ""}`} onClick={() => setMind(row.id)}>{row.label}</button>)}
         <span className="text-xs text-white/45">{used}</span>
       </div>
-      <div className="az-thread min-h-16 w-full min-w-0 flex-1 overflow-y-auto px-3 py-2 text-sm leading-5">
+      <div className="az-thread min-h-0 w-full min-w-0 flex-1 overflow-y-auto px-3 py-2 text-sm leading-5">
         {mode === "chat" ? lines.slice(-12).map((row) => <p key={row.id} className={`py-1 ${row.mine ? "text-right" : ""}`}><span className="text-white/45">{row.who}: </span>{row.text}</p>) : null}
         {!lines.length && mode === "chat" ? <p className="text-sm text-white/40">Ask about the board. I only use what is saved.</p> : null}
         {mode === "video" ? <YoutubeBox apiKey={data.keys.find((row) => row.name === "YouTube")?.value || ""} query={clip} /> : null}

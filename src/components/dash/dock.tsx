@@ -10,11 +10,6 @@ import { YoutubeBox } from "./media-desk";
 type Update = (recipe: (prev: Memory) => Memory) => void;
 type Mode = "chat" | "image" | "video" | "writer" | "code";
 
-const SKINS = [
-  { id: "nova", label: "Nova", src: "/agents/stills/nova.jpg" },
-  { id: "nyx", label: "Nyx", src: "/agents/stills/nyx.jpg" },
-  { id: "ember", label: "Ember", src: "/agents/stills/ember.jpg" },
-];
 const MODES: Mode[] = ["chat", "image", "video", "writer", "code"];
 
 const MINDS = [
@@ -120,7 +115,7 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   const audioRef = useRef<AudioContext | null>(null);
   const frame = useRef(0);
   const face = agent === "Kranos"
-    ? SKINS[1]
+    ? { id: "kranos", label: "Kranos", src: "/agents/avatars/kranos.mp4" }
     : { id: "erebus", label: "Erebus", src: "/agents/avatars/erebus.mp4" };
 
   useEffect(() => () => {
@@ -292,7 +287,7 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   return (
     <div className={`erebus-dock flex w-full min-h-0 flex-col ${compact ? "h-full gap-1.5 overflow-hidden" : "module-card max-h-[calc(100dvh-5.5rem)] gap-2 overflow-y-auto p-3"}`}>
       <div className={`az-face ${compact ? "is-compact" : ""}`}>
-        {agent === "Erebus" ? <video src="/agents/avatars/erebus.mp4" poster="/agents/stills/erebus.jpg" autoPlay muted loop playsInline /> : <img key={face.src} src={face.src} alt="" />}
+        {agent === "Erebus" ? <video src="/agents/avatars/erebus.mp4" poster="/agents/stills/erebus.jpg" autoPlay muted loop playsInline /> : <video src="/agents/avatars/kranos.mp4" poster="/agents/stills/kranos.jpg" autoPlay muted loop playsInline />}
         <span className={`az-pip ${talking ? "is-talk" : mic ? "is-listen" : ""}`} />
       </div>
       <div className="flex shrink-0 items-center gap-3">

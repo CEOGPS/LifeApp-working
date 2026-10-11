@@ -462,10 +462,12 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
 
   function emails(name?: string) {
     const label = name || "";
+    if (label === "Grok (xAI)" || label === "xAI") {
+      return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">chris@ceogps.com</p>;
+    }
     const google = /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(label);
-    const grok = /^grok|^xai$/i.test(label);
     const voice = label === "Google Voice";
-    const list = grok ? ["chris@ceogps.com"] : voice ? ["cagednreality@icloud.com"] : google ? ["chrisgr33ninc@gmail.com", "chris@ceogps.com"] : [...BOARD_EMAILS];
+    const list = voice ? ["cagednreality@icloud.com"] : google ? ["chrisgr33ninc@gmail.com", "chris@ceogps.com"] : [...BOARD_EMAILS];
     const note = voice ? " Not connected. Google Voice is on the iCloud account, not a Gmail login." : "";
     return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">{list.join(" · ")}{note}</p>;
   }

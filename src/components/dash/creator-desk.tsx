@@ -95,40 +95,6 @@ async function paintImage(src: string, tune: { bright: number; contrast: number;
   return canvas.toDataURL("image/jpeg", 0.86);
 }
 
-async function motionClip(src: string) {
-  const img = await loadImage(src);
-  const canvas = document.createElement("canvas");
-  canvas.width = 640;
-  canvas.height = 360;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas");
-  const stream = canvas.captureStream(12);
-  const type = MediaRecorder.isTypeSupported("video/webm") ? "video/webm" : "";
-  if (!type) throw new Error("recorder");
-  const rec = new MediaRecorder(stream, { mimeType: type });
-  const chunks: Blob[] = [];
-  rec.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
-  const done = new Promise<string>((resolve) => {
-    rec.onstop = () => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.readAsDataURL(new Blob(chunks, { type }));
-    };
-  });
-  rec.start();
-  for (let frame = 0; frame < 48; frame += 1) {
-    const scale = 1 + (frame / 48) * 0.16;
-    const w = 640 * scale;
-    const h = 360 * scale;
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, 640, 360);
-    ctx.drawImage(img, (640 - w) / 2, (360 - h) / 2, w, h);
-    await new Promise((resolve) => setTimeout(resolve, 70));
-  }
-  rec.stop();
-  return done;
-}
-
 function StudioQueue({ data, update }: { data: Memory; update: Update }) {
   const [jobs, setJobs] = useState<StudioJob[]>(() => (typeof localStorage === "undefined" ? [] : readQueue()));
   const [kind, setKind] = useState<JobKind>("image");
@@ -193,8 +159,7 @@ function StudioQueue({ data, update }: { data: Memory; update: Update }) {
         }
         const wan = await throughWan(job.source, job.prompt || "subtle natural motion");
         if (wan.state === "done" || wan.state === "wait") return;
-        save(`Video · motion`, await motionClip(job.source));
-        mark({ status: "done", log: `${job.log}\n${wan.error} Local motion saved instead.`.trim() });
+        mark({ status: "failed", log: `${job.log}\n${wan.error || "Wan did not return a clip."}`.trim() });
       } catch (error) {
         const failed = job.tries + 1 >= 2;
         mark({ status: failed ? "failed" : "queued", log: `${job.log}\n${error instanceof Error ? error.message : "Failed."}`.trim() });

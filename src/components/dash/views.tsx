@@ -337,7 +337,7 @@ export function Dashboard() {
             </button>
           ))}
         </Card>
-        <Card title="YouTube Player">
+        <Card title="YouTube Player" to="media">
           <YoutubeBox apiKey={data.keys.find((row) => row.name === "YouTube")?.value || ""} />
         </Card>
         <Card title="AI Insights" to="finance">{insights(data).map((tip) => <p key={tip} className="text-sm">{tip}</p>)}</Card>

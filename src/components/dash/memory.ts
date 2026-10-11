@@ -455,10 +455,14 @@ function readVault(): Entry[] {
   }
 }
 
+const SEED_IDS = new Set(["hello", "idea-1", "lead-nextdoor", "lead-group", "n1", "n2", "j1", "j2", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "p1", "p2", "e1", "e2", "s1", "s2", "m1", "m2"]);
+
 function unionById<T extends { id: string }>(local: T[], remote: T[]) {
+  const remoteIds = new Set(remote.map((row) => row.id));
+  const kept = remote.length ? local.filter((row) => !SEED_IDS.has(row.id) || remoteIds.has(row.id)) : local;
   const map = new Map<string, T>();
-  for (const row of local) map.set(row.id, row);
-  for (const row of remote) if (!map.has(row.id)) map.set(row.id, row);
+  for (const row of remote) map.set(row.id, row);
+  for (const row of kept) map.set(row.id, row);
   return [...map.values()];
 }
 
@@ -490,6 +494,15 @@ function absorb(base: Memory, raw: unknown) {
     media: unionById(base.media, incoming.media),
     songs: unionById(base.songs, incoming.songs),
     ideas: unionById(base.ideas, incoming.ideas),
+    deals: unionById(base.deals, incoming.deals),
+    facts: unionById(base.facts, incoming.facts),
+    socialAccounts: unionById(base.socialAccounts, incoming.socialAccounts),
+    socialPosts: unionById(base.socialPosts, incoming.socialPosts),
+    stats: unionById(base.stats, incoming.stats),
+    groups: unionById(base.groups, incoming.groups),
+    query: base.query || incoming.query,
+    fico: base.fico === 712 && incoming.fico !== 712 ? incoming.fico : base.fico,
+    vantage: base.vantage === 698 && incoming.vantage !== 698 ? incoming.vantage : base.vantage,
     emailHub: {
       accounts: unionById(base.emailHub.accounts, incoming.emailHub.accounts),
       lists: unionById(base.emailHub.lists, incoming.emailHub.lists),
@@ -643,7 +656,6 @@ function mergeMedia(local: Entry[], stored: Entry[]) {
 }
 
 const SHARED = "lifeos-shared";
-const SHARED_SQL = "00000000-0000-4000-8000-000000000001";
 let memory = seed();
 let statusText = "This browser";
 if (typeof window !== "undefined") window.addEventListener("pagehide", () => {
@@ -720,6 +732,15 @@ async function pushNow() {
       emit();
       return;
     }
+    const localAt = Number(localStorage.getItem(AT) || 0);
+    if (cloud.doc && cloud.at && localAt && cloud.at > localAt + 1500) {
+      const incoming = sanitizeMemory(cloud.doc);
+      memory = { ...incoming, keys: memory.keys.length ? memory.keys : incoming.keys, vault: memory.vault.length ? memory.vault : incoming.vault, banner: incoming.banner || memory.banner, logo: incoming.logo || memory.logo };
+      rememberLocal();
+      statusText = "Loaded the newer board.";
+      emit();
+      return;
+    }
     if (cloud.doc) memory = absorb(memory, cloud.doc);
     const cloudKeys = await pullKeys().catch(() => []);
     if (cloudKeys.length) memory = { ...memory, keys: unionKeys(memory.keys, cloudKeys) };
@@ -747,17 +768,17 @@ export async function hydrateMemory() {
     if (savedKeys.length) memory = { ...memory, keys: unionKeys(savedKeys, memory.keys) };
   } catch { /* indexedDB unavailable */ }
   try {
-    const { pullBoard } = await import("@/lib/lifeos/sync");
     const { pullCloud, pullBrand, pullKeys } = await import("@/lib/lifeos/board-store");
-    const remote = await pullBoard({ data: SHARED_SQL }).catch(() => null);
-    const ownRemote = await pullBoard({ data: deviceId() }).catch(() => null);
     const cloud = await pullCloud(SHARED).catch(() => null);
-    const ownCloud = await pullCloud(deviceId()).catch(() => null);
     const brand = await pullBrand().catch(() => null);
     const cloudKeys = await pullKeys().catch(() => []);
     if (cloudKeys.length) memory = { ...memory, keys: unionKeys(memory.keys, cloudKeys) };
-    for (const source of [ownRemote?.payload, remote?.payload, ownCloud?.doc, cloud?.doc]) {
-      if (source) memory = absorb(memory, typeof source === "string" ? JSON.parse(source) : source);
+    const localAt = Number(localStorage.getItem(AT) || 0);
+    if (cloud?.doc && (!localAt || (cloud.at && cloud.at >= localAt))) {
+      const incoming = sanitizeMemory(cloud.doc);
+      memory = { ...incoming, keys: memory.keys.length ? memory.keys : incoming.keys, vault: memory.vault.length ? memory.vault : incoming.vault, banner: incoming.banner || memory.banner, logo: incoming.logo || memory.logo };
+    } else if (cloud?.doc) {
+      memory = absorb(memory, cloud.doc);
     }
     if (brand?.banner) memory = { ...memory, banner: memory.banner || brand.banner };
     if (brand?.logo) memory = { ...memory, logo: memory.logo || brand.logo };

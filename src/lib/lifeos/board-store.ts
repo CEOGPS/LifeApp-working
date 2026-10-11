@@ -48,6 +48,26 @@ export async function pushBrand(banner: string, logo: string) {
   return response.ok;
 }
 
+const MARKS = "lifeos-marks";
+
+export async function pullMarks(): Promise<Record<string, { state: "connected" | "error" | "saved"; text: string }>> {
+  const row = await pullCloud(MARKS);
+  const doc = row?.doc;
+  if (!doc || typeof doc !== "object") return {};
+  const marks = (doc as { marks?: unknown }).marks;
+  if (!marks || typeof marks !== "object") return {};
+  return marks as Record<string, { state: "connected" | "error" | "saved"; text: string }>;
+}
+
+export async function pushMarks(marks: Record<string, { state: string; text: string }>) {
+  const response = await fetch(`${SUPABASE}/rest/v1/lifeos_board?on_conflict=device`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ device: MARKS, doc: { marks }, updated_at: new Date().toISOString() }),
+  });
+  return response.ok;
+}
+
 const KEYS = "lifeos-keys";
 
 export async function pullKeys(): Promise<{ id: string; name: string; value: string }[]> {

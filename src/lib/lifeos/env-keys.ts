@@ -219,7 +219,7 @@ export async function runAccount(data: { service: string; token: string; key: st
       if (data.service === "google-analytics") {
         if (!data.token) return { ok: false as const, text: "Connect Google as chrisgr33ninc@gmail.com and allow Analytics.", site: "" };
         const property = data.key.replace(/\D/g, "");
-        if (property) {
+        if (!property) return { ok: false as const, text: "Paste the GA4 property ID. None is assumed, because this account has more than one property.", site: "" };
           const report = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${property}:runReport`, {
             method: "POST",
             headers: { Authorization: `Bearer ${data.token}`, "Content-Type": "application/json" },
@@ -231,16 +231,6 @@ export async function runAccount(data: { service: string; token: string; key: st
           try { body = raw ? JSON.parse(raw) as typeof body : {}; } catch { body = { error: { message: raw.slice(0, 180) } }; }
           if (!report.ok) return { ok: false as const, text: body.error?.message || `Google Analytics refused property ${property} (HTTP ${report.status}).`, site: "" };
           return { ok: true as const, text: `Connected · property ${property}`, site: property };
-        }
-        const response = await fetch("https://analyticsadmin.googleapis.com/v1beta/accountSummaries", { headers: { Authorization: `Bearer ${data.token}` }, signal: AbortSignal.timeout(10000) });
-        const raw = await response.text();
-        let body: { accountSummaries?: { displayName?: string; propertySummaries?: { property?: string; displayName?: string }[] }[]; error?: { message?: string } } = {};
-        try { body = raw ? JSON.parse(raw) as typeof body : {}; } catch { body = { error: { message: raw.slice(0, 180) } }; }
-        if (!response.ok) return { ok: false as const, text: body.error?.message || "Google Analytics refused this login. Paste the GA4 property ID, or reconnect Google and allow Analytics.", site: "" };
-        const properties = (body.accountSummaries || []).flatMap((account) => account.propertySummaries || []);
-        const match = properties.find((row) => /ceogps|ceo gps/i.test(row.displayName || "")) || properties[0];
-        const site = (match?.property || "").replace("properties/", "");
-        return { ok: true as const, text: site ? `Connected · ${match?.displayName || "Property"} · ${site}` : "No GA4 properties are on this Google login. Paste the property ID.", site };
       }
       if (data.service === "godaddy") {
         const strip = (value: string) => value.trim().replace(/^['"]|['"]$/g, "").replace(/^sso-key\s+/i, "");
@@ -251,7 +241,8 @@ export async function runAccount(data: { service: string; token: string; key: st
           secret = key.slice(split + 1);
           key = key.slice(0, split);
         }
-        if (!key || !secret) return { ok: false as const, text: "Paste the GoDaddy key and the secret.", site: "" };
+        if (!key) return { ok: false as const, text: "Paste the GoDaddy key. If that page also shows a secret, paste it as key:secret in the same box.", site: "" };
+        if (!secret) return { ok: false as const, text: "GoDaddy's key page shows a Key and a Secret on the same row. Paste them as key:secret. A key alone is refused.", site: "" };
         const response = await fetch("https://api.godaddy.com/v1/domains?statuses=ACTIVE&limit=20", {
           headers: { Authorization: `sso-key ${key}:${secret}`, Accept: "application/json" },
           signal: AbortSignal.timeout(10000),
@@ -349,7 +340,11 @@ export async function runProbe(data: { name: string; key: string; email: string 
     try {
       if (data.name === "OpenAI") return readBody(await timed(fetch("https://api.openai.com/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Anthropic") return readBody(await timed(fetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": key, "anthropic-version": "2023-06-01" }, signal: AbortSignal.timeout(8000) })));
-      if (data.name === "xAI") return readBody(await timed(fetch("https://api.x.ai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "xAI") {
+        const result = await readBody(await timed(fetch("https://api.x.ai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
+        if (!result.ok && /credits or licenses/i.test(result.text)) return { ok: false as const, checked: true as const, text: "This xAI key is for chris@ceogps.com, and that team has no credits. It is not connected." };
+        return result;
+      }
       if (data.name === "NVIDIA") {
         return readBody(await timed(fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
           method: "POST",
@@ -362,7 +357,7 @@ export async function runProbe(data: { name: string; key: string; email: string 
       if (data.name === "OpenRouter") return readBody(await timed(fetch("https://openrouter.ai/api/v1/key", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "DeepSeek") return readBody(await timed(fetch("https://api.deepseek.com/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Mistral") return readBody(await timed(fetch("https://api.mistral.ai/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
-      if (data.name === "ElevenLabs") return readBody(await timed(fetch("https://api.elevenlabs.io/v1/user", { headers: { "xi-api-key": key }, signal: AbortSignal.timeout(8000) })));
+      if (data.name === "ElevenLabs") return readBody(await timed(fetch("https://api.elevenlabs.io/v1/voices?page_size=1", { headers: { "xi-api-key": key }, signal: AbortSignal.timeout(8000) })));
       if (data.name === "YouTube" || data.name === "Google Maps") {
         const path = data.name === "YouTube"
           ? `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&q=music&key=${encodeURIComponent(key)}`
@@ -417,7 +412,7 @@ export async function runProbe(data: { name: string; key: string; email: string 
       if (data.name === "ClickUp") return readBody(await timed(fetch("https://api.clickup.com/api/v2/user", { headers: { Authorization: key }, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Dropbox") return readBody(await timed(fetch("https://api.dropboxapi.com/2/users/get_current_account", { method: "POST", headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Notion") return readBody(await timed(fetch("https://api.notion.com/v1/users/me", { headers: { ...auth, "Notion-Version": "2022-06-28" }, signal: AbortSignal.timeout(8000) })));
-      if (data.name === "Linear") return readBody(await timed(fetch("https://api.linear.app/graphql", { method: "POST", headers: { ...auth, "Content-Type": "application/json" }, body: JSON.stringify({ query: "{ viewer { id } }" }), signal: AbortSignal.timeout(8000) })));
+      if (data.name === "Linear") return readBody(await timed(fetch("https://api.linear.app/graphql", { method: "POST", headers: { Authorization: key, "Content-Type": "application/json" }, body: JSON.stringify({ query: "{ viewer { id } }" }), signal: AbortSignal.timeout(8000) })));
       if (data.name === "Stability AI") return readBody(await timed(fetch("https://api.stability.ai/v1/user/account", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Slack") return readBody(await timed(fetch("https://slack.com/api/auth.test", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "X") return readBody(await timed(fetch("https://api.x.com/2/users/me", { headers: auth, signal: AbortSignal.timeout(8000) })));

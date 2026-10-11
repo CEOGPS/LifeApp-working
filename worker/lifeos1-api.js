@@ -386,6 +386,9 @@ router.get("/callback", async (request, env) => {
     const tokenResponse = await exchangeCodeForToken(actualProvider, code, oauthCallback(env), env);
     if (!tokenResponse.access_token) throw new Error("Failed to obtain access token");
     const email = (await providerEmail(actualProvider, tokenResponse.access_token)) || pending.email || "";
+    if (actualProvider === "google" && pending.email && email && email !== pending.email) {
+      return resultPage(origin, "Not connected", `You clicked ${pending.email}, but Google signed in as ${email}. Nothing was saved. Choose ${pending.email} on Google's account page.`);
+    }
     if (actualProvider === "google" && email !== "chris@ceogps.com" && email !== "chrisgr33ninc@gmail.com") {
       return resultPage(origin, "Not connected", "That Google account is not one of the board mailboxes. Nothing was saved.");
     }

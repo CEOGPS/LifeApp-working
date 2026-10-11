@@ -226,10 +226,20 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
 
   useEffect(() => { setMarks(readMarks()); }, []);
   useEffect(() => {
-    if (swept.current || !data.keys.some((row) => row.value.trim())) return;
-    swept.current = true;
-    void checkAll();
-  }, [data.keys]);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === MARKS) setMarks(readMarks());
+    };
+    window.addEventListener("storage", onStorage);
+    void import("@/lib/lifeos/board-store").then(({ pullMarks }) => pullMarks()).then((saved) => {
+      if (!Object.keys(saved).length) return;
+      setMarks((prev) => {
+        const next = { ...prev, ...saved };
+        try { localStorage.setItem(MARKS, JSON.stringify(next)); } catch { /* the shared copy is already loaded */ }
+        return next;
+      });
+    }).catch(() => undefined);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   useEffect(() => {
     const back = catchReturn();
     if (back.provider) {
@@ -258,6 +268,7 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
     setMarks((prev) => {
       const next = { ...prev, [name]: { state, text } };
       try { localStorage.setItem(MARKS, JSON.stringify(next)); } catch { /* the mark still shows */ }
+      void import("@/lib/lifeos/board-store").then(({ pushMarks }) => pushMarks(next)).catch(() => undefined);
       return next;
     });
   }
@@ -393,8 +404,8 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       });
       const row = await response.json().catch(() => ({})) as { ok?: boolean; checked?: boolean; status?: string; reason?: string; error?: string; text?: string };
       const text = String(row.text || row.reason || row.error || `The check returned HTTP ${response.status}.`);
-      if (row.ok || row.status === "connected") { finish("connected", text); return "connected" as const; }
       if (row.checked === false) { finish("saved", text); return "saved" as const; }
+      if (row.ok || row.status === "connected") { finish("connected", text); return "connected" as const; }
       finish("error", text);
       return "error" as const;
     } catch (error) {
@@ -453,8 +464,10 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
     const label = name || "";
     const google = /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(label);
     const grok = /^grok|^xai$/i.test(label);
-    const list = grok ? ["chris@ceogps.com"] : google ? ["chrisgr33ninc@gmail.com"] : [...BOARD_EMAILS];
-    return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">{list.join(" · ")}</p>;
+    const voice = label === "Google Voice";
+    const list = grok ? ["chris@ceogps.com"] : voice ? ["cagednreality@icloud.com"] : google ? ["chrisgr33ninc@gmail.com", "chris@ceogps.com"] : [...BOARD_EMAILS];
+    const note = voice ? " Not connected. Google Voice is on the iCloud account, not a Gmail login." : "";
+    return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">{list.join(" · ")}{note}</p>;
   }
 
   function statusLine(name: string, fallback: { state: Mark["state"] | "idle"; text: string }) {
@@ -645,8 +658,7 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   {oneClick && !google ? <button type="button" className="quiet is-on" onClick={() => connect("google", "Google")}>Connect Google</button> : open === row.name || (service === "google-analytics" && google) ? (
                     <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); void checkAccount(row.name, service); }}>
-                      {service === "google-analytics" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste[row.name] || ""} placeholder="GA4 property ID" onChange={(event) => setPaste((prev) => ({ ...prev, [row.name]: event.target.value }))} /> : <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste[row.name] || ""} placeholder="API key" onChange={(event) => setPaste((prev) => ({ ...prev, [row.name]: event.target.value }))} />}
-                      {row.name === "GoDaddy" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={extra[row.name] || ""} placeholder="API secret" onChange={(event) => setExtra((prev) => ({ ...prev, [row.name]: event.target.value }))} /> : null}
+                      {service === "google-analytics" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste[row.name] || ""} placeholder="GA4 property ID" onChange={(event) => setPaste((prev) => ({ ...prev, [row.name]: event.target.value }))} /> : <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={paste[row.name] || ""} placeholder={row.name === "GoDaddy" ? "key:secret from the same GoDaddy page" : "API key"} onChange={(event) => setPaste((prev) => ({ ...prev, [row.name]: event.target.value }))} />}
                       {row.name === "Brilliant Directories" ? <input className="h-9 rounded-full border border-line bg-black/40 px-3 text-base" autoComplete="off" value={extra[row.name] || ""} placeholder="https://ceogps.com" onChange={(event) => setExtra((prev) => ({ ...prev, [row.name]: event.target.value }))} /> : null}
                       <button type="submit" className="quiet check-btn">{busy[row.name] ? "Checking" : "Check"}</button>
                     </form>

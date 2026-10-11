@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { newId, useMemory, type Memory } from "./memory";
 import { soundPrefs } from "./sound";
@@ -287,13 +287,18 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   const lines = data.thread.filter((row) => (agent === "Kranos" ? row.platform === "kranos" : row.platform !== "kranos"));
   const modes = agent === "Kranos" ? (["chat"] as Mode[]) : MODES;
   const lastReply = [...lines].reverse().find((row) => !row.mine);
+  const talking = status.startsWith("Speaking");
+  const talk = talking ? Math.min(1, levels.reduce((sum, level) => sum + level, 0) / (levels.length * 40)) : 0;
   return (
     <div className={`erebus-dock flex w-full min-h-0 flex-col overflow-hidden ${compact ? "h-full gap-1.5" : "module-card max-h-[calc(100dvh-5.5rem)] gap-2 p-3"}`}>
+      <div className={`az-face ${compact ? "is-compact" : ""} ${talking ? "is-talk" : ""}`} data-skin={face.id} style={{ "--talk": talk } as CSSProperties}>
+        <img key={face.src} src={face.src} alt="" />
+        <span className="az-lid az-lid-l" />
+        <span className="az-lid az-lid-r" />
+        <span className="az-mouth" />
+        <span className={`az-pip ${talking ? "is-talk" : mic ? "is-listen" : ""}`} />
+      </div>
       <div className="flex shrink-0 items-center gap-3">
-        <div className={`az-ring relative shrink-0 overflow-hidden rounded-full ${compact ? "h-14 w-14" : "h-24 w-24"}`}>
-          <img key={face.src} src={face.src} alt="" className="h-full w-full object-cover" />
-          <span className={`az-pip ${status.startsWith("Speaking") ? "is-talk" : mic ? "is-listen" : ""}`} />
-        </div>
         <div className="min-w-0 text-left">
           <p className="font-display text-[11px] tracking-[0.22em]">{agent.toUpperCase()}</p>
           <p className="truncate text-xs text-white/70">{face.label} · {status}</p>
@@ -403,7 +408,7 @@ export function AgentFloat() {
       return;
     }
     try {
-      const pip = pipRef.current && !pipRef.current.closed ? pipRef.current : await api.requestWindow({ width: 360, height: 640 });
+      const pip = pipRef.current && !pipRef.current.closed ? pipRef.current : await api.requestWindow({ width: 440, height: 760 });
       if (!pip.document.getElementById("lifeos-dock-root")) {
         copyStyles(pip.document);
         const root = pip.document.createElement("div");
@@ -437,7 +442,7 @@ export function AgentFloat() {
     });
   }
   const panel = (
-    <div className={host ? "flex h-full flex-col bg-black p-3" : "az-dock flex h-[min(34rem,calc(100dvh-1rem))] w-[22rem] flex-col overflow-hidden"}>
+    <div className={host ? "flex h-full flex-col bg-black p-3" : "az-dock flex h-[min(44rem,calc(100dvh-1rem))] w-[26rem] flex-col overflow-hidden"}>
       <div className="mb-2 flex shrink-0 items-center gap-3" onPointerDown={host ? undefined : down} onPointerMove={host ? undefined : move} onPointerUp={() => { drag.current = null; }}>
         <div className="min-w-0 flex-1">
           <p className="font-display text-[11px] tracking-[0.22em]">EREBUS</p>
@@ -470,7 +475,11 @@ export function AgentFloat() {
             if (!moved) void floatOut();
           }}
         >
-          <img src="/agents/stills/nova.jpg" alt="" width="82" height="82" />
+          <span className="az-seal-face" data-skin="nova">
+            <img src="/agents/stills/nova.jpg" alt="" width="168" height="168" />
+            <span className="az-lid az-lid-l" />
+            <span className="az-lid az-lid-r" />
+          </span>
           <span className="az-live" />
         </button>
       )}

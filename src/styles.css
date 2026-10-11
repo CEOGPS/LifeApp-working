@@ -128,7 +128,68 @@ button.az-mini {
 button.az-seal {
   position: relative;
   height: auto !important;
-  width: 5.1rem !important;
+  width: 10.5rem !important;
+}
+.az-seal-face {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 1.4rem;
+}
+.az-face {
+  position: relative;
+  width: 100%;
+  height: 24rem;
+  overflow: hidden;
+  border-radius: 1.4rem;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+.az-face.is-compact { height: 18rem; }
+.az-face img,
+.az-seal-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+}
+.az-lid {
+  position: absolute;
+  top: 33%;
+  z-index: 2;
+  width: 13%;
+  height: 8%;
+  border-radius: 40% 40% 46% 46%;
+  transform: scaleY(0.04);
+  transform-origin: center top;
+  animation: az-blink 4.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.az-lid-l { left: 33%; }
+.az-lid-r { left: 54%; animation-delay: 0.06s; }
+.az-face[data-skin="nova"] .az-lid,
+.az-seal-face[data-skin="nova"] .az-lid { background: linear-gradient(#c9846c, #a86b58); }
+.az-face[data-skin="nyx"] .az-lid { background: linear-gradient(#e7b7a4, #c98978); }
+.az-face[data-skin="ember"] .az-lid { background: linear-gradient(#c98970, #a86d58); }
+.az-mouth {
+  position: absolute;
+  left: 44%;
+  top: 53%;
+  z-index: 2;
+  width: 12%;
+  height: calc(0.28rem + var(--talk, 0) * 1.7rem);
+  border-radius: 40% 40% 46% 46%;
+  opacity: calc(0.25 + var(--talk, 0) * 0.75);
+  pointer-events: none;
+  transition: height 60ms linear, opacity 80ms linear;
+}
+.az-face[data-skin="nova"] .az-mouth { background: #6d3028; box-shadow: 0 0 0 2px #c47a64; }
+.az-face[data-skin="nyx"] .az-mouth { background: #4a0e16; box-shadow: 0 0 0 2px #9a1830; }
+.az-face[data-skin="ember"] .az-mouth { background: #5a2834; box-shadow: 0 0 0 2px #b06a74; }
+@keyframes az-blink {
+  0%, 36%, 44%, 78%, 86%, 100% { transform: scaleY(0.04); }
+  39%, 42% { transform: scaleY(1); }
+  81%, 84% { transform: scaleY(1); }
 }
 button.az-seal img,
 button.az-mini img {

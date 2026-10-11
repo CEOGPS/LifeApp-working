@@ -101,7 +101,6 @@ export function VoiceClone({ data, update, onReady }: { data: Memory; update: Up
 }
 
 export function ErebusDock({ data, update, agent = "Erebus", compact = false }: { data: Memory; update: Update; agent?: "Erebus" | "Kranos"; compact?: boolean }) {
-  const [skin, setSkin] = useState(agent === "Kranos" ? "nyx" : "nova");
   const [mode, setMode] = useState<Mode>("chat");
   const [draft, setDraft] = useState("");
   const [mic, setMic] = useState(false);
@@ -120,7 +119,9 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   const hear = useRef<{ stop: () => void } | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const frame = useRef(0);
-  const face = agent === "Kranos" ? SKINS[1] : (SKINS.find((row) => row.id === skin && row.id !== "nyx") || SKINS[0]);
+  const face = agent === "Kranos"
+    ? SKINS[1]
+    : { id: "erebus", label: "Erebus", src: "/agents/avatars/erebus.mp4" };
 
   useEffect(() => () => {
     hear.current?.stop();
@@ -291,7 +292,7 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
   return (
     <div className={`erebus-dock flex w-full min-h-0 flex-col ${compact ? "h-full gap-1.5 overflow-hidden" : "module-card max-h-[calc(100dvh-5.5rem)] gap-2 overflow-y-auto p-3"}`}>
       <div className={`az-face ${compact ? "is-compact" : ""}`}>
-        <img key={face.src} src={face.src} alt="" />
+        {agent === "Erebus" ? <video src="/agents/avatars/erebus.mp4" poster="/agents/stills/erebus.jpg" autoPlay muted loop playsInline /> : <img key={face.src} src={face.src} alt="" />}
         <span className={`az-pip ${talking ? "is-talk" : mic ? "is-listen" : ""}`} />
       </div>
       <div className="flex shrink-0 items-center gap-3">
@@ -352,7 +353,6 @@ export function ErebusDock({ data, update, agent = "Erebus", compact = false }: 
         </label>
         <button type="button" className={`quiet ${muted ? "is-on" : ""}`} onClick={() => { setMuted((value) => !value); window.speechSynthesis?.cancel(); cancelAnimationFrame(frame.current); }}>{muted ? "Muted" : "Sound"}</button>
         <input className="h-1 w-20 accent-violet-300" type="range" min={0} max={1} step={0.05} value={volume} aria-label="Volume" onChange={(event) => setVolume(Number(event.target.value))} />
-        {SKINS.map((row) => <button key={row.id} type="button" className={`quiet ${skin === row.id ? "is-on" : ""}`} onClick={() => setSkin(row.id)}>{row.label}</button>)}
       </div>
       <VoiceClone data={data} update={update} onReady={(id) => {
         setVoice(id);
@@ -471,7 +471,7 @@ export function AgentFloat() {
             if (!moved) void floatOut();
           }}
         >
-          <img src="/agents/stills/nova.jpg" alt="" width="54" height="54" />
+          <img src="/agents/stills/erebus.jpg" alt="" width="54" height="54" />
           <span className="az-live" />
         </button>
       )}

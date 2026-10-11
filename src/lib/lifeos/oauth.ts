@@ -161,24 +161,13 @@ export function catchReturn() {
   return { provider: connected && isProvider(connected) ? connected : "", error };
 }
 
-export async function startOAuth(provider: OauthProvider, email?: string) {
+export function startOAuth(provider: OauthProvider, email?: string) {
   const origin = window.location.origin || APP_ORIGIN;
   const picked = (email || "").trim().toLowerCase();
-  if (!picked) throw new Error("Use the mailbox you clicked.");
   if (picked.endsWith("@icloud.com")) throw new Error("iCloud connects through Nylas, not OAuth.");
-  if (provider === "google" && !allowedEmail(picked)) throw new Error("Pick one of the three Google mailboxes.");
-  const token = readSessionToken();
-  if (!token) throw new Error("Sign in at the top of Integrations. Supabase emails you a code.");
-  sessionStorage.setItem("lifeos.oauth.back", `${origin}/panel/integrations`);
-  sessionStorage.setItem("lifeos.oauth.mailbox", picked);
-  const response = await fetch(`${WORKER}/api/oauth/start`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ provider, account_email: picked, origin }),
-  });
-  const body = await response.json().catch(() => ({})) as { url?: string; error?: string };
-  if (!response.ok || !body.url) throw new Error(body.error || "The worker refused the start.");
-  window.location.assign(body.url);
+  const params = new URLSearchParams({ provider, origin });
+  if (picked) params.set("account_email", picked);
+  window.location.assign(`${WORKER}/api/oauth/start?${params.toString()}`);
 }
 
 export async function startNylas(email?: string) {

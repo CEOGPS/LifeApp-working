@@ -713,25 +713,23 @@ function schedulePush() {
 
 async function pushNow() {
   try {
-    const { pushBoard } = await import("@/lib/lifeos/sync");
-    const { pushCloud, pushBrand, pushKeys } = await import("@/lib/lifeos/board-store");
-    const copy = { ...memory, keys: [], vault: [] };
-    const result = await pushBoard({ data: { device: SHARED_SQL, payload: JSON.stringify(copy) } });
-    await pushCloud(SHARED, copy).catch(() => false);
-    await pushBrand(memory.banner, memory.logo).catch(() => false);
-    await pushKeys(memory.keys).catch(() => false);
-    if (result.at) localStorage.setItem(AT, String(result.at));
-    statusText = "Synced";
-  } catch {
-    try {
-      const { pushCloud, pushBrand, pushKeys } = await import("@/lib/lifeos/board-store");
-      const ok = await pushCloud(SHARED, { ...memory, keys: [], vault: [] });
-      await pushBrand(memory.banner, memory.logo).catch(() => false);
-      await pushKeys(memory.keys).catch(() => false);
-      statusText = ok ? "Synced" : "Saved on this browser";
-    } catch {
-      statusText = "Saved on this browser";
+    const { pushCloud, pushBrand, pushKeys, pullCloud, pullKeys } = await import("@/lib/lifeos/board-store");
+    const cloud = await pullCloud(SHARED);
+    if (!cloud) {
+      statusText = "Saved on this browser. The shared board was left unchanged.";
+      emit();
+      return;
     }
+    if (cloud.doc) memory = absorb(memory, cloud.doc);
+    const cloudKeys = await pullKeys().catch(() => []);
+    if (cloudKeys.length) memory = { ...memory, keys: unionKeys(memory.keys, cloudKeys) };
+    const copy = { ...memory, keys: [], vault: [] };
+    const ok = await pushCloud(SHARED, copy);
+    await pushBrand(memory.banner, memory.logo).catch(() => false);
+    if (memory.keys.length) await pushKeys(memory.keys).catch(() => false);
+    statusText = ok ? "Synced" : "Saved on this browser. The shared board was left unchanged.";
+  } catch {
+    statusText = "Saved on this browser. The shared board was left unchanged.";
   }
   emit();
 }
@@ -766,7 +764,6 @@ export async function hydrateMemory() {
     memory.vault = readVault().length ? readVault() : memory.vault;
     rememberLocal();
     statusText = "Synced";
-    void pushNow();
   } catch {
     statusText = "Saved on this browser";
   }

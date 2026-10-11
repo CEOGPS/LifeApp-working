@@ -89,6 +89,12 @@ function originFromState(state) {
 }
 __name(originFromState, "originFromState");
 __name2(originFromState, "originFromState");
+function supabaseUrl(env) {
+  return env["SUPABASE_URL"] || env["SUPABASE_PROJECT_URL"] || env["NEXT_PUBLIC_SUPABASE_URL"] || "https://mhvcdstgkyplhzjptgfr.supabase.co";
+}
+function supabaseKey(env) {
+  return env["SUPABASE_SERVICE_ROLE_KEY"] || env["SUPABASE_SECRET_KEY"] || env["NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY"] || "";
+}
 function issueState(origin) {
   return `${crypto.randomUUID()}|${encodeURIComponent(safeOrigin(origin))}`;
 }
@@ -109,10 +115,10 @@ __name2(nylasClientId, "nylasClientId");
 async function sessionUserId(request, env) {
   const header = request.headers.get("Authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  if (!token || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return "";
-  const response = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+  if (!token || !supabaseUrl(env) || !supabaseKey(env)) return "";
+  const response = await fetch(`${supabaseUrl(env)}/auth/v1/user`, {
     headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      apikey: supabaseKey(env),
       Authorization: `Bearer ${token}`
     }
   });
@@ -124,8 +130,8 @@ __name(sessionUserId, "sessionUserId");
 __name2(sessionUserId, "sessionUserId");
 function serviceHeaders(env, extra) {
   return {
-    apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-    Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+    apikey: supabaseKey(env),
+    Authorization: `Bearer ${supabaseKey(env)}`,
     ...extra || {}
   };
 }
@@ -147,7 +153,7 @@ async function storePending(env, row) {
     at: Date.now()
   });
   if (!saved) return null;
-  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/integrations_credentials`, {
+  const response = await fetch(`${supabaseUrl(env)}/rest/v1/integrations_credentials`, {
     method: "POST",
     headers: serviceHeaders(env, { "Content-Type": "application/json", Prefer: "return=representation" }),
     body: JSON.stringify(row)
@@ -200,16 +206,16 @@ router.get("/status", async (request, env) => {
     });
   }
   try {
-    const supabaseUrl = env.SUPABASE_URL;
-    const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
+    const dbUrl = supabaseUrl(env);
+    const dbKey = supabaseKey(env);
+    if (!dbUrl || !dbKey) {
       return Response.json({
         error: "Supabase not configured",
         connected: [],
         statuses: {}
       }, { headers: corsHeaders() });
     }
-    let queryUrl = `${supabaseUrl}/rest/v1/integrations_credentials?user_id=eq.${encodeURIComponent(userId)}&select=id,integration_name,email,oauth_provider,oauth_access_token,status,updated_at`;
+    let queryUrl = `${dbUrl}/rest/v1/integrations_credentials?user_id=eq.${encodeURIComponent(userId)}&select=id,integration_name,email,oauth_provider,oauth_access_token,status,updated_at`;
     if (provider) {
       queryUrl += `&oauth_provider=eq.${encodeURIComponent(provider)}`;
     }
@@ -218,8 +224,8 @@ router.get("/status", async (request, env) => {
     }
     const response = await fetch(queryUrl, {
       headers: {
-        "apikey": supabaseKey,
-        "Authorization": `Bearer ${supabaseKey}`,
+        "apikey": dbKey,
+        "Authorization": `Bearer ${dbKey}`,
         "Content-Type": "application/json"
       }
     });
@@ -261,25 +267,28 @@ router.get("/status", async (request, env) => {
     }, { headers: corsHeaders() });
   }
 });
-async function startOauth(request, env) {
-  if (request.method !== "POST") {
-    return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders() });
+router.get("/linked", async (_request, env) => {
+  if (!supabaseUrl(env) || !supabaseKey(env)) {
+    return Response.json({ accounts: [] }, { headers: corsHeaders() });
   }
+  const response = await fetch(`${supabaseUrl(env)}/rest/v1/integrations_credentials?status=eq.on&select=oauth_provider,email,oauth_access_token`, {
+    headers: serviceHeaders(env)
+  });
+  if (!response.ok) return Response.json({ accounts: [] }, { headers: corsHeaders() });
+  const rows = await response.json();
+  const accounts = Array.isArray(rows) ? rows.filter((row) => row?.oauth_access_token && row?.oauth_provider).map((row) => ({ provider: row.oauth_provider, email: row.email || "" })) : [];
+  return Response.json({ accounts }, { headers: corsHeaders() });
+});
+async function startOauth(request, env) {
   const posted = request.method === "POST" ? await request.json().catch(() => ({})) : null;
   const url = new URL(request.url);
   const provider = String(posted ? posted.provider : url.searchParams.get("provider") || "");
-  const accountEmail = String(posted?.account_email || "").trim().toLowerCase();
-  const userId = await sessionUserId(request, env);
-  if (!userId) {
-    return Response.json({ error: "Sign in required" }, { status: 401, headers: corsHeaders() });
-  }
-  if (!accountEmail) {
-    return Response.json({ error: "Use the mailbox you clicked." }, { status: 400, headers: corsHeaders() });
-  }
+  const accountEmail = String((posted ? posted.account_email : url.searchParams.get("account_email")) || "").trim().toLowerCase();
+  const userId = "00000000-0000-4000-8000-000000000001";
   if (accountEmail.endsWith("@icloud.com")) {
     return Response.json({ error: "iCloud connects through Nylas, not OAuth." }, { status: 400, headers: corsHeaders() });
   }
-  if (provider === "google" && accountEmail !== "chris@ceogps.com" && accountEmail !== "chrisgr33ninc@gmail.com") {
+  if (provider === "google" && accountEmail && accountEmail !== "chris@ceogps.com" && accountEmail !== "chrisgr33ninc@gmail.com") {
     return Response.json({ error: "Use the mailbox you clicked." }, { status: 400, headers: corsHeaders() });
   }
   if (!OAUTH_PROVIDERS.has(provider)) {
@@ -312,7 +321,7 @@ async function startOauth(request, env) {
   });
   if (provider === "google") {
     params.set("access_type", "offline");
-    params.set("prompt", "consent");
+    params.set("prompt", "select_account consent");
     if (accountEmail) params.set("login_hint", accountEmail);
   }
   const pending = await storePending(env, {
@@ -337,6 +346,26 @@ __name(startOauth, "startOauth");
 __name2(startOauth, "startOauth");
 router.get("/start", startOauth);
 router.post("/start", startOauth);
+function resultPage(origin, title, message) {
+  const back = `${origin}/panel/integrations`;
+  const safe = String(message).replace(/[&<>]/g, (ch) => ({ "&": "&", "<": "<", ">": ">" })[ch]);
+  const safeTitle = String(title).replace(/[&<>]/g, (ch) => ({ "&": "&", "<": "<", ">": ">" })[ch]);
+  return new Response(`<!doctype html><meta charset="utf-8"><title>${safeTitle}</title><body style="font:16px sans-serif;background:#111;color:#fff;padding:2rem"><p>${safe}</p><p>You may now return to the website.</p><p><a href="${back}">Return to LifeOS</a></p></body>`, { headers: { "content-type": "text/html; charset=utf-8" } });
+}
+async function providerEmail(provider, accessToken) {
+  const endpoints = {
+    google: "https://www.googleapis.com/oauth2/v3/userinfo",
+    discord: "https://discord.com/api/users/@me",
+    spotify: "https://api.spotify.com/v1/me",
+    facebook: "https://graph.facebook.com/me?fields=email"
+  };
+  const endpoint = endpoints[provider];
+  if (!endpoint) return "";
+  const response = await fetch(endpoint, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!response.ok) return "";
+  const body = await response.json().catch(() => ({}));
+  return String(body.email || "").trim().toLowerCase();
+}
 router.get("/callback", async (request, env) => {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -356,6 +385,10 @@ router.get("/callback", async (request, env) => {
     const actualProvider = pending.oauth_provider;
     const tokenResponse = await exchangeCodeForToken(actualProvider, code, oauthCallback(env), env);
     if (!tokenResponse.access_token) throw new Error("Failed to obtain access token");
+    const email = (await providerEmail(actualProvider, tokenResponse.access_token)) || pending.email || "";
+    if (actualProvider === "google" && email !== "chris@ceogps.com" && email !== "chrisgr33ninc@gmail.com") {
+      return resultPage(origin, "Not connected", "That Google account is not one of the board mailboxes. Nothing was saved.");
+    }
     const updateData = {
       oauth_access_token: tokenResponse.access_token,
       oauth_refresh_token: tokenResponse.refresh_token || null,
@@ -363,23 +396,24 @@ router.get("/callback", async (request, env) => {
       oauth_scope: tokenResponse.scope || getScopes(actualProvider),
       status: "on",
       oauth_state: null,
-      email: pending.email,
+      email,
       updated_at: (/* @__PURE__ */ new Date()).toISOString()
     };
     if (tokenResponse.id_token) updateData.oauth_id_token = tokenResponse.id_token;
-    const target = pending.id ? `${env.SUPABASE_URL}/rest/v1/integrations_credentials?id=eq.${encodeURIComponent(pending.id)}` : `${env.SUPABASE_URL}/rest/v1/integrations_credentials`;
-    await fetch(target, {
+    const target = pending.id ? `${supabaseUrl(env)}/rest/v1/integrations_credentials?id=eq.${encodeURIComponent(pending.id)}` : `${supabaseUrl(env)}/rest/v1/integrations_credentials`;
+    const saved = await fetch(target, {
       method: pending.id ? "PATCH" : "POST",
       headers: serviceHeaders(env, { "Content-Type": "application/json", Prefer: "return=minimal" }),
       body: JSON.stringify(pending.id ? updateData : {
         ...updateData,
         user_id: pending.user_id,
         integration_name: actualProvider,
-        label: pending.email,
+        label: email || actualProvider,
         oauth_provider: actualProvider
       })
     });
-    return Response.redirect(`${origin}/panel/integrations?connected=${encodeURIComponent(actualProvider)}`, 302);
+    if (!saved.ok) return resultPage(origin, "Not connected", "The login finished, but the token was not stored. The card was not marked connected.");
+    return resultPage(origin, "Connected", email ? `Connected as ${email}.` : `Connected ${actualProvider}.`);
   } catch (e) {
     console.error("[oauth/callback] error:", e instanceof Error ? e.message : "OAuth failed");
     return Response.redirect(`${origin}/panel/integrations?oauth_error=${encodeURIComponent(e instanceof Error ? e.message : "OAuth failed")}`, 302);
@@ -397,17 +431,17 @@ router.post("/disconnect", async (request, env) => {
     });
   }
   try {
-    const supabaseUrl = env.SUPABASE_URL;
-    const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
+    const dbUrl = supabaseUrl(env);
+    const dbKey = supabaseKey(env);
+    if (!dbUrl || !dbKey) {
       throw new Error("Supabase not configured");
     }
-    const deleteUrl = `${supabaseUrl}/rest/v1/integrations_credentials?user_id=eq.${encodeURIComponent(userId)}&oauth_provider=eq.${encodeURIComponent(provider)}&email=eq.${encodeURIComponent(account_email)}`;
+    const deleteUrl = `${dbUrl}/rest/v1/integrations_credentials?user_id=eq.${encodeURIComponent(userId)}&oauth_provider=eq.${encodeURIComponent(provider)}&email=eq.${encodeURIComponent(account_email)}`;
     await fetch(deleteUrl, {
       method: "DELETE",
       headers: {
-        "apikey": supabaseKey,
-        "Authorization": `Bearer ${supabaseKey}`
+        "apikey": dbKey,
+        "Authorization": `Bearer ${dbKey}`
       }
     });
     return Response.json({ success: true, message: `Disconnected ${provider}` }, {
@@ -435,7 +469,7 @@ router.post("/token", async (request, env) => {
       return Response.json({ error: "Invalid or expired OAuth state" }, { status: 400, headers: corsHeaders() });
     }
     const tokenResponse = await exchangeCodeForToken(provider, code, oauthCallback(env), env);
-    await fetch(`${env.SUPABASE_URL}/rest/v1/integrations_credentials?id=eq.${encodeURIComponent(pending.id)}`, {
+    await fetch(`${supabaseUrl(env)}/rest/v1/integrations_credentials?id=eq.${encodeURIComponent(pending.id)}`, {
       method: "PATCH",
       headers: serviceHeaders(env, { "Content-Type": "application/json", Prefer: "return=minimal" }),
       body: JSON.stringify({
@@ -587,8 +621,8 @@ router3.get("/health", async (request, env) => {
   if (!userId) return Response.json({ error: "Sign in required" }, { status: 401, headers: corsHeaders() });
   const wanted = new Set((new URL(request.url).searchParams.get("ids") || "").split(",").map((item) => item.trim()).filter(Boolean));
   let accounts = [];
-  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
-    const listed = await fetch(`${env.SUPABASE_URL}/rest/v1/integrations_credentials?user_id=eq.${encodeURIComponent(userId)}&status=eq.on&select=oauth_provider,email,integration_name`, {
+  if (supabaseUrl(env) && supabaseKey(env)) {
+    const listed = await fetch(`${supabaseUrl(env)}/rest/v1/integrations_credentials?user_id=eq.${encodeURIComponent(userId)}&status=eq.on&select=oauth_provider,email,integration_name`, {
       headers: serviceHeaders(env)
     });
     if (listed.ok) accounts = await listed.json();
@@ -1047,7 +1081,7 @@ router16.get("/callback", async (request, env) => {
   if (!exchanged.ok || !(token.grant_id || token.access_token)) {
     return Response.redirect(`${origin}/panel/integrations?oauth_error=${encodeURIComponent("Nylas token exchange failed")}`, 302);
   }
-  await fetch(`${env.SUPABASE_URL}/rest/v1/integrations_credentials?id=eq.${encodeURIComponent(pending.id)}`, {
+  await fetch(`${supabaseUrl(env)}/rest/v1/integrations_credentials?id=eq.${encodeURIComponent(pending.id)}`, {
     method: "PATCH",
     headers: serviceHeaders(env, { "Content-Type": "application/json", Prefer: "return=minimal" }),
     body: JSON.stringify({
@@ -1469,7 +1503,7 @@ router29.get("/", async (request, env) => {
 var router30 = t();
 router30.get("/", async (request, env) => {
   return Response.json({
-    supabaseUrl: env.SUPABASE_URL || "https://mhvcdstgkyplhzjptgfr.supabase.co",
+    supabaseUrl: supabaseUrl(env) || "https://mhvcdstgkyplhzjptgfr.supabase.co",
     supabaseAnonKey: env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || ""
   }, { headers: corsHeaders() });
 });

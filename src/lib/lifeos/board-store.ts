@@ -7,7 +7,7 @@ export async function pullCloud(device: string): Promise<{ doc: unknown; at: num
   if (!response.ok) return null;
   const rows = await response.json() as { doc?: unknown; updated_at?: string }[];
   const row = rows?.[0];
-  if (!row?.doc) return null;
+  if (!row?.doc) return { doc: null, at: 0 };
   return { doc: row.doc, at: row.updated_at ? new Date(row.updated_at).getTime() : 0 };
 }
 

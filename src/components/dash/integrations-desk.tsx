@@ -240,20 +240,15 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       setNote(back.error);
     }
     setAccounts([]);
-    const token = sessionToken();
-    if (!token) return;
-    void fetch(`${WORKER}/api/integrations/health`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(12000),
-    }).then(async (response) => {
+    void fetch(`${WORKER}/api/oauth/linked`, { signal: AbortSignal.timeout(12000) }).then(async (response) => {
       if (!response.ok) return;
-      const body = await response.json() as { integrations?: { id?: string; status?: string; oauth?: { provider?: string; emails?: string[] } }[] };
+      const body = await response.json() as { accounts?: { provider?: string; email?: string }[] };
       const rows: Account[] = [];
-      for (const item of body.integrations || []) {
-        if (item.status !== "connected" || !item.oauth?.provider) continue;
-        const emails = item.oauth.emails?.length ? item.oauth.emails : [""];
-        for (const email of emails) rows.push({ provider: item.oauth.provider, name: item.id || item.oauth.provider, email });
-        stamp(CARD[item.oauth.provider as OauthProvider] || item.id || "Account", "connected", emails.filter(Boolean).join(", ") || "Connected");
+      for (const item of body.accounts || []) {
+        if (!item.provider) continue;
+        rows.push({ provider: item.provider, name: item.provider, email: item.email || "" });
+        const card = CARD[item.provider as OauthProvider] || item.provider;
+        stamp(card, "connected", item.email || "Connected");
       }
       setAccounts(rows);
     }).catch(() => undefined);
@@ -283,11 +278,13 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       });
       return;
     }
-    void startOAuth(provider, email).catch((error: unknown) => {
+    try {
+      startOAuth(provider, email);
+    } catch (error) {
       const text = error instanceof Error ? error.message : `${name} did not start.`;
       stamp(name, "error", text);
       setNote(text);
-    });
+    }
   }
 
   function disconnect(provider: OauthProvider, email?: string) {

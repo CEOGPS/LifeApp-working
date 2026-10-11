@@ -417,6 +417,34 @@ export async function runProbe(data: { name: string; key: string; email: string 
       if (data.name === "Ollama (local)") return readBody(await timed(fetch("https://ollama.com/api/tags", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Qwen") return readBody(await timed(fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/models", { headers: auth, signal: AbortSignal.timeout(8000) })));
       if (data.name === "Runwav") return readBody(await timed(fetch("https://api.dev.runwayml.com/v1/tasks?pageSize=1", { headers: { ...auth, "X-Runway-Version": "2024-11-06" }, signal: AbortSignal.timeout(8000) })));
+      const openGet: Record<string, { host: string; url: string; text: string }> = {
+        Kraken: { host: "api.kraken.com", url: "https://api.kraken.com/0/public/Time", text: "Kraken public API answered." },
+        "Crypto.com": { host: "api.crypto.com", url: "https://api.crypto.com/exchange/v1/public/get-tickers", text: "Crypto.com public API answered." },
+        GitLab: { host: "gitlab.com", url: "https://gitlab.com/api/v4/projects?visibility=public&per_page=1&simple=true", text: "GitLab public API answered." },
+        Postman: { host: "postman-echo.com", url: "https://postman-echo.com/get?source=lifeos", text: "Postman public echo API answered." },
+        Docker: { host: "hub.docker.com", url: "https://hub.docker.com/v2/repositories/library/nginx/", text: "Docker Hub public API answered." },
+        WordPress: { host: "api.wordpress.org", url: "https://api.wordpress.org/plugins/info/1.2/?action=query_plugins&request[per_page]=1", text: "WordPress.org public API answered. This is not a site login." },
+        Firefox: { host: "addons.mozilla.org", url: "https://addons.mozilla.org/api/v5/addons/search/?q=ublock&page_size=1", text: "Firefox add-ons public API answered. This is not a browser profile." },
+        Yahoo: { host: "query1.finance.yahoo.com", url: "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=1d", text: "Yahoo public chart API answered." },
+      };
+      const open = openGet[data.name];
+      if (open) {
+        if (!key.includes(open.host)) return { ok: false as const, checked: true as const, text: "No public endpoint is saved on this card." };
+        const response = await timed(fetch(open.url, { headers: { Accept: "application/json", "User-Agent": "LifeOS/1.0" }, signal: AbortSignal.timeout(8000) }));
+        if (!response.ok) return { ok: false as const, checked: true as const, text: `${data.name} refused the public API (HTTP ${response.status}).` };
+        return { ok: true as const, checked: true as const, text: open.text };
+      }
+      if (data.name === "VS Code") {
+        if (!key.includes("marketplace.visualstudio.com")) return { ok: false as const, checked: true as const, text: "No public endpoint is saved on this card." };
+        const response = await timed(fetch("https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json;api-version=3.0-preview.1", "User-Agent": "LifeOS/1.0" },
+          body: JSON.stringify({ filters: [{ criteria: [{ filterType: 8, value: "Microsoft.VisualStudio.Code" }, { filterType: 10, value: "prettier" }], pageNumber: 1, pageSize: 1, sortBy: 0, sortOrder: 0 }], assetTypes: [], flags: 0 }),
+          signal: AbortSignal.timeout(8000),
+        }));
+        if (!response.ok) return { ok: false as const, checked: true as const, text: `VS Code marketplace refused the public API (HTTP ${response.status}).` };
+        return { ok: true as const, checked: true as const, text: "VS Code marketplace public API answered. This is not your editor account." };
+      }
       return { ok: true as const, checked: false as const, text: "Saved. This service has no public check." };
     } catch (error) {
       return { ok: false as const, checked: true as const, text: error instanceof Error ? error.message : "The service did not answer." };

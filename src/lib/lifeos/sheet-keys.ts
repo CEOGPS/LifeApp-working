@@ -21,6 +21,8 @@ export const SERVICE_ENV: Record<string, string[]> = {
   Anthropic: ["ANTHROPIC_API_KEY"],
   xAI: ["XAI_API_KEY", "GROK_API_KEY"],
   "Grok (xAI)": ["XAI_API_KEY", "GROK_API_KEY"],
+  grok2api: ["GROK2API_KEY"],
+  "grok2api URL": ["GROK2API_BASE_URL"],
   Telegram: ["TELEGRAM_BOT_TOKEN"],
   "Google Analytics": ["GA_PROPERTY_ID", "GOOGLE_ANALYTICS_PROPERTY"],
   "Search Console": ["SEARCH_CONSOLE_SITE", "GSC_SITE_URL"],

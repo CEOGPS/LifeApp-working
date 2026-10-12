@@ -184,6 +184,8 @@ const ROWS: Row[] = ([
   { name: "WordPress", kind: "key" },
   { name: "X", kind: "key" },
   { name: "xAI", kind: "key" },
+  { name: "grok2api", kind: "key" },
+  { name: "grok2api URL", kind: "key" },
   { name: "Yahoo", kind: "key" },
   { name: "Yelp", kind: "key" },
   { name: "YouTube", kind: "key" },
@@ -398,7 +400,7 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
         body: JSON.stringify({
           name,
           key: value,
-          email: /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(name) ? "chrisgr33ninc@gmail.com" : name === "Grok (xAI)" || name === "xAI" ? "chris@ceogps.com" : "",
+          email: name === "grok2api" ? data.keys.find((item) => item.name === "grok2api URL")?.value || "" : name === "grok2api URL" ? data.keys.find((item) => item.name === "grok2api")?.value || "" : /^(Google|Gmail|YouTube|Search Console|Firebase)/.test(name) ? "chrisgr33ninc@gmail.com" : name === "Grok (xAI)" || name === "xAI" ? "chris@ceogps.com" : "",
         }),
         signal: AbortSignal.timeout(15000),
       });
@@ -462,6 +464,9 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
 
   function emails(name?: string) {
     const label = name || "";
+    if (label === "grok2api" || label === "grok2api URL") {
+      return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">Gateway only. Not connected until /v1/models accepts the client key.</p>;
+    }
     if (label === "Grok (xAI)" || label === "xAI") {
       return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">chris@ceogps.com</p>;
     }

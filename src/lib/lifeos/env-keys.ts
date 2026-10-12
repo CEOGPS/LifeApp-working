@@ -342,6 +342,14 @@ export async function runProbe(data: { name: string; key: string; email: string 
         if (!result.ok && /credits or licenses/i.test(result.text)) return { ok: false as const, checked: true as const, text: "The key is for chris@ceogps.com. xAI refused it because that team has no credits yet." };
         return result;
       }
+      if (data.name === "grok2api" || data.name === "grok2api URL") {
+        const base = (data.name === "grok2api URL" ? key : data.email).trim().replace(/\/$/, "");
+        const token = data.name === "grok2api" ? key : data.email.trim();
+        if (!base.startsWith("https://") || !token) return { ok: false as const, checked: true as const, text: "Save the https gateway URL and the g2a client key. Agents are not using grok2api yet." };
+        const response = await timed(fetch(`${base}/v1/models`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(8000) }));
+        if (!response.ok) return { ok: false as const, checked: true as const, text: `grok2api refused the client key (HTTP ${response.status}).` };
+        return { ok: true as const, checked: true as const, text: "grok2api accepted the client key. Agents will use it for Grok." };
+      }
       if (data.name === "NVIDIA") {
         return readBody(await timed(fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
           method: "POST",

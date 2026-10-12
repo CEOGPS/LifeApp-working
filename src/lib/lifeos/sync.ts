@@ -115,6 +115,31 @@ async function askKeyed(model: string, key: string, messages: { role: string; co
   }
 }
 
+async function askGrok2Api(messages: { role: string; content: string }[]) {
+  try {
+    let base = (process.env.GROK2API_BASE_URL || "").trim().replace(/\/$/, "");
+    let key = (process.env.GROK2API_KEY || "").trim();
+    if (!base || !key) {
+      const { pullKeys } = await import("@/lib/lifeos/board-store");
+      const saved = await pullKeys().catch(() => []);
+      base = base || (saved.find((row) => row.name === "grok2api URL")?.value || "").trim().replace(/\/$/, "");
+      key = key || (saved.find((row) => row.name === "grok2api")?.value || "").trim();
+    }
+    if (!base.startsWith("https://") || !key) return "";
+    const res = await fetch(`${base}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: process.env.GROK2API_MODEL || "grok-4.5", max_tokens: 400, temperature: 0.3, messages }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return "";
+    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    return body.choices?.[0]?.message?.content || "";
+  } catch {
+    return "";
+  }
+}
+
 async function askMind(mind: string, messages: { role: string; content: string }[]) {
   try {
     if (mind === "ollama") {
@@ -155,6 +180,8 @@ async function askMind(mind: string, messages: { role: string; content: string }
       return body.choices?.[0]?.message?.content || "";
     }
     if (mind !== "grok") return "";
+    const viaGateway = await askGrok2Api(messages);
+    if (viaGateway) return viaGateway;
     const key = process.env.XAI_API_KEY || process.env.GROK_API_KEY || "";
     if (!key) return "";
     const res = await fetch("https://api.x.ai/v1/chat/completions", {

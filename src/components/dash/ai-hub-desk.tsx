@@ -95,7 +95,7 @@ const CATALOG = [
   { id: "llama3.2", name: "Ollama", key: "Ollama (local)", note: "First choice on this machine" },
   { id: "openai/gpt-oss-20b", name: "NVIDIA", key: "NVIDIA", note: "Hosted open model" },
   { id: "meta-llama/Llama-3.1-8B-Instruct", name: "Hugging Face", key: "Hugging Face", note: "Open model" },
-  { id: "grok-4.5", name: "Grok", key: "xAI", note: "Fallback only" },
+  { id: "grok-4.5", name: "Grok", key: "xAI", note: "Uses grok2api when that gateway key is saved" },
   { id: "claude-sonnet-4-20250514", name: "Claude Sonnet", key: "Anthropic", note: "Writing and analysis" },
   { id: "claude-opus-4-20250514", name: "Claude Opus", key: "Anthropic", note: "Hard tasks" },
   { id: "gpt-4o", name: "GPT-4o", key: "OpenAI", note: "Vision and code" },

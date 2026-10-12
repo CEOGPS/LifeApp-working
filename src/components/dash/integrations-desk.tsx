@@ -465,7 +465,7 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
   function emails(name?: string) {
     const label = name || "";
     if (label === "grok2api" || label === "grok2api URL") {
-      return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">Gateway only. Not connected until /v1/models accepts the client key.</p>;
+      return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">https://lifeos.ceogps.com. Not connected until that host accepts the client key at /v1/models.</p>;
     }
     if (label === "Grok (xAI)" || label === "xAI") {
       return <p className="mt-2 text-sm leading-5 text-[oklch(0.82_0.13_220)]">chris@ceogps.com</p>;

@@ -117,7 +117,7 @@ async function askKeyed(model: string, key: string, messages: { role: string; co
 
 async function askGrok2Api(messages: { role: string; content: string }[]) {
   try {
-    let base = (process.env.GROK2API_BASE_URL || "").trim().replace(/\/$/, "");
+    let base = (process.env.GROK2API_BASE_URL || "https://lifeos.ceogps.com").trim().replace(/\/$/, "");
     let key = (process.env.GROK2API_KEY || "").trim();
     if (!base || !key) {
       const { pullKeys } = await import("@/lib/lifeos/board-store");

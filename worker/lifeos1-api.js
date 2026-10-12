@@ -59,6 +59,8 @@ function withCors(response, origin) {
 __name(withCors, "withCors");
 __name2(withCors, "withCors");
 var OAUTH_CALLBACK = "https://lifeos1-api.ceogps.workers.dev/api/oauth/callback";
+var DISCORD_CALLBACK = "https://lifeos1-api.ceogps.workers.dev/oauth/callback";
+var DISCORD_SCOPES = "identify messages.read gdm.join guilds bot connections email rpc.video.read rpc.notifications.read rpc.screenshare.write applications.store.update openid rpc.activities.write rpc.video.write rpc.voice.read webhook.incoming applications.commands role_connections.write rpc.screenshare.read rpc.voice.write rpc guilds.members.read guilds.join applications.builds.read applications.entitlements applications.commands.permissions.update";
 var NYLAS_CALLBACK = "https://lifeos1-api.ceogps.workers.dev/api/nylas/callback";
 var OAUTH_ORIGINS = /* @__PURE__ */ new Set(["https://lifeos.ceogps.com", "https://lifeos1.ceogps.com"]);
 var OAUTH_PROVIDERS = /* @__PURE__ */ new Set(["google", "microsoft", "github", "slack", "facebook", "instagram", "twitter", "linkedin", "spotify", "discord", "notion"]);
@@ -150,6 +152,7 @@ async function storePending(env, row) {
     provider: row.oauth_provider,
     email: row.email || "",
     id: "",
+    redirect: row.oauth_redirect_uri || "",
     at: Date.now()
   });
   if (!saved) return null;
@@ -167,6 +170,7 @@ async function storePending(env, row) {
       provider: row.oauth_provider,
       email: row.email || "",
       id: pending.id,
+      redirect: row.oauth_redirect_uri || "",
       at: Date.now()
     });
   }
@@ -189,7 +193,7 @@ async function claimState(env, state, provider) {
   if (!row?.user_id || !row.provider) return null;
   if (provider && row.provider !== provider) return null;
   if (!row.at || Date.now() - row.at > 10 * 60 * 1e3) return null;
-  return { id: row.id || "", user_id: row.user_id, email: row.email || "", oauth_provider: row.provider };
+  return { id: row.id || "", user_id: row.user_id, email: row.email || "", oauth_provider: row.provider, redirect: row.redirect || "" };
 }
 __name(claimState, "claimState");
 __name2(claimState, "claimState");
@@ -297,7 +301,7 @@ async function startOauth(request, env) {
   if (provider === "google" && !env.GOOGLE_CLIENT_ID) {
     return Response.json({ error: "GOOGLE_CLIENT_ID is not configured" }, { status: 500, headers: corsHeaders() });
   }
-  const callbackUri = oauthCallback(env);
+  const callbackUri = provider === "discord" ? DISCORD_CALLBACK : oauthCallback(env);
   const state = issueState(posted ? posted.origin : url.searchParams.get("origin"));
   const oauthUrls = {
     google: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -309,7 +313,7 @@ async function startOauth(request, env) {
     twitter: "https://twitter.com/i/oauth2/authorize",
     linkedin: "https://www.linkedin.com/oauth/v2/authorization",
     spotify: "https://accounts.spotify.com/authorize",
-    discord: "https://discord.com/api/oauth2/authorize",
+    discord: "https://discord.com/oauth2/authorize",
     notion: "https://api.notion.com/v1/oauth/authorize"
   };
   const params = new URLSearchParams({
@@ -323,6 +327,10 @@ async function startOauth(request, env) {
     params.set("access_type", "offline");
     params.set("prompt", "select_account consent");
     if (accountEmail) params.set("login_hint", accountEmail);
+  }
+  if (provider === "discord") {
+    params.set("permissions", "538444816");
+    params.set("integration_type", "1");
   }
   const pending = await storePending(env, {
     user_id: userId,
@@ -383,7 +391,7 @@ router.get("/callback", async (request, env) => {
     const pending = await claimState(env, state, hinted);
     if (!pending) throw new Error("Invalid or expired OAuth state");
     const actualProvider = pending.oauth_provider;
-    const tokenResponse = await exchangeCodeForToken(actualProvider, code, oauthCallback(env), env);
+    const tokenResponse = await exchangeCodeForToken(actualProvider, code, pending.redirect || (actualProvider === "discord" ? DISCORD_CALLBACK : oauthCallback(env)), env);
     if (!tokenResponse.access_token) throw new Error("Failed to obtain access token");
     const email = (await providerEmail(actualProvider, tokenResponse.access_token)) || pending.email || "";
     if (actualProvider === "google" && pending.email && email && email !== pending.email) {
@@ -570,7 +578,7 @@ function getScopes(provider) {
     twitter: "tweet.read tweet.write users.read",
     linkedin: "r_liteprofile w_member_social",
     spotify: "user-read-private user-read-email playlist-read-private",
-    discord: "identify email guilds",
+    discord: DISCORD_SCOPES,
     notion: "read"
   };
   return scopes[provider] || "openid email profile";
@@ -1600,11 +1608,17 @@ var index_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const allowed = allowedOrigins(env);
-    const response = await working_worker_default.fetch(request, env, ctx);
+    let inbound = request;
+    if (url.pathname === "/oauth/callback") {
+      const rewritten = new URL(request.url);
+      rewritten.pathname = "/api/oauth/callback";
+      inbound = new Request(rewritten, request);
+    }
+    const response = await working_worker_default.fetch(inbound, env, ctx);
     if (request.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
       return cors(new Response(null, { status: 204 }), request, allowed);
     }
-    if (url.pathname.startsWith("/api/oauth/callback")) {
+    if (url.pathname.startsWith("/api/oauth/callback") || url.pathname === "/oauth/callback") {
       if (response.status < 300 || response.status >= 400) return response;
       const location = response.headers.get("Location") || "";
       let next;

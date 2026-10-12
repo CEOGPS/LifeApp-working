@@ -640,8 +640,15 @@ function saveKeysLocal(keys: KeyRow[]) {
 
 function unionKeys(primary: KeyRow[], extra: KeyRow[]) {
   const map = new Map<string, KeyRow>();
+  const link = (value: string) => /^https?:\/\//i.test(value.trim());
   for (const row of extra) if (row.name && row.value) map.set(row.name, row);
-  for (const row of primary) if (row.name && row.value) map.set(row.name, row);
+  for (const row of primary) {
+    if (!row.name || !row.value) continue;
+    const previous = map.get(row.name);
+    if (previous && link(row.value) && !link(previous.value)) continue;
+    if (previous && !link(row.value) && !link(previous.value) && row.value.length + 8 < previous.value.length) continue;
+    map.set(row.name, row);
+  }
   return [...map.values()];
 }
 

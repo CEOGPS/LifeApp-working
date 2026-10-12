@@ -21,7 +21,8 @@ type Mark = { state: "connected" | "error" | "saved"; text: string };
 function readMarks(): Record<string, Mark> {
   try {
     const parsed = JSON.parse(localStorage.getItem(MARKS) || "{}") as Record<string, Mark>;
-    return parsed && typeof parsed === "object" ? parsed : {};
+    if (!parsed || typeof parsed !== "object") return {};
+    return Object.fromEntries(Object.entries(parsed).filter(([, mark]) => mark?.text !== "Saved. This service has no public check."));
   } catch {
     return {};
   }
@@ -235,7 +236,11 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
     void import("@/lib/lifeos/board-store").then(({ pullMarks }) => pullMarks()).then((saved) => {
       if (!Object.keys(saved).length) return;
       setMarks((prev) => {
-        const next = { ...prev, ...saved };
+        const next = { ...prev };
+        for (const [name, mark] of Object.entries(saved)) {
+          if (mark?.text === "Saved. This service has no public check.") continue;
+          next[name] = mark;
+        }
         try { localStorage.setItem(MARKS, JSON.stringify(next)); } catch { /* the shared copy is already loaded */ }
         return next;
       });
@@ -406,7 +411,11 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
       });
       const row = await response.json().catch(() => ({})) as { ok?: boolean; checked?: boolean; status?: string; reason?: string; error?: string; text?: string };
       const text = String(row.text || row.reason || row.error || `The check returned HTTP ${response.status}.`);
-      if (row.checked === false) { finish("saved", text); return "saved" as const; }
+      if (row.checked === false) {
+        setBusy((prev) => ({ ...prev, [name]: false }));
+        setNote(`${name}: saved. There is no live check for this service.`);
+        return "saved" as const;
+      }
       if (row.ok || row.status === "connected") { finish("connected", text); return "connected" as const; }
       finish("error", text);
       return "error" as const;
@@ -479,10 +488,11 @@ export function IntegrationsDesk({ data, update, accounts, setAccounts, note, se
 
   function statusLine(name: string, fallback: { state: Mark["state"] | "idle"; text: string }) {
     const mark = marks[name];
-    const state = mark?.state || fallback.state;
-    const text = mark?.text || fallback.text;
-    const tone = state === "connected" ? "text-green" : state === "error" ? "text-rose-300" : "text-white/55";
-    const dot = state === "connected" ? "bg-green shadow-[0_0_8px_#34d399]" : state === "error" ? "bg-rose-400 shadow-[0_0_8px_#fb7185]" : "bg-white/30";
+    const useless = mark?.text === "Saved. This service has no public check.";
+    const state = !mark || useless ? fallback.state : mark.state;
+    const text = !mark || useless ? fallback.text : mark.text;
+    const tone = state === "connected" ? "text-[#34d399]" : state === "error" ? "text-[#fb7185]" : "text-white/55";
+    const dot = state === "connected" ? "bg-[#34d399] shadow-[0_0_8px_#34d399]" : state === "error" ? "bg-[#fb7185] shadow-[0_0_8px_#fb7185]" : "bg-white/30";
     const label = state === "connected" ? "Connected" : state === "error" ? "Error" : state === "saved" ? "Saved" : "Not connected";
     return (
       <p className={`mt-2 inline-flex max-w-full items-start gap-2 rounded-full border border-white/15 px-3 py-1 text-sm ${tone}`}>
